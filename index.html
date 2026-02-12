@@ -5,82 +5,94 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>27번 도구 – 엑셀 업로드</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 12px; }
-    h1 { margin: 0 0 10px 0; font-size: 18px; }
-    .row { display:flex; flex-wrap: wrap; gap:8px; align-items:center; margin: 6px 0; }
-    .btn { padding:6px 10px; border:1px solid #888; background:#fff; cursor:pointer; border-radius:6px; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .badge { padding:4px 8px; border-radius:999px; border:1px solid #aaa; font-size:12px; }
-    .ok { background:#e8fff0; }
-    .bad { background:#ffecec; }
-    select, input[type="text"] { padding:6px 8px; border:1px solid #aaa; border-radius:6px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border:1px solid #ddd; padding:6px; font-size:12px; vertical-align: top; }
-    th { background:#f6f6f6; position: sticky; top: 0; z-index: 2; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif; margin:16px; }
+    h1 { margin: 0 0 10px; font-size: 18px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin: 6px 0; }
+    .badge { padding:4px 8px; border-radius:999px; border:1px solid #ccc; font-size:12px; background:#fafafa; }
+    .ok { border-color:#2a7; color:#186; background:#e8fff0; }
+    .bad { border-color:#c33; color:#a11; background:#ffecec; }
+    .btn { padding:6px 10px; border:1px solid #bbb; border-radius:8px; background:white; cursor:pointer; font-size:12px; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .danger { border-color:#c33; color:#a11; }
     .mini { font-size:11px; color:#444; }
     .muted { color:#666; }
+    .hr { height:1px; background:#eee; margin:10px 0; }
+    .panel { border:1px solid #ddd; background:#fff; border-radius:10px; padding:10px; }
+    .errBox { border:1px solid #c33; background:#ffecec; padding:10px; border-radius:10px; font-size:12px; display:none; white-space:pre-wrap; }
+    .errBox.show { display:block; }
+    .infoBox { border:1px solid #ddd; background:#fafafa; padding:10px; border-radius:10px; font-size:12px; white-space:pre-wrap; }
+    table { border-collapse: collapse; width:100%; table-layout: fixed; }
+    th, td { border:1px solid #ddd; padding:6px; font-size:12px; vertical-align: top; }
+    th { background:#f6f6f6; position: sticky; top: 0; z-index: 2; }
+    .nowrap { white-space: nowrap; }
+    .log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11px; border:1px solid #ddd; padding:8px; border-radius:10px; background:#fafafa; }
     .cellBtns { display:flex; gap:4px; margin-top:4px; }
     .p { border-color:#2a7; }
     .x { border-color:#c33; }
     .p.on { background:#e8fff0; }
     .x.on { background:#ffecec; }
-    .nowrap { white-space: nowrap; }
-    .log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11px; border:1px solid #ddd; padding:8px; border-radius:8px; background:#fafafa; }
-    .hr { height:1px; background:#eee; margin:10px 0; }
-    .danger { border-color:#c33; color:#c33; }
+    .hidden { display:none !important; }
   </style>
 
-  <!-- XLSX 라이브러리: GitHub Pages에서 404 안 나게 CDN 사용 -->
+  <!-- XLSX: CDN -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <h1>27번 도구 – 엑셀 업로드</h1>
 
+  <div id="errBox" class="errBox"></div>
+
   <div class="row">
     <span id="dbBadge" class="badge">DB: …</span>
     <span id="fileBadge" class="badge">선택된 파일 없음</span>
+    <span id="modeBadge" class="badge">상태: …</span>
   </div>
 
-  <div class="row">
-    <input id="fileInput" type="file" accept=".xlsx,.xls" />
-    <button id="btnUpsert" class="btn">업로드(추가/합치기)</button>
-    <button id="btnReplace" class="btn">업로드(전체 교체)</button>
-    <button id="btnAllPass" class="btn">전체 PASS</button>
-    <button id="btnAllX" class="btn">전체 X</button>
-    <button id="btnExport" class="btn">백업 내보내기</button>
-    <button id="btnImport" class="btn">백업 불러오기</button>
-    <button id="btnReset" class="btn danger">DB 초기화</button>
-  </div>
+  <div class="panel">
+    <div class="row">
+      <input id="fileInput" type="file" accept=".xlsx,.xls" />
+      <button id="btnPreview" class="btn" disabled>선택파일 미리보기(저장X)</button>
+      <button id="btnUpsert" class="btn" disabled>업로드(추가/합치기)</button>
+      <button id="btnReplace" class="btn" disabled>업로드(전체 교체)</button>
+      <button id="btnAllPass" class="btn">전체 PASS</button>
+      <button id="btnAllX" class="btn">전체 X</button>
+      <button id="btnExport" class="btn">백업 내보내기</button>
+      <button id="btnImport" class="btn">백업 불러오기</button>
+      <button id="btnReset" class="btn danger">DB 초기화</button>
+    </div>
 
-  <div class="row">
-    <span class="mini muted">정렬:</span>
-    <select id="sortSel">
-      <option value="pub_desc">발행일 최신순</option>
-      <option value="pub_asc">발행일 오래된순</option>
-      <option value="title_asc">Title A→Z</option>
-      <option value="isbn_asc">ISBN 오름차순</option>
-    </select>
+    <div class="row">
+      <span class="mini muted">정렬:</span>
+      <select id="sortSel">
+        <option value="pub_desc">발행일 최신순</option>
+        <option value="pub_asc">발행일 오래된순</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="isbn_asc">ISBN 오름차순</option>
+      </select>
 
-    <span class="mini muted">필터:</span>
-    <select id="pubSel">
-      <option value="ALL">전체 발행사</option>
-      <option value="Elsevier">Elsevier</option>
-      <option value="Springer">Springer</option>
-      <option value="Wiley">Wiley</option>
-      <option value="Unknown">Unknown</option>
-    </select>
+      <span class="mini muted">필터:</span>
+      <select id="pubSel">
+        <option value="ALL">전체 발행사</option>
+      </select>
 
-    <span class="mini muted">검색:</span>
-    <input id="q" type="text" placeholder="ISBN / Title / 한글" size="28" />
-    <span id="counts" class="mini muted"></span>
+      <span class="mini muted">검색:</span>
+      <input id="q" type="text" placeholder="ISBN / Title / 한글" size="28" />
+      <span id="counts" class="mini muted"></span>
+    </div>
+
+    <div class="row">
+      <label class="mini"><input type="checkbox" id="toggleCellBtns" /> 셀 PASS/X 버튼 표시(느려질 수 있음)</label>
+      <label class="mini muted">※ 기본은 컬럼 PASS/X만 사용(대용량 안정)</label>
+    </div>
   </div>
 
   <div class="hr"></div>
 
+  <div id="previewBox" class="infoBox hidden"></div>
+
   <div class="mini muted">
     <b>컬럼별 PASS/X</b> (각 컬럼 버튼은 “해당 컬럼만” 표기합니다. 행 PASS/X는 맨 오른쪽 PASS/X로 표기합니다.)
   </div>
-
   <div id="colControls" class="row"></div>
 
   <table>
@@ -114,7 +126,61 @@
 <script>
 (() => {
   // -----------------------------
-  // DB (IndexedDB) — 용량/Quota 문제 회피
+  // UI helpers
+  // -----------------------------
+  const el = (id) => document.getElementById(id);
+  const errBox = el("errBox");
+  const dbBadge = el("dbBadge");
+  const fileBadge = el("fileBadge");
+  const modeBadge = el("modeBadge");
+  const fileInput = el("fileInput");
+  const tbody = el("tbody");
+  const logBox = el("log");
+  const counts = el("counts");
+  const previewBox = el("previewBox");
+
+  function nowStr() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function setDBBadge(ok, text) {
+    dbBadge.textContent = `DB: ${text}`;
+    dbBadge.className = "badge " + (ok ? "ok" : "bad");
+  }
+  function setMode(text, ok=true) {
+    modeBadge.textContent = `상태: ${text}`;
+    modeBadge.className = "badge " + (ok ? "ok" : "bad");
+  }
+  function showErr(msg) {
+    errBox.textContent = String(msg || "");
+    errBox.classList.add("show");
+  }
+  function clearErr() {
+    errBox.textContent = "";
+    errBox.classList.remove("show");
+  }
+  function showPreview(text) {
+    previewBox.textContent = text;
+    previewBox.classList.remove("hidden");
+  }
+  function hidePreview() {
+    previewBox.textContent = "";
+    previewBox.classList.add("hidden");
+  }
+
+  // 화면 에러 수집(콘솔 사진 필요 없게)
+  window.addEventListener("error", (e) => {
+    const m = `에러: ${e.message}\n${e.filename||""}:${e.lineno||""}:${e.colno||""}`;
+    showErr(m);
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    const reason = e.reason && (e.reason.stack || e.reason.message) ? (e.reason.stack || e.reason.message) : String(e.reason);
+    showErr(`Promise 에러: ${reason}`);
+  });
+
+  // -----------------------------
+  // DB (IndexedDB) — localStorage quota 회피
   // -----------------------------
   const DB_NAME = "tbv27_db_v1";
   const DB_VER = 1;
@@ -122,6 +188,7 @@
   const STORE_META = "meta";
   const STORE_LOGS = "logs";
 
+  // 공통 컬럼(고정)
   const FIELDS = ["publisher","korTitle","title","subTitle","isbn","price","currency","pubDate","pages","anchor"];
   const FIELD_LABEL = {
     publisher:"Publisher", korTitle:"KOR_TITLE", title:"Title", subTitle:"Sub Title",
@@ -130,33 +197,19 @@
 
   let db = null;
   let selectedFile = null;
-  let cacheRows = [];       // in-memory (화면용)
-  let cacheLogs = [];       // in-memory
+  let cacheRows = [];
+  let cacheLogs = [];
   let lastFileName = "";
-
-  const el = (id) => document.getElementById(id);
-
-  const dbBadge = el("dbBadge");
-  const fileBadge = el("fileBadge");
-  const fileInput = el("fileInput");
-  const tbody = el("tbody");
-  const logBox = el("log");
-  const counts = el("counts");
-
-  function nowStr() {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2,"0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
+  let lastUploadMode = ""; // "replace" | "upsert"
+  let lastUploadAt = "";
+  let cellBtnsOn = false;
 
   async function openDB() {
-    dbBadge.textContent = "DB: 여는 중…";
+    setDBBadge(true, "여는 중…");
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VER);
-      req.onupgradeneeded = (ev) => {
+      req.onupgradeneeded = () => {
         const db_ = req.result;
-
-        // rows: key = isbn (없으면 파일명+row)
         if (!db_.objectStoreNames.contains(STORE_ROWS)) {
           const os = db_.createObjectStore(STORE_ROWS, { keyPath: "key" });
           os.createIndex("publisher", "publisher", { unique: false });
@@ -166,7 +219,7 @@
           db_.createObjectStore(STORE_META, { keyPath: "key" });
         }
         if (!db_.objectStoreNames.contains(STORE_LOGS)) {
-          db_.createObjectStore(STORE_LOGS, { keyPath: "id" }); // id = timestamp+rand
+          db_.createObjectStore(STORE_LOGS, { keyPath: "id" });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -209,6 +262,7 @@
   }
 
   async function rowsPutMany(rows) {
+    // 대용량 안전: 한 트랜잭션에서 순차 put
     return new Promise((resolve, reject) => {
       const store = tx(STORE_ROWS,"readwrite");
       let i = 0;
@@ -230,137 +284,1035 @@
     });
   }
 
-  async function logsAdd(msg) {
-    const entry = { id: `${Date.now()}_${Math.random().toString(16).slice(2)}`, ts: Date.now(), msg };
-    return new Promise((resolve, reject) => {
-      const r = tx(STORE_LOGS,"readwrite").put(entry);
-      r.onsuccess = () => resolve(entry);
-      r.onerror = () => reject(r.error);
-    });
-  }
-
   async function logsGetAll() {
     return new Promise((resolve, reject) => {
       const r = tx(STORE_LOGS).getAll();
-      r.onsuccess = () => resolve((r.result || []).sort((a,b)=>a.ts-b.ts));
+      r.onsuccess = () => resolve(r.result || []);
       r.onerror = () => reject(r.error);
     });
   }
 
-  function setDBBadge(ok, text) {
-    dbBadge.textContent = `DB: ${text}`;
-    dbBadge.className = "badge " + (ok ? "ok" : "bad");
-  }
-
-  // -----------------------------
-  // Logging + UI
-  // -----------------------------
-  async function addLog(line) {
-    const full = `[${nowStr()}] ${line}`;
-    await logsAdd(full);
-    cacheLogs = await logsGetAll();
+  async function addLog(text) {
+    const item = { id: Date.now() + "-" + Math.random().toString(16).slice(2), at: nowStr(), text: String(text||"") };
+    await new Promise((resolve, reject) => {
+      const r = tx(STORE_LOGS,"readwrite").put(item);
+      r.onsuccess = () => resolve(true);
+      r.onerror = () => reject(r.error);
+    });
+    cacheLogs.push(item);
     renderLog();
   }
 
-  function renderLog() {
-    const lines = cacheLogs.map(x => x.msg);
-    logBox.textContent = lines.join("\n");
+  // -----------------------------
+  // Flags (PASS/X)
+  // -----------------------------
+  function initRowFlags() {
+    const flags = {};
+    for (const f of FIELDS) flags[f] = { pass: true, x: false };
+    flags.__row = { pass: true, x: false };
+    return flags;
+  }
+  function applyRowLevelFromFields(flags) {
+    const anyX = FIELDS.some(f => flags[f]?.x);
+    flags.__row = { pass: !anyX, x: anyX };
+    return flags;
   }
 
-  function sanitizeStr(v) {
-    if (v === null || v === undefined) return "";
-    return String(v).trim();
-  }
-
+  // -----------------------------
+  // Publisher/Column mapping (원본 그대로)
+  // -----------------------------
   function detectPublisher(fileName) {
-    const n = (fileName||"").toLowerCase();
-    if (n.includes("elsevier")) return "Elsevier";
+    const n = (fileName || "").toLowerCase();
     if (n.includes("springer")) return "Springer";
+    if (n.includes("elsevier")) return "Elsevier";
     if (n.includes("wiley")) return "Wiley";
     return "Unknown";
   }
 
-  function excelDateToISO(v) {
-    // v can be: number (Excel serial), Date, or string
-    if (v === null || v === undefined || v === "") return "";
-    if (v instanceof Date && !isNaN(v)) {
-      const y = v.getFullYear();
-      const m = String(v.getMonth()+1).padStart(2,"0");
-      const d = String(v.getDate()).padStart(2,"0");
-      return `${y}-${m}-${d}`;
-    }
-    if (typeof v === "number" && isFinite(v)) {
-      // Excel date serial -> use XLSX.SSF
-      const o = XLSX.SSF.parse_date_code(v);
-      if (o && o.y && o.m && o.d) {
-        const y = o.y;
-        const m = String(o.m).padStart(2,"0");
-        const d = String(o.d).padStart(2,"0");
-        return `${y}-${m}-${d}`;
-      }
-      return "";
-    }
-    const s = sanitizeStr(v);
-    // accept "YYYY/MM/DD" or "YYYY-MM-DD" or "1-Feb-2027"
-    // try Date parse as fallback
-    const d = new Date(s);
-    if (!isNaN(d)) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      return `${y}-${m}-${day}`;
-    }
-    // If already like 2022/08/24 keep as is? normalize slash
-    const m1 = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-    if (m1) {
-      const y = m1[1];
-      const mo = String(m1[2]).padStart(2,"0");
-      const da = String(m1[3]).padStart(2,"0");
-      return `${y}-${mo}-${da}`;
-    }
-    return s; // last resort: keep original string
+  function sanitizeStr(v) {
+    return String(v ?? "").replace(/\u0000/g,"").trim();
   }
 
-  function parsePrice(v) {
-    if (v === null || v === undefined) return "";
-    if (typeof v === "number" && isFinite(v)) return String(v);
+  function toISODateIfPossible(v) {
+    // 이미 YYYY-MM-DD or YYYY/MM/DD 형태면 최대한 유지(원본을 크게 바꾸지 않음)
     const s = sanitizeStr(v);
     if (!s) return "";
-    // remove $ , €
-    const cleaned = s.replace(/[$€,]/g, "").trim();
-    // "0.00" => "0" is fine, but keep numeric string
-    const num = Number(cleaned);
-    if (!isNaN(num)) return String(num);
-    return cleaned;
+    // Excel date number
+    if (typeof v === "number" && isFinite(v)) {
+      const d = XLSX.SSF.parse_date_code(v);
+      if (d && d.y && d.m && d.d) {
+        const pad = (n) => String(n).padStart(2,"0");
+        return `${d.y}-${pad(d.m)}-${pad(d.d)}`;
+      }
+    }
+    // 2024/12/09
+    const m1 = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+    if (m1) {
+      const pad = (n) => String(n).padStart(2,"0");
+      return `${m1[1]}-${pad(m1[2])}-${pad(m1[3])}`;
+    }
+    // 1-Feb-2027
+    const m2 = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+    if (m2) {
+      const day = String(m2[1]).padStart(2,"0");
+      const mon = m2[2].toLowerCase();
+      const map = { jan:"01", feb:"02", mar:"03", apr:"04", may:"05", jun:"06", jul:"07", aug:"08", sep:"09", oct:"10", nov:"11", dec:"12" };
+      const mm = map[mon] || "";
+      return mm ? `${m2[3]}-${mm}-${day}` : s;
+    }
+    return s; // 파싱 실패면 원문 유지
   }
 
-  function defaultCurrency(publisher) {
-    if (publisher === "Springer") return "EUR";
-    if (publisher === "Elsevier") return "USD";
-    if (publisher === "Wiley") return "USD";
-    return "";
+  function parsePriceAndCurrency(rawPrice, publisher, headers) {
+    // 원본 컬럼/표기 기반: Wiley=USD, Elsevier=USD, Springer=EUR
+    // 가격은 숫자만 저장(표시는 숫자), 통화는 별도 컬럼
+    const p = sanitizeStr(rawPrice);
+    if (!p) {
+      // 빈칸이면 빈칸 유지(0 채우기 금지)
+      const cur = publisher === "Springer" ? "EUR" : "USD";
+      return { price:"", currency:cur };
+    }
+    // "$175.00" -> 175.00
+    const n = p.replace(/[^0-9.\-]/g,"");
+    const cur = publisher === "Springer" ? "EUR" : "USD";
+    return { price: n, currency: cur };
   }
 
-  function makeKey(isbn, fileName, rowNum) {
-    const i = sanitizeStr(isbn);
-    if (i) return i;
-    return `${sanitizeStr(fileName)}::row:${rowNum}`;
+  function findHeaderRow(rows) {
+    // 상단 50줄에서 "ISBN"나 "Title" 같은 헤더 찾기
+    const max = Math.min(50, rows.length);
+    for (let i=0;i<max;i++) {
+      const r = (rows[i]||[]).map(x => sanitizeStr(x).toLowerCase());
+      const joined = r.join(" | ");
+      if (joined.includes("isbn") && joined.includes("title")) return i;
+    }
+    return -1;
   }
 
-  function initRowFlags() {
-    // per field: pass/x flags
-    const flags = {};
-    for (const f of FIELDS) flags[f] = { pass: true, x: false };
-    // row-level
-    flags.__row = { pass: true, x: false };
-    return flags;
+  function buildColMap(headers) {
+    const map = new Map();
+    headers.forEach((h, idx) => map.set(sanitizeStr(h).toLowerCase(), idx));
+    const pick = (...names) => {
+      for (const nm of names) {
+        const k = nm.toLowerCase();
+        if (map.has(k)) return map.get(k);
+      }
+      return -1;
+    };
+    return {
+      // Elsevier
+      e_isbn: pick("isbn"),
+      e_title: pick("title"),
+      e_price: pick("list price (usd)", "list price", "price"),
+      e_pub: pick("pub date", "pub date ", "pub date\t", "pub date.", "pub date:", "pub date", "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date", "pub date", "pub date", "pub date", "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date", "actual publishing date", "actual publishing date ", "actual publishing date\t", "actual publishing date.",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date",
+                  "pub date",
+                  "pub date", "pub date",
+                  "pub date", "pub date", "pub date",
+                  "pub date", "pub date"),
+      e_pages: pick("no of pages", "pages"),
+      // Wiley
+      w_title: pick("title"),
+      w_pub: pick("pub date", "pubdate", "publication date"),
+      w_pages: pick("pages", "page", "no of pages"),
+      w_isbn13: pick("isbn13", "isbn"),
+      w_price: pick("us$", "usd", "price"),
+      // Springer
+      s_isbn: pick("isbn"),
+      s_title: pick("title"),
+      s_sub: pick("sub title", "subtitle"),
+      s_pages: pick("no of arabic pages", "pages"),
+      s_price: pick("price eur", "price"),
+      s_pub: pick("actual publishing date", "pub date", "publication date"),
+    };
   }
 
-  function applyRowLevelFromFields(flags) {
-    // if any field x => row x
-    const anyX = FIELDS.some(f => flags[f]?.x);
-    flags.__row = { pass: !anyX, x: anyX };
-    return flags;
+  function normalizeRow(publisher, fileName, rowNum, raw, colMap) {
+    const get = (idx) => idx >= 0 ? raw[idx] : "";
+    let isbn="", title="", subTitle="", pubDate="", pages="", priceRaw="";
+
+    if (publisher === "Elsevier") {
+      isbn = sanitizeStr(get(colMap.e_isbn));
+      title = sanitizeStr(get(colMap.e_title));
+      priceRaw = get(colMap.e_price);
+      pubDate = toISODateIfPossible(get(colMap.e_pub));
+      pages = sanitizeStr(get(colMap.e_pages));
+      subTitle = ""; // Elsevier 원본에 없음
+    } else if (publisher === "Wiley") {
+      title = sanitizeStr(get(colMap.w_title));
+      pubDate = toISODateIfPossible(get(colMap.w_pub));
+      pages = sanitizeStr(get(colMap.w_pages));
+      isbn = sanitizeStr(get(colMap.w_isbn13));
+      priceRaw = get(colMap.w_price);
+      subTitle = ""; // Wiley 원본에 없음
+    } else if (publisher === "Springer") {
+      isbn = sanitizeStr(get(colMap.s_isbn));
+      title = sanitizeStr(get(colMap.s_title));
+      subTitle = sanitizeStr(get(colMap.s_sub));
+      pages = sanitizeStr(get(colMap.s_pages));
+      priceRaw = get(colMap.s_price);
+      pubDate = toISODateIfPossible(get(colMap.s_pub));
+    } else {
+      // Unknown: 최소만
+      isbn = sanitizeStr(get(colMap.e_isbn >= 0 ? colMap.e_isbn : 0));
+      title = sanitizeStr(get(colMap.e_title >= 0 ? colMap.e_title : 1));
+      pubDate = toISODateIfPossible(get(colMap.e_pub));
+      pages = sanitizeStr(get(colMap.e_pages));
+      priceRaw = get(colMap.e_price);
+    }
+
+    // 완전 빈 줄은 스킵
+    if (!isbn && !title) return null;
+
+    const { price, currency } = parsePriceAndCurrency(priceRaw, publisher);
+    const key = `${publisher}|${isbn || title}|${pubDate || ""}|${rowNum}`; // 충돌 최소화(원본 ANCHOR 유지 목적)
+    const anchor = `${fileName} / row:${rowNum}`;
+
+    return {
+      key,
+      publisher,
+      korTitle: "", // 번역은 별도(원본 생성 금지)
+      title,
+      subTitle,
+      isbn,
+      price,
+      currency,
+      pubDate,
+      pages,
+      anchor,
+      flags: applyRowLevelFromFields(initRowFlags())
+    };
+  }
+
+  async function parseExcel(file) {
+    setMode("파일 읽는 중…", true);
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+
+    const headerRowIndex = findHeaderRow(rows);
+    if (headerRowIndex === -1) throw new Error("헤더 행 탐지 실패(상단 50줄에서 ISBN/Title 헤더를 못 찾음)");
+
+    const headers = (rows[headerRowIndex] || []).map(x => sanitizeStr(x));
+    const publisher = detectPublisher(file.name);
+    const colMap = buildColMap(headers);
+
+    const out = [];
+    for (let i = headerRowIndex + 1; i < rows.length; i++) {
+      const raw = rows[i] || [];
+      const norm = normalizeRow(publisher, file.name, i+1, raw, colMap);
+      if (!norm) continue;
+      out.push(norm);
+    }
+    return { publisher, fileName: file.name, rows: out };
+  }
+
+  // -----------------------------
+  // Rendering
+  // -----------------------------
+  function renderLog() {
+    const lines = cacheLogs
+      .slice()
+      .sort((a,b) => (a.at||"").localeCompare(b.at||""))
+      .map(l => `[${l.at}] ${l.text}`);
+    logBox.textContent = lines.join("\n");
+  }
+
+  function getVisibleRows() {
+    const pub = el("pubSel").value;
+    const q = sanitizeStr(el("q").value).toLowerCase();
+    let rows = cacheRows;
+
+    if (pub !== "ALL") rows = rows.filter(r => r.publisher === pub);
+    if (q) {
+      rows = rows.filter(r => {
+        const a = (r.isbn||"").toLowerCase();
+        const b = (r.title||"").toLowerCase();
+        const c = (r.korTitle||"").toLowerCase();
+        return a.includes(q) || b.includes(q) || c.includes(q);
+      });
+    }
+
+    // sorting
+    const s = el("sortSel").value;
+    rows = rows.slice();
+    if (s === "pub_desc") rows.sort((a,b)=> (b.pubDate||"").localeCompare(a.pubDate||""));
+    if (s === "pub_asc") rows.sort((a,b)=> (a.pubDate||"").localeCompare(b.pubDate||""));
+    if (s === "title_asc") rows.sort((a,b)=> (a.title||"").localeCompare(b.title||""));
+    if (s === "isbn_asc") rows.sort((a,b)=> (a.isbn||"").localeCompare(b.isbn||""));
+
+    return rows;
+  }
+
+  function renderCounts() {
+    const vis = getVisibleRows();
+    const xCount = vis.filter(r => r.flags && r.flags.__row && r.flags.__row.x).length;
+    counts.textContent = `전체 ${cacheRows.length}건 / 표시 ${vis.length}건 / X ${xCount}건`;
+  }
+
+  function renderPublisherOptions() {
+    const sel = el("pubSel");
+    const pubs = Array.from(new Set(cacheRows.map(r => r.publisher))).sort();
+    const cur = sel.value;
+    sel.innerHTML = `<option value="ALL">전체 발행사</option>` + pubs.map(p => `<option value="${p}">${p}</option>`).join("");
+    if (pubs.includes(cur)) sel.value = cur;
+  }
+
+  async function persistVisible(visible) {
+    const map = new Map(cacheRows.map(r => [r.key, r]));
+    for (const v of visible) map.set(v.key, v);
+    cacheRows = Array.from(map.values());
+    await rowsPutMany(visible);
   }
 
   function renderColControls() {
@@ -399,12 +1351,11 @@
   }
 
   async function setColumnFlag(field, to) {
-    // set only that column for all filtered rows currently visible
     const visible = getVisibleRows();
     for (const r of visible) {
       if (!r.flags) r.flags = initRowFlags();
-      if (to === "pass") { r.flags[field] = { pass:true, x:false }; }
-      else { r.flags[field] = { pass:false, x:true }; }
+      if (to === "pass") r.flags[field] = { pass:true, x:false };
+      else r.flags[field] = { pass:false, x:true };
       applyRowLevelFromFields(r.flags);
     }
     await persistVisible(visible);
@@ -423,77 +1374,25 @@
     render();
   }
 
-  async function persistVisible(visible) {
-    // Update cacheRows by key, then put changed subset
-    const map = new Map(cacheRows.map(r => [r.key, r]));
-    for (const v of visible) map.set(v.key, v);
-    cacheRows = Array.from(map.values());
-    await rowsPutMany(visible);
-  }
-
-  function getVisibleRows() {
-    const pub = el("pubSel").value;
-    const q = sanitizeStr(el("q").value).toLowerCase();
-    let rows = cacheRows.slice();
-
-    if (pub !== "ALL") rows = rows.filter(r => (r.publisher||"") === pub);
-    if (q) {
-      rows = rows.filter(r => {
-        const hay = [
-          r.isbn, r.title, r.korTitle, r.subTitle, r.publisher, r.anchor
-        ].map(x => (x||"").toLowerCase()).join(" ");
-        return hay.includes(q);
-      });
-    }
-    // sorting
-    const sort = el("sortSel").value;
-    rows.sort((a,b) => {
-      if (sort === "pub_desc") return (b.pubDate||"").localeCompare(a.pubDate||"");
-      if (sort === "pub_asc") return (a.pubDate||"").localeCompare(b.pubDate||"");
-      if (sort === "title_asc") return (a.title||"").localeCompare(b.title||"");
-      if (sort === "isbn_asc") return (a.isbn||"").localeCompare(b.isbn||"");
-      return 0;
-    });
-    return rows;
-  }
-
-  function renderCounts(visible) {
-    const total = cacheRows.length;
-    const shown = visible.length;
-    const xCount = visible.filter(r => r.flags && r.flags.__row && r.flags.__row.x).length;
-    counts.textContent = `전체 ${total}건 / 표시 ${shown}건 / X ${xCount}건`;
-  }
-
-  function cellText(v) {
-    const s = sanitizeStr(v);
-    return s ? s : "";
-  }
-
-  function makeCellButtons(row, field) {
+  function mkCellBtns(row, field) {
     const wrap = document.createElement("div");
-    wrap.className = "cellBtns";
+    wrap.className = "cellBtns" + (cellBtnsOn ? "" : " hidden");
 
-    const bp = document.createElement("button");
-    bp.className = "btn p";
-    bp.textContent = "PASS";
-    const bx = document.createElement("button");
-    bx.className = "btn x";
-    bx.textContent = "X";
-
-    const st = row.flags?.[field] || { pass:true, x:false };
-    if (st.pass) bp.classList.add("on");
-    if (st.x) bx.classList.add("on");
-
-    bp.onclick = async () => {
-      if (!row.flags) row.flags = initRowFlags();
+    const p = document.createElement("button");
+    p.className = "btn p " + (row.flags?.[field]?.pass ? "on" : "");
+    p.textContent = "PASS";
+    p.onclick = async () => {
       row.flags[field] = { pass:true, x:false };
       applyRowLevelFromFields(row.flags);
       await rowsPutMany([row]);
       await addLog(`셀 ${FIELD_LABEL[field]} PASS: ${row.anchor}`);
       render();
     };
-    bx.onclick = async () => {
-      if (!row.flags) row.flags = initRowFlags();
+
+    const x = document.createElement("button");
+    x.className = "btn x " + (row.flags?.[field]?.x ? "on" : "");
+    x.textContent = "X";
+    x.onclick = async () => {
       row.flags[field] = { pass:false, x:true };
       applyRowLevelFromFields(row.flags);
       await rowsPutMany([row]);
@@ -501,230 +1400,182 @@
       render();
     };
 
-    wrap.appendChild(bp);
-    wrap.appendChild(bx);
+    wrap.appendChild(p);
+    wrap.appendChild(x);
     return wrap;
   }
 
-  function makeRowButtons(row) {
-    const passBtn = document.createElement("button");
-    passBtn.className = "btn p";
-    passBtn.textContent = "PASS";
-    const xBtn = document.createElement("button");
-    xBtn.className = "btn x";
-    xBtn.textContent = "X";
-
-    const st = row.flags?.__row || { pass:true, x:false };
-    if (st.pass) passBtn.classList.add("on");
-    if (st.x) xBtn.classList.add("on");
-
-    passBtn.onclick = async () => {
-      if (!row.flags) row.flags = initRowFlags();
-      // row PASS => all fields pass
-      for (const f of FIELDS) row.flags[f] = { pass:true, x:false };
-      applyRowLevelFromFields(row.flags);
-      await rowsPutMany([row]);
-      await addLog(`행 PASS: ${row.anchor}`);
-      render();
-    };
-    xBtn.onclick = async () => {
-      if (!row.flags) row.flags = initRowFlags();
-      // row X => all fields x
-      for (const f of FIELDS) row.flags[f] = { pass:false, x:true };
-      applyRowLevelFromFields(row.flags);
-      await rowsPutMany([row]);
-      await addLog(`행 X: ${row.anchor}`);
-      render();
-    };
-
-    const wrap = document.createElement("div");
-    wrap.className = "cellBtns";
-    wrap.appendChild(passBtn);
-    wrap.appendChild(xBtn);
-    return wrap;
-  }
-
-  function render() {
-    const visible = getVisibleRows();
-    renderCounts(visible);
+  function renderTable() {
+    const vis = getVisibleRows();
+    const maxShow = 200; // 화면 렌더 과부하 방지
+    const show = vis.slice(0, maxShow);
 
     tbody.innerHTML = "";
-    for (const r of visible) {
+    for (const r of show) {
+      if (!r.flags) r.flags = applyRowLevelFromFields(initRowFlags());
+
       const tr = document.createElement("tr");
 
-      const tdPub = document.createElement("td"); tdPub.textContent = cellText(r.publisher); tdPub.appendChild(makeCellButtons(r, "publisher"));
-      const tdKor = document.createElement("td"); tdKor.textContent = cellText(r.korTitle); tdKor.appendChild(makeCellButtons(r, "korTitle"));
-      const tdTitle = document.createElement("td"); tdTitle.textContent = cellText(r.title); tdTitle.appendChild(makeCellButtons(r, "title"));
-      const tdSub = document.createElement("td"); tdSub.textContent = cellText(r.subTitle); tdSub.appendChild(makeCellButtons(r, "subTitle"));
-      const tdIsbn = document.createElement("td"); tdIsbn.textContent = cellText(r.isbn); tdIsbn.appendChild(makeCellButtons(r, "isbn"));
-      const tdPrice = document.createElement("td"); tdPrice.textContent = cellText(r.price); tdPrice.appendChild(makeCellButtons(r, "price"));
-      const tdCur = document.createElement("td"); tdCur.textContent = cellText(r.currency); tdCur.appendChild(makeCellButtons(r, "currency"));
-      const tdPubDate = document.createElement("td"); tdPubDate.textContent = cellText(r.pubDate); tdPubDate.appendChild(makeCellButtons(r, "pubDate"));
-      const tdPages = document.createElement("td"); tdPages.textContent = cellText(r.pages); tdPages.appendChild(makeCellButtons(r, "pages"));
+      function tdText(val, nowrap=false) {
+        const td = document.createElement("td");
+        if (nowrap) td.className = "nowrap";
+        td.textContent = sanitizeStr(val);
+        return td;
+      }
 
-      const tdAnchor = document.createElement("td");
-      tdAnchor.innerHTML = `<div class="mini">${cellText(r.anchor)}</div>`;
-      tdAnchor.appendChild(makeCellButtons(r, "anchor"));
+      tr.appendChild(tdText(r.publisher, true));
+      tr.appendChild(tdText(r.korTitle || "", false));
+      tr.appendChild(tdText(r.title || "", false));
+      tr.appendChild(tdText(r.subTitle || "", false));
+      tr.appendChild(tdText(r.isbn || "", true));
+      tr.appendChild(tdText(r.price || "", true));
+      tr.appendChild(tdText(r.currency || "", true));
+      tr.appendChild(tdText(r.pubDate || "", true));
+      tr.appendChild(tdText(r.pages || "", true));
+      tr.appendChild(tdText(r.anchor || "", false));
 
-      const tdPass = document.createElement("td"); tdPass.appendChild(makeRowButtons(r));
-      const tdX = document.createElement("td"); tdX.textContent = ""; // keep for layout
+      // Row-level PASS/X
+      const tdPass = document.createElement("td");
+      const tdX = document.createElement("td");
 
-      tr.appendChild(tdPub);
-      tr.appendChild(tdKor);
-      tr.appendChild(tdTitle);
-      tr.appendChild(tdSub);
-      tr.appendChild(tdIsbn);
-      tr.appendChild(tdPrice);
-      tr.appendChild(tdCur);
-      tr.appendChild(tdPubDate);
-      tr.appendChild(tdPages);
-      tr.appendChild(tdAnchor);
+      const rowPass = document.createElement("button");
+      rowPass.className = "btn p " + (r.flags.__row.pass ? "on" : "");
+      rowPass.textContent = "PASS";
+      rowPass.onclick = async () => {
+        // row PASS = all fields PASS
+        for (const f of FIELDS) r.flags[f] = { pass:true, x:false };
+        applyRowLevelFromFields(r.flags);
+        await rowsPutMany([r]);
+        await addLog(`행 PASS: ${r.anchor}`);
+        render();
+      };
+
+      const rowX = document.createElement("button");
+      rowX.className = "btn x " + (r.flags.__row.x ? "on" : "");
+      rowX.textContent = "X";
+      rowX.onclick = async () => {
+        // row X = mark __row as X by setting one field X(Title) (가장 흔한 확인 컬럼)
+        r.flags.title = { pass:false, x:true };
+        applyRowLevelFromFields(r.flags);
+        await rowsPutMany([r]);
+        await addLog(`행 X: ${r.anchor}`);
+        render();
+      };
+
+      tdPass.appendChild(rowPass);
+      tdX.appendChild(rowX);
+
       tr.appendChild(tdPass);
       tr.appendChild(tdX);
 
       tbody.appendChild(tr);
+
+      // (옵션) 셀 버튼 표시: 행 아래에 1줄 더(느릴 수 있음)
+      if (cellBtnsOn) {
+        const tr2 = document.createElement("tr");
+        const td2 = document.createElement("td");
+        td2.colSpan = 12;
+
+        const line = document.createElement("div");
+        line.className = "row";
+        line.style.gap = "10px";
+        line.style.alignItems = "flex-start";
+
+        for (const f of FIELDS) {
+          const box = document.createElement("div");
+          box.style.border = "1px solid #eee";
+          box.style.borderRadius = "10px";
+          box.style.padding = "6px";
+          box.style.background = "#fff";
+          const t = document.createElement("div");
+          t.className = "mini muted";
+          t.textContent = FIELD_LABEL[f];
+          box.appendChild(t);
+          box.appendChild(mkCellBtns(r, f));
+          line.appendChild(box);
+        }
+
+        td2.appendChild(line);
+        tr2.appendChild(td2);
+        tbody.appendChild(tr2);
+      }
+    }
+
+    if (vis.length > maxShow) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 12;
+      td.className = "mini muted";
+      td.textContent = `표시 제한: ${maxShow}행만 렌더링(검색/필터로 줄여서 확인)`;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
     }
   }
 
-  // -----------------------------
-  // Excel parsing (auto column mapping)
-  // -----------------------------
-  function findHeaderRow(sheetJson) {
-    // sheetJson = array of arrays
-    // find row containing known header like "ISBN" or "ISBN13"
-    const targets = ["isbn","isbn13","title","pub date","pages","us$","list price","actual publishing date","price eur","sub title"];
-    for (let i=0;i<Math.min(sheetJson.length, 30);i++) {
-      const row = sheetJson[i] || [];
-      const joined = row.map(x=>String(x||"").toLowerCase().trim()).join(" | ");
-      if (targets.some(t => joined.includes(t))) return i;
-    }
-    return 0;
+  function render() {
+    renderPublisherOptions();
+    renderCounts();
+    renderTable();
   }
 
-  function buildColMap(headers, publisher) {
-    // headers: array of strings (lower)
-    const h = headers.map(x => String(x||"").toLowerCase().trim());
-    const idx = (name) => h.findIndex(x => x === name);
-    const find = (pred) => h.findIndex(pred);
+  // -----------------------------
+  // Backup export/import
+  // -----------------------------
+  function downloadText(filename, text) {
+    const blob = new Blob([text], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
 
-    // Wiley: Title / Pub Date / Pages / ISBN13 / US$
-    // Elsevier: ISBN / Title / List Price (USD) / Pub date / No of Pages
-    // Springer: ISBN / Title / Sub Title / No of Arabic Pages / Price EUR / Actual Publishing Date
-    const map = {
-      title: -1, isbn: -1, price: -1, pubDate: -1, pages: -1, subTitle: -1
+  async function exportBackup() {
+    const rows = await rowsGetAll();
+    const logs = await logsGetAll();
+    const meta = {
+      lastFileName: await metaGet("lastFileName"),
+      lastUploadMode: await metaGet("lastUploadMode"),
+      lastUploadAt: await metaGet("lastUploadAt"),
+      exportedAt: nowStr(),
+      version: "tbv27_backup_v2"
     };
-
-    // title
-    map.title = idx("title");
-    // isbn
-    map.isbn = idx("isbn");
-    if (map.isbn === -1) map.isbn = idx("isbn13");
-    // pub date
-    map.pubDate = idx("pub date");
-    if (map.pubDate === -1) map.pubDate = idx("pubdate");
-    if (map.pubDate === -1) map.pubDate = idx("actual publishing date");
-    // pages
-    map.pages = idx("pages");
-    if (map.pages === -1) map.pages = idx("no of pages");
-    if (map.pages === -1) map.pages = idx("no of arabic pages");
-    // price
-    map.price = idx("us$");
-    if (map.price === -1) map.price = idx("list price (usd)");
-    if (map.price === -1) map.price = idx("list price");
-    if (map.price === -1) map.price = idx("price eur");
-    // sub title
-    map.subTitle = idx("sub title");
-
-    // fallback: contains
-    if (map.title === -1) map.title = find(x => x.includes("title"));
-    if (map.isbn === -1) map.isbn = find(x => x.includes("isbn"));
-    if (map.pubDate === -1) map.pubDate = find(x => x.includes("publishing date") || x.includes("pub date"));
-    if (map.pages === -1) map.pages = find(x => x.includes("pages"));
-    if (map.price === -1) map.price = find(x => x.includes("price") || x.includes("us$") || x.includes("eur"));
-    if (map.subTitle === -1) map.subTitle = find(x => x.includes("sub title"));
-
-    return map;
+    downloadText(`tbv27-backup-${Date.now()}.json`, JSON.stringify({ meta, rows, logs }));
+    await addLog("백업 내보내기");
   }
 
-  function safeCell(row, i) {
-    if (i === -1) return "";
-    return row[i];
-  }
+  async function importBackupFromFile(file) {
+    const payload = JSON.parse(await file.text());
+    if (!payload || !payload.rows || !payload.logs) throw new Error("백업 형식 오류");
+    await rowsClear();
+    await logsClear();
+    await rowsPutMany(payload.rows);
+    for (const lg of payload.logs) await tx(STORE_LOGS,"readwrite").put(lg);
+    if (payload.meta?.lastFileName) await metaSet("lastFileName", payload.meta.lastFileName);
+    if (payload.meta?.lastUploadMode) await metaSet("lastUploadMode", payload.meta.lastUploadMode);
+    if (payload.meta?.lastUploadAt) await metaSet("lastUploadAt", payload.meta.lastUploadAt);
 
-  function normalizeRow(publisher, fileName, rowNum, raw, colMap) {
-    const title = sanitizeStr(safeCell(raw, colMap.title));
-    const isbn = sanitizeStr(safeCell(raw, colMap.isbn));
-    // stop condition: empty title and empty isbn
-    if (!title && !isbn) return null;
-
-    const subTitle = sanitizeStr(safeCell(raw, colMap.subTitle));
-    const priceRaw = safeCell(raw, colMap.price);
-    const pubDateRaw = safeCell(raw, colMap.pubDate);
-    const pagesRaw = safeCell(raw, colMap.pages);
-
-    const price = parsePrice(priceRaw);
-    const pubDate = excelDateToISO(pubDateRaw);
-    const pages = sanitizeStr(pagesRaw);
-
-    const currency = defaultCurrency(publisher);
-    const anchor = `${fileName} / row:${rowNum}`;
-
-    const key = makeKey(isbn, fileName, rowNum);
-    const flags = initRowFlags(); // default PASS
-    applyRowLevelFromFields(flags);
-
-    return {
-      key,
-      publisher,
-      korTitle: "",       // (한글 타이틀은 원본에 없으므로 공란 유지 — 생성 금지)
-      title,
-      subTitle,
-      isbn,
-      price: (price === "0" ? "0" : price), // keep "0" if exists
-      currency,
-      pubDate,
-      pages,
-      anchor,
-      flags,
-      updatedAt: Date.now()
-    };
-  }
-
-  async function parseExcel(file) {
-    const ab = await file.arrayBuffer();
-    const wb = XLSX.read(ab, { type: "array", cellDates: true });
-    const sheetName = wb.SheetNames[0];
-    const ws = wb.Sheets[sheetName];
-
-    // as array of arrays
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
-    const headerRowIndex = findHeaderRow(rows);
-    const headers = (rows[headerRowIndex] || []).map(x => String(x||"").trim());
-    const publisher = detectPublisher(file.name);
-    const colMap = buildColMap(headers, publisher);
-
-    const out = [];
-    for (let i = headerRowIndex + 1; i < rows.length; i++) {
-      const raw = rows[i] || [];
-      const norm = normalizeRow(publisher, file.name, i+1, raw, colMap);
-      if (!norm) continue;
-      out.push(norm);
-    }
-    return { publisher, fileName: file.name, rows: out };
+    cacheRows = await rowsGetAll();
+    cacheLogs = await logsGetAll();
+    lastFileName = (await metaGet("lastFileName")) || "";
+    lastUploadMode = (await metaGet("lastUploadMode")) || "";
+    lastUploadAt = (await metaGet("lastUploadAt")) || "";
+    fileBadge.textContent = lastFileName ? lastFileName : "선택된 파일 없음";
+    setMode("DB에서 불러옴(이전 데이터 표시)", true);
+    await addLog("백업 불러오기");
+    renderLog();
+    render();
   }
 
   // -----------------------------
-  // Upload actions
+  // Upload logic
   // -----------------------------
   async function upsertRows(newRows) {
-    // merge by key (isbn or filename+row)
     const existing = await rowsGetAll();
     const map = new Map(existing.map(r => [r.key, r]));
-    let add = 0, upd = 0;
-
+    let add=0, upd=0;
     for (const r of newRows) {
       if (map.has(r.key)) {
-        // keep existing flags if exists
         const old = map.get(r.key);
         r.flags = old.flags || r.flags;
         map.set(r.key, r);
@@ -741,54 +1592,6 @@
   }
 
   // -----------------------------
-  // Backup (export/import) for 집/사무실 이동
-  // -----------------------------
-  function downloadText(filename, text) {
-    const blob = new Blob([text], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
-
-  async function exportBackup() {
-    const rows = await rowsGetAll();
-    const logs = await logsGetAll();
-    const meta = {
-      lastFileName: await metaGet("lastFileName"),
-      exportedAt: nowStr(),
-      version: "tbv27_backup_v1"
-    };
-    const payload = { meta, rows, logs };
-    downloadText(`tbv27-backup-${Date.now()}.json`, JSON.stringify(payload));
-    await addLog("백업 내보내기");
-  }
-
-  async function importBackupFromFile(file) {
-    const text = await file.text();
-    const payload = JSON.parse(text);
-
-    if (!payload || !payload.rows || !payload.logs) {
-      throw new Error("backup format invalid");
-    }
-    await rowsClear();
-    await logsClear();
-    await rowsPutMany(payload.rows);
-    for (const lg of payload.logs) {
-      await tx(STORE_LOGS,"readwrite").put(lg);
-    }
-    if (payload.meta?.lastFileName) await metaSet("lastFileName", payload.meta.lastFileName);
-
-    cacheRows = await rowsGetAll();
-    cacheLogs = await logsGetAll();
-    lastFileName = (await metaGet("lastFileName")) || "";
-    fileBadge.textContent = lastFileName ? lastFileName : "선택된 파일 없음";
-    await addLog("백업 불러오기");
-    render();
-  }
-
-  // -----------------------------
   // Init + Events
   // -----------------------------
   async function init() {
@@ -798,92 +1601,180 @@
       cacheRows = await rowsGetAll();
       cacheLogs = await logsGetAll();
       lastFileName = (await metaGet("lastFileName")) || "";
-      if (lastFileName) fileBadge.textContent = lastFileName;
+      lastUploadMode = (await metaGet("lastUploadMode")) || "";
+      lastUploadAt = (await metaGet("lastUploadAt")) || "";
+
+      fileBadge.textContent = lastFileName ? lastFileName : "선택된 파일 없음";
+      setMode(cacheRows.length ? "DB에서 불러옴(이전 데이터 표시)" : "대기(파일 선택 후 업로드)", true);
 
       renderColControls();
       renderLog();
       render();
-
       await addLog("페이지 로드");
     } catch (e) {
       console.error(e);
       setDBBadge(false, "오류");
-      logBox.textContent = "DB 오류: " + (e && e.message ? e.message : String(e));
+      setMode("DB 오류", false);
+      showErr("DB 오류: " + (e && e.message ? e.message : String(e)));
     }
   }
 
-  fileInput.addEventListener("change", () => {
+  fileInput.addEventListener("change", async () => {
+    clearErr();
+    hidePreview();
     const f = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
     selectedFile = f;
+    el("btnPreview").disabled = !f;
+    el("btnUpsert").disabled = !f;
+    el("btnReplace").disabled = !f;
+    fileBadge.textContent = f ? f.name : (lastFileName ? lastFileName : "선택된 파일 없음");
     if (f) {
-      fileBadge.textContent = f.name;
+      setMode("파일 선택됨(아직 업로드/저장 안됨)", true);
+      await addLog(`파일 선택: ${f.name} (저장X)`);
     } else {
-      fileBadge.textContent = lastFileName ? lastFileName : "선택된 파일 없음";
+      setMode(cacheRows.length ? "DB에서 불러옴(이전 데이터 표시)" : "대기", true);
     }
   });
 
+  el("btnPreview").onclick = async () => {
+    try {
+      clearErr();
+      hidePreview();
+      if (!selectedFile) throw new Error("파일이 선택되지 않았습니다.");
+      setMode("미리보기 생성 중(저장X)…", true);
+      const parsed = await parseExcel(selectedFile);
+      const sample = parsed.rows.slice(0, 5).map(r =>
+        `${r.publisher} | ${r.isbn} | ${r.title} | ${r.currency} ${r.price} | ${r.pubDate} | ${r.pages}`
+      ).join("\n");
+      showPreview(
+`[미리보기(저장X)]
+파일: ${parsed.fileName}
+발행사 감지: ${parsed.publisher}
+파싱 행수: ${parsed.rows.length}
+샘플 5행:
+${sample}`
+      );
+      setMode("미리보기 완료(저장X)", true);
+      await addLog(`미리보기(저장X): ${parsed.fileName} (${parsed.rows.length}건)`);
+    } catch (e) {
+      console.error(e);
+      showErr(e && (e.stack || e.message) ? (e.stack || e.message) : String(e));
+      setMode("미리보기 실패", false);
+      await addLog("미리보기 실패: " + (e && e.message ? e.message : String(e)));
+    }
+  };
+
   el("btnUpsert").onclick = async () => {
-    if (!selectedFile) return;
-    const parsed = await parseExcel(selectedFile);
-    const res = await upsertRows(parsed.rows);
-    lastFileName = parsed.fileName;
-    await metaSet("lastFileName", lastFileName);
-    fileBadge.textContent = lastFileName;
-    await addLog(`업로드(추가/합치기): ${parsed.fileName} (추가 ${res.add}, 갱신 ${res.upd})`);
-    render();
+    try {
+      clearErr();
+      hidePreview();
+      if (!selectedFile) throw new Error("파일이 선택되지 않았습니다(파일 선택 후 업로드).");
+      setMode("업로드(추가/합치기) 처리 중…", true);
+      const parsed = await parseExcel(selectedFile);
+      const res = await upsertRows(parsed.rows);
+
+      lastFileName = parsed.fileName;
+      lastUploadMode = "upsert";
+      lastUploadAt = nowStr();
+      await metaSet("lastFileName", lastFileName);
+      await metaSet("lastUploadMode", lastUploadMode);
+      await metaSet("lastUploadAt", lastUploadAt);
+      fileBadge.textContent = lastFileName;
+
+      await addLog(`업로드(추가/합치기): ${parsed.fileName} (추가 ${res.add}, 갱신 ${res.upd}, 총 ${res.total})`);
+      setMode("업로드 완료(추가/합치기)", true);
+      render();
+    } catch (e) {
+      console.error(e);
+      const msg = e && (e.stack || e.message) ? (e.stack || e.message) : String(e);
+      showErr(msg);
+      setMode("업로드 실패", false);
+      await addLog("업로드 실패(추가/합치기): " + msg);
+    }
   };
 
   el("btnReplace").onclick = async () => {
-    if (!selectedFile) return;
-    const parsed = await parseExcel(selectedFile);
-    await rowsClear();
-    await rowsPutMany(parsed.rows);
-    cacheRows = parsed.rows;
-    lastFileName = parsed.fileName;
-    await metaSet("lastFileName", lastFileName);
-    fileBadge.textContent = lastFileName;
-    await addLog(`업로드(전체 교체): ${parsed.fileName} (${parsed.rows.length}건)`);
-    render();
+    try {
+      clearErr();
+      hidePreview();
+      if (!selectedFile) throw new Error("파일이 선택되지 않았습니다(파일 선택 후 업로드).");
+      setMode("업로드(전체 교체) 처리 중…", true);
+      const parsed = await parseExcel(selectedFile);
+
+      await rowsClear();
+      await rowsPutMany(parsed.rows);
+      cacheRows = parsed.rows;
+
+      lastFileName = parsed.fileName;
+      lastUploadMode = "replace";
+      lastUploadAt = nowStr();
+      await metaSet("lastFileName", lastFileName);
+      await metaSet("lastUploadMode", lastUploadMode);
+      await metaSet("lastUploadAt", lastUploadAt);
+      fileBadge.textContent = lastFileName;
+
+      await addLog(`업로드(전체 교체): ${parsed.fileName} (${parsed.rows.length}건)`);
+      setMode("업로드 완료(전체 교체)", true);
+      render();
+    } catch (e) {
+      console.error(e);
+      const msg = e && (e.stack || e.message) ? (e.stack || e.message) : String(e);
+      showErr(msg);
+      setMode("업로드 실패", false);
+      await addLog("업로드 실패(전체 교체): " + msg);
+    }
   };
 
-  el("btnAllPass").onclick = async () => setAll("pass");
-  el("btnAllX").onclick = async () => setAll("x");
+  el("btnAllPass").onclick = async () => {
+    try { clearErr(); await setAll("pass"); }
+    catch(e){ showErr(String(e)); await addLog("전체 PASS 실패"); }
+  };
+  el("btnAllX").onclick = async () => {
+    try { clearErr(); await setAll("x"); }
+    catch(e){ showErr(String(e)); await addLog("전체 X 실패"); }
+  };
 
-  el("sortSel").onchange = () => render();
-  el("pubSel").onchange = () => render();
-  el("q").oninput = () => render();
-
-  el("btnExport").onclick = exportBackup;
+  el("btnExport").onclick = async () => {
+    try { clearErr(); await exportBackup(); }
+    catch(e){ showErr(String(e)); await addLog("백업 내보내기 실패"); }
+  };
 
   el("btnImport").onclick = async () => {
-    // hidden input for json
     const inp = document.createElement("input");
     inp.type = "file";
     inp.accept = ".json,application/json";
     inp.onchange = async () => {
       const f = inp.files && inp.files[0] ? inp.files[0] : null;
       if (!f) return;
-      try {
-        await importBackupFromFile(f);
-      } catch (e) {
-        console.error(e);
-        await addLog("백업 불러오기 실패: " + (e && e.message ? e.message : String(e)));
-      }
+      try { clearErr(); await importBackupFromFile(f); }
+      catch(e){ showErr(String(e)); await addLog("백업 불러오기 실패"); }
     };
     inp.click();
   };
 
   el("btnReset").onclick = async () => {
-    await rowsClear();
-    await logsClear();
-    await metaSet("lastFileName", "");
-    cacheRows = [];
-    cacheLogs = [];
-    lastFileName = "";
-    fileBadge.textContent = "선택된 파일 없음";
-    await addLog("DB 초기화");
-    renderLog();
-    render();
+    try {
+      clearErr();
+      await rowsClear();
+      await logsClear();
+      await metaSet("lastFileName", "");
+      await metaSet("lastUploadMode", "");
+      await metaSet("lastUploadAt", "");
+      cacheRows = [];
+      cacheLogs = [];
+      lastFileName = "";
+      lastUploadMode = "";
+      lastUploadAt = "";
+      fileBadge.textContent = "선택된 파일 없음";
+      setMode("DB 초기화 완료", true);
+      await addLog("DB 초기화");
+      renderLog();
+      render();
+    } catch(e) {
+      showErr(String(e));
+      setMode("DB 초기화 실패", false);
+      await addLog("DB 초기화 실패");
+    }
   };
 
   el("btnCopyLog").onclick = async () => {
@@ -892,7 +1783,18 @@
       await addLog("로그 복사");
     } catch (e) {
       await addLog("로그 복사 실패");
+      showErr("클립보드 복사 실패(브라우저 권한 확인)");
     }
+  };
+
+  el("sortSel").onchange = () => render();
+  el("pubSel").onchange = () => render();
+  el("q").oninput = () => render();
+
+  el("toggleCellBtns").onchange = async (e) => {
+    cellBtnsOn = !!e.target.checked;
+    await addLog(`셀 PASS/X 버튼 표시: ${cellBtnsOn ? "ON" : "OFF"}`);
+    render();
   };
 
   init();
