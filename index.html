@@ -1,84 +1,902 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>27 Technical Book Verifier</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>27번 도구 – 엑셀 업로드</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 12px; }
+    h1 { margin: 0 0 10px 0; font-size: 18px; }
+    .row { display:flex; flex-wrap: wrap; gap:8px; align-items:center; margin: 6px 0; }
+    .btn { padding:6px 10px; border:1px solid #888; background:#fff; cursor:pointer; border-radius:6px; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .badge { padding:4px 8px; border-radius:999px; border:1px solid #aaa; font-size:12px; }
+    .ok { background:#e8fff0; }
+    .bad { background:#ffecec; }
+    select, input[type="text"] { padding:6px 8px; border:1px solid #aaa; border-radius:6px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border:1px solid #ddd; padding:6px; font-size:12px; vertical-align: top; }
+    th { background:#f6f6f6; position: sticky; top: 0; z-index: 2; }
+    .mini { font-size:11px; color:#444; }
+    .muted { color:#666; }
+    .cellBtns { display:flex; gap:4px; margin-top:4px; }
+    .p { border-color:#2a7; }
+    .x { border-color:#c33; }
+    .p.on { background:#e8fff0; }
+    .x.on { background:#ffecec; }
+    .nowrap { white-space: nowrap; }
+    .log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11px; border:1px solid #ddd; padding:8px; border-radius:8px; background:#fafafa; }
+    .hr { height:1px; background:#eee; margin:10px 0; }
+    .danger { border-color:#c33; color:#c33; }
+  </style>
 
-<style>
-body{font-family:system-ui;margin:10px}
-button{padding:6px 10px;margin:2px}
-table{border-collapse:collapse;width:100%}
-th,td{border:1px solid #ccc;padding:4px;font-size:12px}
-.pass{color:green}
-.x{color:red}
-</style>
+  <!-- XLSX 라이브러리: GitHub Pages에서 404 안 나게 CDN 사용 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-
 <body>
+  <h1>27번 도구 – 엑셀 업로드</h1>
 
-<h2>27번 도구 – 엑셀 업로드</h2>
+  <div class="row">
+    <span id="dbBadge" class="badge">DB: …</span>
+    <span id="fileBadge" class="badge">선택된 파일 없음</span>
+  </div>
 
-<input type="file" id="file"/>
-<button onclick="upload()">업로드(전체 교체)</button>
+  <div class="row">
+    <input id="fileInput" type="file" accept=".xlsx,.xls" />
+    <button id="btnUpsert" class="btn">업로드(추가/합치기)</button>
+    <button id="btnReplace" class="btn">업로드(전체 교체)</button>
+    <button id="btnAllPass" class="btn">전체 PASS</button>
+    <button id="btnAllX" class="btn">전체 X</button>
+    <button id="btnExport" class="btn">백업 내보내기</button>
+    <button id="btnImport" class="btn">백업 불러오기</button>
+    <button id="btnReset" class="btn danger">DB 초기화</button>
+  </div>
 
-<table id="tbl">
-<thead>
-<tr>
-<th>Publisher</th>
-<th>Title</th>
-<th>ISBN</th>
-<th>Price</th>
-<th>Pub Date</th>
-<th>Pages</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+  <div class="row">
+    <span class="mini muted">정렬:</span>
+    <select id="sortSel">
+      <option value="pub_desc">발행일 최신순</option>
+      <option value="pub_asc">발행일 오래된순</option>
+      <option value="title_asc">Title A→Z</option>
+      <option value="isbn_asc">ISBN 오름차순</option>
+    </select>
 
-<!-- 핵심: CDN XLSX -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <span class="mini muted">필터:</span>
+    <select id="pubSel">
+      <option value="ALL">전체 발행사</option>
+      <option value="Elsevier">Elsevier</option>
+      <option value="Springer">Springer</option>
+      <option value="Wiley">Wiley</option>
+      <option value="Unknown">Unknown</option>
+    </select>
+
+    <span class="mini muted">검색:</span>
+    <input id="q" type="text" placeholder="ISBN / Title / 한글" size="28" />
+    <span id="counts" class="mini muted"></span>
+  </div>
+
+  <div class="hr"></div>
+
+  <div class="mini muted">
+    <b>컬럼별 PASS/X</b> (각 컬럼 버튼은 “해당 컬럼만” 표기합니다. 행 PASS/X는 맨 오른쪽 PASS/X로 표기합니다.)
+  </div>
+
+  <div id="colControls" class="row"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="nowrap">Publisher</th>
+        <th class="nowrap">KOR_TITLE</th>
+        <th>Title</th>
+        <th>Sub Title</th>
+        <th class="nowrap">ISBN</th>
+        <th class="nowrap">Price</th>
+        <th class="nowrap">Currency</th>
+        <th class="nowrap">Pub Date</th>
+        <th class="nowrap">Pages</th>
+        <th>ANCHOR</th>
+        <th class="nowrap">PASS</th>
+        <th class="nowrap">X</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="hr"></div>
+
+  <div class="row">
+    <button id="btnCopyLog" class="btn">로그 복사</button>
+  </div>
+  <div class="mini muted">이력(버튼 클릭 기록) — 브라우저/PC 재시작 후에도 유지</div>
+  <div id="log" class="log"></div>
 
 <script>
-function detectPublisher(name){
- name=name.toLowerCase()
- if(name.includes("springer"))return"Springer"
- if(name.includes("elsevier"))return"Elsevier"
- if(name.includes("wiley"))return"Wiley"
- return"UNKNOWN"
-}
+(() => {
+  // -----------------------------
+  // DB (IndexedDB) — 용량/Quota 문제 회피
+  // -----------------------------
+  const DB_NAME = "tbv27_db_v1";
+  const DB_VER = 1;
+  const STORE_ROWS = "rows";
+  const STORE_META = "meta";
+  const STORE_LOGS = "logs";
 
-function excelDate(v){
- if(typeof v==="number"){
-  const d=new Date((v-25569)*86400*1000)
-  return d.toISOString().slice(0,10)
- }
- return v||""
-}
+  const FIELDS = ["publisher","korTitle","title","subTitle","isbn","price","currency","pubDate","pages","anchor"];
+  const FIELD_LABEL = {
+    publisher:"Publisher", korTitle:"KOR_TITLE", title:"Title", subTitle:"Sub Title",
+    isbn:"ISBN", price:"Price", currency:"Currency", pubDate:"Pub Date", pages:"Pages", anchor:"ANCHOR"
+  };
 
-async function upload(){
- const f=document.getElementById("file").files[0]
- if(!f)return alert("파일 선택")
- const data=await f.arrayBuffer()
- const wb=XLSX.read(data)
- const ws=wb.Sheets[wb.SheetNames[0]]
- const json=XLSX.utils.sheet_to_json(ws,{defval:""})
- const pub=detectPublisher(f.name)
- const tb=document.querySelector("#tbl tbody")
- tb.innerHTML=""
- json.forEach(r=>{
-  const tr=document.createElement("tr")
-  tr.innerHTML=`
-  <td>${pub}</td>
-  <td>${r.Title||""}</td>
-  <td>${r.ISBN||r.ISBN13||""}</td>
-  <td>${r["List Price (USD)"]||r["Price EUR"]||r["US$"]||""}</td>
-  <td>${excelDate(r["Pub date"]||r["Pub Date"]||r["Actual Publishing Date"])}</td>
-  <td>${r["No of Pages"]||r.Pages||r["No of Arabic Pages"]||""}</td>`
-  tb.appendChild(tr)
- })
-}
+  let db = null;
+  let selectedFile = null;
+  let cacheRows = [];       // in-memory (화면용)
+  let cacheLogs = [];       // in-memory
+  let lastFileName = "";
+
+  const el = (id) => document.getElementById(id);
+
+  const dbBadge = el("dbBadge");
+  const fileBadge = el("fileBadge");
+  const fileInput = el("fileInput");
+  const tbody = el("tbody");
+  const logBox = el("log");
+  const counts = el("counts");
+
+  function nowStr() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  async function openDB() {
+    dbBadge.textContent = "DB: 여는 중…";
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = (ev) => {
+        const db_ = req.result;
+
+        // rows: key = isbn (없으면 파일명+row)
+        if (!db_.objectStoreNames.contains(STORE_ROWS)) {
+          const os = db_.createObjectStore(STORE_ROWS, { keyPath: "key" });
+          os.createIndex("publisher", "publisher", { unique: false });
+          os.createIndex("pubDate", "pubDate", { unique: false });
+        }
+        if (!db_.objectStoreNames.contains(STORE_META)) {
+          db_.createObjectStore(STORE_META, { keyPath: "key" });
+        }
+        if (!db_.objectStoreNames.contains(STORE_LOGS)) {
+          db_.createObjectStore(STORE_LOGS, { keyPath: "id" }); // id = timestamp+rand
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function tx(store, mode="readonly") {
+    return db.transaction(store, mode).objectStore(store);
+  }
+
+  async function metaGet(key) {
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_META).get(key);
+      r.onsuccess = () => resolve(r.result ? r.result.value : null);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  async function metaSet(key, value) {
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_META,"readwrite").put({ key, value });
+      r.onsuccess = () => resolve(true);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  async function rowsClear() {
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_ROWS,"readwrite").clear();
+      r.onsuccess = () => resolve(true);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  async function logsClear() {
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_LOGS,"readwrite").clear();
+      r.onsuccess = () => resolve(true);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  async function rowsPutMany(rows) {
+    return new Promise((resolve, reject) => {
+      const store = tx(STORE_ROWS,"readwrite");
+      let i = 0;
+      function putNext() {
+        if (i >= rows.length) return resolve(true);
+        const r = store.put(rows[i++]);
+        r.onsuccess = putNext;
+        r.onerror = () => reject(r.error);
+      }
+      putNext();
+    });
+  }
+
+  async function rowsGetAll() {
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_ROWS).getAll();
+      r.onsuccess = () => resolve(r.result || []);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  async function logsAdd(msg) {
+    const entry = { id: `${Date.now()}_${Math.random().toString(16).slice(2)}`, ts: Date.now(), msg };
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_LOGS,"readwrite").put(entry);
+      r.onsuccess = () => resolve(entry);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  async function logsGetAll() {
+    return new Promise((resolve, reject) => {
+      const r = tx(STORE_LOGS).getAll();
+      r.onsuccess = () => resolve((r.result || []).sort((a,b)=>a.ts-b.ts));
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  function setDBBadge(ok, text) {
+    dbBadge.textContent = `DB: ${text}`;
+    dbBadge.className = "badge " + (ok ? "ok" : "bad");
+  }
+
+  // -----------------------------
+  // Logging + UI
+  // -----------------------------
+  async function addLog(line) {
+    const full = `[${nowStr()}] ${line}`;
+    await logsAdd(full);
+    cacheLogs = await logsGetAll();
+    renderLog();
+  }
+
+  function renderLog() {
+    const lines = cacheLogs.map(x => x.msg);
+    logBox.textContent = lines.join("\n");
+  }
+
+  function sanitizeStr(v) {
+    if (v === null || v === undefined) return "";
+    return String(v).trim();
+  }
+
+  function detectPublisher(fileName) {
+    const n = (fileName||"").toLowerCase();
+    if (n.includes("elsevier")) return "Elsevier";
+    if (n.includes("springer")) return "Springer";
+    if (n.includes("wiley")) return "Wiley";
+    return "Unknown";
+  }
+
+  function excelDateToISO(v) {
+    // v can be: number (Excel serial), Date, or string
+    if (v === null || v === undefined || v === "") return "";
+    if (v instanceof Date && !isNaN(v)) {
+      const y = v.getFullYear();
+      const m = String(v.getMonth()+1).padStart(2,"0");
+      const d = String(v.getDate()).padStart(2,"0");
+      return `${y}-${m}-${d}`;
+    }
+    if (typeof v === "number" && isFinite(v)) {
+      // Excel date serial -> use XLSX.SSF
+      const o = XLSX.SSF.parse_date_code(v);
+      if (o && o.y && o.m && o.d) {
+        const y = o.y;
+        const m = String(o.m).padStart(2,"0");
+        const d = String(o.d).padStart(2,"0");
+        return `${y}-${m}-${d}`;
+      }
+      return "";
+    }
+    const s = sanitizeStr(v);
+    // accept "YYYY/MM/DD" or "YYYY-MM-DD" or "1-Feb-2027"
+    // try Date parse as fallback
+    const d = new Date(s);
+    if (!isNaN(d)) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+    // If already like 2022/08/24 keep as is? normalize slash
+    const m1 = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (m1) {
+      const y = m1[1];
+      const mo = String(m1[2]).padStart(2,"0");
+      const da = String(m1[3]).padStart(2,"0");
+      return `${y}-${mo}-${da}`;
+    }
+    return s; // last resort: keep original string
+  }
+
+  function parsePrice(v) {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "number" && isFinite(v)) return String(v);
+    const s = sanitizeStr(v);
+    if (!s) return "";
+    // remove $ , €
+    const cleaned = s.replace(/[$€,]/g, "").trim();
+    // "0.00" => "0" is fine, but keep numeric string
+    const num = Number(cleaned);
+    if (!isNaN(num)) return String(num);
+    return cleaned;
+  }
+
+  function defaultCurrency(publisher) {
+    if (publisher === "Springer") return "EUR";
+    if (publisher === "Elsevier") return "USD";
+    if (publisher === "Wiley") return "USD";
+    return "";
+  }
+
+  function makeKey(isbn, fileName, rowNum) {
+    const i = sanitizeStr(isbn);
+    if (i) return i;
+    return `${sanitizeStr(fileName)}::row:${rowNum}`;
+  }
+
+  function initRowFlags() {
+    // per field: pass/x flags
+    const flags = {};
+    for (const f of FIELDS) flags[f] = { pass: true, x: false };
+    // row-level
+    flags.__row = { pass: true, x: false };
+    return flags;
+  }
+
+  function applyRowLevelFromFields(flags) {
+    // if any field x => row x
+    const anyX = FIELDS.some(f => flags[f]?.x);
+    flags.__row = { pass: !anyX, x: anyX };
+    return flags;
+  }
+
+  function renderColControls() {
+    const wrap = el("colControls");
+    wrap.innerHTML = "";
+    for (const f of FIELDS) {
+      const label = FIELD_LABEL[f];
+      const container = document.createElement("div");
+      container.className = "row";
+      container.style.gap = "6px";
+      container.style.alignItems = "center";
+
+      const name = document.createElement("span");
+      name.className = "mini";
+      name.textContent = label;
+
+      const bPass = document.createElement("button");
+      bPass.className = "btn p";
+      bPass.textContent = "PASS";
+      bPass.onclick = async () => {
+        await setColumnFlag(f, "pass");
+      };
+
+      const bX = document.createElement("button");
+      bX.className = "btn x";
+      bX.textContent = "X";
+      bX.onclick = async () => {
+        await setColumnFlag(f, "x");
+      };
+
+      container.appendChild(name);
+      container.appendChild(bPass);
+      container.appendChild(bX);
+      wrap.appendChild(container);
+    }
+  }
+
+  async function setColumnFlag(field, to) {
+    // set only that column for all filtered rows currently visible
+    const visible = getVisibleRows();
+    for (const r of visible) {
+      if (!r.flags) r.flags = initRowFlags();
+      if (to === "pass") { r.flags[field] = { pass:true, x:false }; }
+      else { r.flags[field] = { pass:false, x:true }; }
+      applyRowLevelFromFields(r.flags);
+    }
+    await persistVisible(visible);
+    await addLog(`컬럼 ${FIELD_LABEL[field]}: ${to === "pass" ? "PASS" : "X"} (표시된 행만)`);
+    render();
+  }
+
+  async function setAll(to) {
+    for (const r of cacheRows) {
+      if (!r.flags) r.flags = initRowFlags();
+      for (const f of FIELDS) r.flags[f] = (to==="pass") ? { pass:true, x:false } : { pass:false, x:true };
+      applyRowLevelFromFields(r.flags);
+    }
+    await rowsPutMany(cacheRows);
+    await addLog(`전체 ${to === "pass" ? "PASS" : "X"}`);
+    render();
+  }
+
+  async function persistVisible(visible) {
+    // Update cacheRows by key, then put changed subset
+    const map = new Map(cacheRows.map(r => [r.key, r]));
+    for (const v of visible) map.set(v.key, v);
+    cacheRows = Array.from(map.values());
+    await rowsPutMany(visible);
+  }
+
+  function getVisibleRows() {
+    const pub = el("pubSel").value;
+    const q = sanitizeStr(el("q").value).toLowerCase();
+    let rows = cacheRows.slice();
+
+    if (pub !== "ALL") rows = rows.filter(r => (r.publisher||"") === pub);
+    if (q) {
+      rows = rows.filter(r => {
+        const hay = [
+          r.isbn, r.title, r.korTitle, r.subTitle, r.publisher, r.anchor
+        ].map(x => (x||"").toLowerCase()).join(" ");
+        return hay.includes(q);
+      });
+    }
+    // sorting
+    const sort = el("sortSel").value;
+    rows.sort((a,b) => {
+      if (sort === "pub_desc") return (b.pubDate||"").localeCompare(a.pubDate||"");
+      if (sort === "pub_asc") return (a.pubDate||"").localeCompare(b.pubDate||"");
+      if (sort === "title_asc") return (a.title||"").localeCompare(b.title||"");
+      if (sort === "isbn_asc") return (a.isbn||"").localeCompare(b.isbn||"");
+      return 0;
+    });
+    return rows;
+  }
+
+  function renderCounts(visible) {
+    const total = cacheRows.length;
+    const shown = visible.length;
+    const xCount = visible.filter(r => r.flags && r.flags.__row && r.flags.__row.x).length;
+    counts.textContent = `전체 ${total}건 / 표시 ${shown}건 / X ${xCount}건`;
+  }
+
+  function cellText(v) {
+    const s = sanitizeStr(v);
+    return s ? s : "";
+  }
+
+  function makeCellButtons(row, field) {
+    const wrap = document.createElement("div");
+    wrap.className = "cellBtns";
+
+    const bp = document.createElement("button");
+    bp.className = "btn p";
+    bp.textContent = "PASS";
+    const bx = document.createElement("button");
+    bx.className = "btn x";
+    bx.textContent = "X";
+
+    const st = row.flags?.[field] || { pass:true, x:false };
+    if (st.pass) bp.classList.add("on");
+    if (st.x) bx.classList.add("on");
+
+    bp.onclick = async () => {
+      if (!row.flags) row.flags = initRowFlags();
+      row.flags[field] = { pass:true, x:false };
+      applyRowLevelFromFields(row.flags);
+      await rowsPutMany([row]);
+      await addLog(`셀 ${FIELD_LABEL[field]} PASS: ${row.anchor}`);
+      render();
+    };
+    bx.onclick = async () => {
+      if (!row.flags) row.flags = initRowFlags();
+      row.flags[field] = { pass:false, x:true };
+      applyRowLevelFromFields(row.flags);
+      await rowsPutMany([row]);
+      await addLog(`셀 ${FIELD_LABEL[field]} X: ${row.anchor}`);
+      render();
+    };
+
+    wrap.appendChild(bp);
+    wrap.appendChild(bx);
+    return wrap;
+  }
+
+  function makeRowButtons(row) {
+    const passBtn = document.createElement("button");
+    passBtn.className = "btn p";
+    passBtn.textContent = "PASS";
+    const xBtn = document.createElement("button");
+    xBtn.className = "btn x";
+    xBtn.textContent = "X";
+
+    const st = row.flags?.__row || { pass:true, x:false };
+    if (st.pass) passBtn.classList.add("on");
+    if (st.x) xBtn.classList.add("on");
+
+    passBtn.onclick = async () => {
+      if (!row.flags) row.flags = initRowFlags();
+      // row PASS => all fields pass
+      for (const f of FIELDS) row.flags[f] = { pass:true, x:false };
+      applyRowLevelFromFields(row.flags);
+      await rowsPutMany([row]);
+      await addLog(`행 PASS: ${row.anchor}`);
+      render();
+    };
+    xBtn.onclick = async () => {
+      if (!row.flags) row.flags = initRowFlags();
+      // row X => all fields x
+      for (const f of FIELDS) row.flags[f] = { pass:false, x:true };
+      applyRowLevelFromFields(row.flags);
+      await rowsPutMany([row]);
+      await addLog(`행 X: ${row.anchor}`);
+      render();
+    };
+
+    const wrap = document.createElement("div");
+    wrap.className = "cellBtns";
+    wrap.appendChild(passBtn);
+    wrap.appendChild(xBtn);
+    return wrap;
+  }
+
+  function render() {
+    const visible = getVisibleRows();
+    renderCounts(visible);
+
+    tbody.innerHTML = "";
+    for (const r of visible) {
+      const tr = document.createElement("tr");
+
+      const tdPub = document.createElement("td"); tdPub.textContent = cellText(r.publisher); tdPub.appendChild(makeCellButtons(r, "publisher"));
+      const tdKor = document.createElement("td"); tdKor.textContent = cellText(r.korTitle); tdKor.appendChild(makeCellButtons(r, "korTitle"));
+      const tdTitle = document.createElement("td"); tdTitle.textContent = cellText(r.title); tdTitle.appendChild(makeCellButtons(r, "title"));
+      const tdSub = document.createElement("td"); tdSub.textContent = cellText(r.subTitle); tdSub.appendChild(makeCellButtons(r, "subTitle"));
+      const tdIsbn = document.createElement("td"); tdIsbn.textContent = cellText(r.isbn); tdIsbn.appendChild(makeCellButtons(r, "isbn"));
+      const tdPrice = document.createElement("td"); tdPrice.textContent = cellText(r.price); tdPrice.appendChild(makeCellButtons(r, "price"));
+      const tdCur = document.createElement("td"); tdCur.textContent = cellText(r.currency); tdCur.appendChild(makeCellButtons(r, "currency"));
+      const tdPubDate = document.createElement("td"); tdPubDate.textContent = cellText(r.pubDate); tdPubDate.appendChild(makeCellButtons(r, "pubDate"));
+      const tdPages = document.createElement("td"); tdPages.textContent = cellText(r.pages); tdPages.appendChild(makeCellButtons(r, "pages"));
+
+      const tdAnchor = document.createElement("td");
+      tdAnchor.innerHTML = `<div class="mini">${cellText(r.anchor)}</div>`;
+      tdAnchor.appendChild(makeCellButtons(r, "anchor"));
+
+      const tdPass = document.createElement("td"); tdPass.appendChild(makeRowButtons(r));
+      const tdX = document.createElement("td"); tdX.textContent = ""; // keep for layout
+
+      tr.appendChild(tdPub);
+      tr.appendChild(tdKor);
+      tr.appendChild(tdTitle);
+      tr.appendChild(tdSub);
+      tr.appendChild(tdIsbn);
+      tr.appendChild(tdPrice);
+      tr.appendChild(tdCur);
+      tr.appendChild(tdPubDate);
+      tr.appendChild(tdPages);
+      tr.appendChild(tdAnchor);
+      tr.appendChild(tdPass);
+      tr.appendChild(tdX);
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  // -----------------------------
+  // Excel parsing (auto column mapping)
+  // -----------------------------
+  function findHeaderRow(sheetJson) {
+    // sheetJson = array of arrays
+    // find row containing known header like "ISBN" or "ISBN13"
+    const targets = ["isbn","isbn13","title","pub date","pages","us$","list price","actual publishing date","price eur","sub title"];
+    for (let i=0;i<Math.min(sheetJson.length, 30);i++) {
+      const row = sheetJson[i] || [];
+      const joined = row.map(x=>String(x||"").toLowerCase().trim()).join(" | ");
+      if (targets.some(t => joined.includes(t))) return i;
+    }
+    return 0;
+  }
+
+  function buildColMap(headers, publisher) {
+    // headers: array of strings (lower)
+    const h = headers.map(x => String(x||"").toLowerCase().trim());
+    const idx = (name) => h.findIndex(x => x === name);
+    const find = (pred) => h.findIndex(pred);
+
+    // Wiley: Title / Pub Date / Pages / ISBN13 / US$
+    // Elsevier: ISBN / Title / List Price (USD) / Pub date / No of Pages
+    // Springer: ISBN / Title / Sub Title / No of Arabic Pages / Price EUR / Actual Publishing Date
+    const map = {
+      title: -1, isbn: -1, price: -1, pubDate: -1, pages: -1, subTitle: -1
+    };
+
+    // title
+    map.title = idx("title");
+    // isbn
+    map.isbn = idx("isbn");
+    if (map.isbn === -1) map.isbn = idx("isbn13");
+    // pub date
+    map.pubDate = idx("pub date");
+    if (map.pubDate === -1) map.pubDate = idx("pubdate");
+    if (map.pubDate === -1) map.pubDate = idx("actual publishing date");
+    // pages
+    map.pages = idx("pages");
+    if (map.pages === -1) map.pages = idx("no of pages");
+    if (map.pages === -1) map.pages = idx("no of arabic pages");
+    // price
+    map.price = idx("us$");
+    if (map.price === -1) map.price = idx("list price (usd)");
+    if (map.price === -1) map.price = idx("list price");
+    if (map.price === -1) map.price = idx("price eur");
+    // sub title
+    map.subTitle = idx("sub title");
+
+    // fallback: contains
+    if (map.title === -1) map.title = find(x => x.includes("title"));
+    if (map.isbn === -1) map.isbn = find(x => x.includes("isbn"));
+    if (map.pubDate === -1) map.pubDate = find(x => x.includes("publishing date") || x.includes("pub date"));
+    if (map.pages === -1) map.pages = find(x => x.includes("pages"));
+    if (map.price === -1) map.price = find(x => x.includes("price") || x.includes("us$") || x.includes("eur"));
+    if (map.subTitle === -1) map.subTitle = find(x => x.includes("sub title"));
+
+    return map;
+  }
+
+  function safeCell(row, i) {
+    if (i === -1) return "";
+    return row[i];
+  }
+
+  function normalizeRow(publisher, fileName, rowNum, raw, colMap) {
+    const title = sanitizeStr(safeCell(raw, colMap.title));
+    const isbn = sanitizeStr(safeCell(raw, colMap.isbn));
+    // stop condition: empty title and empty isbn
+    if (!title && !isbn) return null;
+
+    const subTitle = sanitizeStr(safeCell(raw, colMap.subTitle));
+    const priceRaw = safeCell(raw, colMap.price);
+    const pubDateRaw = safeCell(raw, colMap.pubDate);
+    const pagesRaw = safeCell(raw, colMap.pages);
+
+    const price = parsePrice(priceRaw);
+    const pubDate = excelDateToISO(pubDateRaw);
+    const pages = sanitizeStr(pagesRaw);
+
+    const currency = defaultCurrency(publisher);
+    const anchor = `${fileName} / row:${rowNum}`;
+
+    const key = makeKey(isbn, fileName, rowNum);
+    const flags = initRowFlags(); // default PASS
+    applyRowLevelFromFields(flags);
+
+    return {
+      key,
+      publisher,
+      korTitle: "",       // (한글 타이틀은 원본에 없으므로 공란 유지 — 생성 금지)
+      title,
+      subTitle,
+      isbn,
+      price: (price === "0" ? "0" : price), // keep "0" if exists
+      currency,
+      pubDate,
+      pages,
+      anchor,
+      flags,
+      updatedAt: Date.now()
+    };
+  }
+
+  async function parseExcel(file) {
+    const ab = await file.arrayBuffer();
+    const wb = XLSX.read(ab, { type: "array", cellDates: true });
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+
+    // as array of arrays
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+    const headerRowIndex = findHeaderRow(rows);
+    const headers = (rows[headerRowIndex] || []).map(x => String(x||"").trim());
+    const publisher = detectPublisher(file.name);
+    const colMap = buildColMap(headers, publisher);
+
+    const out = [];
+    for (let i = headerRowIndex + 1; i < rows.length; i++) {
+      const raw = rows[i] || [];
+      const norm = normalizeRow(publisher, file.name, i+1, raw, colMap);
+      if (!norm) continue;
+      out.push(norm);
+    }
+    return { publisher, fileName: file.name, rows: out };
+  }
+
+  // -----------------------------
+  // Upload actions
+  // -----------------------------
+  async function upsertRows(newRows) {
+    // merge by key (isbn or filename+row)
+    const existing = await rowsGetAll();
+    const map = new Map(existing.map(r => [r.key, r]));
+    let add = 0, upd = 0;
+
+    for (const r of newRows) {
+      if (map.has(r.key)) {
+        // keep existing flags if exists
+        const old = map.get(r.key);
+        r.flags = old.flags || r.flags;
+        map.set(r.key, r);
+        upd++;
+      } else {
+        map.set(r.key, r);
+        add++;
+      }
+    }
+    const merged = Array.from(map.values());
+    await rowsPutMany(merged);
+    cacheRows = merged;
+    return { add, upd, total: merged.length };
+  }
+
+  // -----------------------------
+  // Backup (export/import) for 집/사무실 이동
+  // -----------------------------
+  function downloadText(filename, text) {
+    const blob = new Blob([text], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  async function exportBackup() {
+    const rows = await rowsGetAll();
+    const logs = await logsGetAll();
+    const meta = {
+      lastFileName: await metaGet("lastFileName"),
+      exportedAt: nowStr(),
+      version: "tbv27_backup_v1"
+    };
+    const payload = { meta, rows, logs };
+    downloadText(`tbv27-backup-${Date.now()}.json`, JSON.stringify(payload));
+    await addLog("백업 내보내기");
+  }
+
+  async function importBackupFromFile(file) {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+
+    if (!payload || !payload.rows || !payload.logs) {
+      throw new Error("backup format invalid");
+    }
+    await rowsClear();
+    await logsClear();
+    await rowsPutMany(payload.rows);
+    for (const lg of payload.logs) {
+      await tx(STORE_LOGS,"readwrite").put(lg);
+    }
+    if (payload.meta?.lastFileName) await metaSet("lastFileName", payload.meta.lastFileName);
+
+    cacheRows = await rowsGetAll();
+    cacheLogs = await logsGetAll();
+    lastFileName = (await metaGet("lastFileName")) || "";
+    fileBadge.textContent = lastFileName ? lastFileName : "선택된 파일 없음";
+    await addLog("백업 불러오기");
+    render();
+  }
+
+  // -----------------------------
+  // Init + Events
+  // -----------------------------
+  async function init() {
+    try {
+      db = await openDB();
+      setDBBadge(true, "준비");
+      cacheRows = await rowsGetAll();
+      cacheLogs = await logsGetAll();
+      lastFileName = (await metaGet("lastFileName")) || "";
+      if (lastFileName) fileBadge.textContent = lastFileName;
+
+      renderColControls();
+      renderLog();
+      render();
+
+      await addLog("페이지 로드");
+    } catch (e) {
+      console.error(e);
+      setDBBadge(false, "오류");
+      logBox.textContent = "DB 오류: " + (e && e.message ? e.message : String(e));
+    }
+  }
+
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    selectedFile = f;
+    if (f) {
+      fileBadge.textContent = f.name;
+    } else {
+      fileBadge.textContent = lastFileName ? lastFileName : "선택된 파일 없음";
+    }
+  });
+
+  el("btnUpsert").onclick = async () => {
+    if (!selectedFile) return;
+    const parsed = await parseExcel(selectedFile);
+    const res = await upsertRows(parsed.rows);
+    lastFileName = parsed.fileName;
+    await metaSet("lastFileName", lastFileName);
+    fileBadge.textContent = lastFileName;
+    await addLog(`업로드(추가/합치기): ${parsed.fileName} (추가 ${res.add}, 갱신 ${res.upd})`);
+    render();
+  };
+
+  el("btnReplace").onclick = async () => {
+    if (!selectedFile) return;
+    const parsed = await parseExcel(selectedFile);
+    await rowsClear();
+    await rowsPutMany(parsed.rows);
+    cacheRows = parsed.rows;
+    lastFileName = parsed.fileName;
+    await metaSet("lastFileName", lastFileName);
+    fileBadge.textContent = lastFileName;
+    await addLog(`업로드(전체 교체): ${parsed.fileName} (${parsed.rows.length}건)`);
+    render();
+  };
+
+  el("btnAllPass").onclick = async () => setAll("pass");
+  el("btnAllX").onclick = async () => setAll("x");
+
+  el("sortSel").onchange = () => render();
+  el("pubSel").onchange = () => render();
+  el("q").oninput = () => render();
+
+  el("btnExport").onclick = exportBackup;
+
+  el("btnImport").onclick = async () => {
+    // hidden input for json
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = ".json,application/json";
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0] ? inp.files[0] : null;
+      if (!f) return;
+      try {
+        await importBackupFromFile(f);
+      } catch (e) {
+        console.error(e);
+        await addLog("백업 불러오기 실패: " + (e && e.message ? e.message : String(e)));
+      }
+    };
+    inp.click();
+  };
+
+  el("btnReset").onclick = async () => {
+    await rowsClear();
+    await logsClear();
+    await metaSet("lastFileName", "");
+    cacheRows = [];
+    cacheLogs = [];
+    lastFileName = "";
+    fileBadge.textContent = "선택된 파일 없음";
+    await addLog("DB 초기화");
+    renderLog();
+    render();
+  };
+
+  el("btnCopyLog").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(logBox.textContent || "");
+      await addLog("로그 복사");
+    } catch (e) {
+      await addLog("로그 복사 실패");
+    }
+  };
+
+  init();
+})();
 </script>
-
 </body>
 </html>
