@@ -6,563 +6,874 @@
   <title>27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</title>
   <style>
     :root{
-      --bg:#f3f4f6; --panel:#ffffff; --text:#111827; --muted:#6b7280;
-      --line:#e5e7eb; --xbg:#fee2e2; --xtext:#991b1b; --xline:#fca5a5;
-      --okbg:#dcfce7; --oktext:#166534; --okline:#86efac;
-      --pill:#eef2ff;
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --accent:#2f6fed;
+      --danger:#e11d48;
+      --dangerBg:#ffe4ea;
+      --btn:#eef2ff;
+      --shadow: 0 6px 18px rgba(17,24,39,.08);
+      --radius:14px;
     }
-    html,body{height:100%;}
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0; background:var(--bg); color:var(--text);
-      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      overflow:hidden; /* 페이지 자체 스크롤 금지 */
     }
-    .container{max-width:1500px; margin:16px auto; padding:0 12px;}
-    .card{
-      background:var(--panel); border:1px solid var(--line); border-radius:14px;
-      box-shadow:0 1px 2px rgba(0,0,0,.06);
+    .app{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding:12px;
     }
-    .header{padding:14px 16px; border-bottom:1px solid var(--line);}
-    .header .title{font-weight:900; font-size:16px;}
-    .header .desc{color:var(--muted); font-size:13px; margin-top:6px; line-height:1.4;}
-    .row{display:grid; grid-template-columns: 1fr 360px; gap:12px;}
-    .main{min-width:0;}
-    .side{
-      min-width:0;
-      background:var(--panel);
-      border-left:1px solid var(--line);
-      border-radius:14px;
-      overflow:hidden;
+    .top{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:10px 12px;
     }
-    .sideHead{padding:12px 12px; border-bottom:1px solid var(--line); font-weight:800;}
-    .sideBody{padding:10px 12px; max-height:520px; overflow:auto; font-size:12px; color:#111827; white-space:pre-wrap;}
-    .sideFoot{padding:10px 12px; border-top:1px solid var(--line); display:flex; gap:8px; flex-wrap:wrap;}
-    .btn{
-      border:1px solid var(--line); background:#fff; color:#111827;
-      padding:10px 12px; border-radius:12px; font-weight:800; cursor:pointer;
+    .titleRow{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
     }
-    .btn:hover{filter:brightness(.98);}
-    .btn.danger{border-color:#fecaca; background:#fff1f2; color:#9f1239;}
-    .btn.ok{border-color:var(--okline); background:var(--okbg); color:var(--oktext);}
-    .toolbar{
-      padding:12px 16px; border-bottom:1px solid var(--line);
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    .h1{
+      font-weight:800;
+      font-size:16px;
+      margin:0;
+      line-height:1.2;
+    }
+    .sub{
+      margin:4px 0 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.3;
+    }
+    .pillRow{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:10px;
     }
     .pill{
-      background:var(--pill); border:1px solid #c7d2fe; color:#1e3a8a;
-      padding:6px 10px; border-radius:999px; font-weight:800; font-size:12px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
     }
-    .stat{font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap;}
-    .stat b{color:#111827;}
-    .file{
-      border:1px dashed #cbd5e1; background:#f8fafc; padding:10px 12px; border-radius:12px;
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    .pill b{font-weight:800}
+    .controls{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:10px;
     }
-    input[type="file"]{font-weight:700;}
-    .hint{font-size:12px; color:var(--muted); line-height:1.45;}
-    .tableWrap{overflow:auto; padding:10px 12px;}
-    table{width:100%; border-collapse:separate; border-spacing:0; min-width:1280px;}
-    th,td{
-      border-bottom:1px solid var(--line);
-      padding:10px 10px;
-      vertical-align:top;
-      writing-mode:horizontal-tb !important;
-      word-break:normal !important;
-      overflow-wrap:anywhere;
-      white-space:normal;
-    }
-    th{
-      position:sticky; top:0; background:var(--panel);
-      z-index:2; text-align:left; font-size:13px; color:#374151;
-    }
-    tr:hover td{background:#fafafa;}
-    .cell{
-      display:flex; align-items:flex-start; gap:10px;
-    }
-    .val{flex:1 1 auto; min-width:0;}
-    .val.small{color:var(--muted); font-size:12px;}
-    .xbtn{
-      flex:0 0 auto;
-      width:52px; height:52px;  /* BIG */
-      border-radius:14px;
-      border:2px solid var(--xline);
-      background:var(--xbg);
-      color:var(--xtext);
-      font-weight:900;
-      font-size:16px;
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      padding:9px 12px;
+      border-radius:12px;
+      font-weight:700;
+      font-size:13px;
       cursor:pointer;
+      transition:.12s transform, .12s background;
       user-select:none;
     }
-    .xbtn:active{transform:scale(.98);}
-    .xbtn[aria-pressed="true"]{
-      background:#ef4444; color:#fff; border-color:#ef4444;
+    .btn:hover{background:#fafafa}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{
+      border-color: rgba(47,111,237,.35);
+      background: rgba(47,111,237,.08);
     }
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;}
-    .col-pub{min-width:120px}
-    .col-title{min-width:360px}
-    .col-kor{min-width:280px}
-    .col-sub{min-width:340px}
-    .col-isbn{min-width:160px}
-    .col-price{min-width:110px}
-    .col-cur{min-width:110px}
-    .col-date{min-width:140px}
-    .col-pages{min-width:110px}
-    .notice{
-      padding:10px 16px;
-      border-top:1px solid var(--line);
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    .btn.danger{
+      border-color: rgba(225,29,72,.35);
+      background: rgba(225,29,72,.08);
+      color:#9f1239;
     }
-    .notice .warn{color:#92400e; background:#fffbeb; border:1px solid #fde68a; padding:8px 10px; border-radius:12px; font-weight:800; font-size:12px;}
-    @media (max-width: 1100px){
-      .row{grid-template-columns:1fr;}
-      .side{border-left:none;}
+    .file{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    input[type="file"]{
+      border:1px dashed var(--line);
+      padding:8px;
+      border-radius:12px;
+      background:#fff;
+      width:min(520px, 100%);
+    }
+
+    .main{
+      flex:1;
+      min-height:0;
+      display:flex;
+      gap:10px;
+    }
+    .tableWrap{
+      flex:1;
+      min-width:0;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .tableHead{
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* 테이블 영역만 스크롤 */
+    .scroller{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding:10px;
+      background:linear-gradient(#fff,#fff);
+    }
+
+    /* “가로 스크롤 최소”를 위해: 한 줄 카드형 행 */
+    .rowCard{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px;
+      background:#fff;
+      box-shadow: 0 2px 10px rgba(17,24,39,.04);
+      margin-bottom:10px;
+    }
+    .rowTop{
+      display:grid;
+      grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
+      gap:10px;
+      align-items:start;
+    }
+    .rowMid{
+      display:grid;
+      grid-template-columns: 1.7fr 1.3fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .rowBottom{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    /* 각 필드 블록 */
+    .field{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 10px 10px 10px;
+      position:relative;
+      background:#fbfbfd;
+      min-height:66px;
+    }
+    .label{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.02em;
+      margin-bottom:6px;
+    }
+    .value{
+      font-size:13px;
+      line-height:1.25;
+      white-space:pre-wrap;
+      word-break:break-word;
+      padding-right:56px; /* X 버튼 자리 */
+      min-height:20px;
+    }
+    .empty{
+      color:#9ca3af;
+      font-weight:700;
+    }
+
+    /* 큰 X 버튼 */
+    .xbtn{
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:46px;
+      height:46px;
+      border-radius:14px;
+      border:2px solid rgba(225,29,72,.25);
+      background: var(--dangerBg);
+      color:#9f1239;
+      font-weight:900;
+      font-size:18px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 14px rgba(225,29,72,.12);
+      user-select:none;
+    }
+    .xbtn:hover{
+      border-color: rgba(225,29,72,.45);
+      transform: translateY(-1px);
+    }
+    .xbtn:active{transform: translateY(0px) scale(.98)}
+    .xbtn[disabled]{
+      opacity:.35;
+      cursor:not-allowed;
+      box-shadow:none;
+      transform:none;
+    }
+
+    .note{
+      font-size:12px;
+      color:var(--muted);
+      margin:6px 0 0 0;
+    }
+
+    /* 로그는 “아래”에 고정 */
+    .logWrap{
+      height:190px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .logHead{
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .logBody{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding:10px 12px;
+      background:#0b1220; /* 로그는 진하게(가독성) */
+      color:#e5e7eb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size:12px;
+      line-height:1.35;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .logBtns{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .hint{
+      font-size:11px;
+      color:var(--muted);
+    }
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:12px;
+      transform:translateX(-50%);
+      background:#111827;
+      color:#fff;
+      padding:10px 14px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:12px;
+      opacity:0;
+      pointer-events:none;
+      transition:.18s opacity, .18s transform;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(-6px);
+    }
+
+    @media (max-width: 920px){
+      .rowTop{grid-template-columns:1fr 1fr}
+      .rowMid{grid-template-columns:1fr}
+      .rowBottom{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="header">
-        <div class="title">27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</div>
-        <div class="desc">
-          셀마다 X만 존재 · PASS 없음 · 행 X 없음 · 정렬/재배치 없음 · ANCHOR+HASH로 행 섞임 원천 차단 · 로그 자동 저장(localStorage)<br/>
-          지원: CSV/TSV (XLSX 미지원) · 컬럼 하드고정: Publisher, Title, Sub Title, KOR_TITLE, KOR_SUBTITLE, ISBN, Price, Currency, Pub Date, Pages<br/>
-          KOR_TITLE은 Title 오른쪽, KOR_SUBTITLE은 Sub Title 오른쪽으로 고정 표시
-        </div>
+<div class="app">
+  <section class="top">
+    <div class="titleRow">
+      <div>
+        <p class="h1">27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</p>
+        <p class="sub">셀마다 X만 존재 · PASS 없음 · 행 X 없음 · 정렬/재배치 없음 · ANCHOR+HASH로 행 섞임 원천 차단 · 로그 자동 저장(localStorage)</p>
       </div>
-
-      <div class="toolbar">
-        <div class="file">
-          <b>파일 선택</b>
-          <input id="fileInput" type="file" accept=".csv,.tsv,.txt" />
-          <button class="btn ok" id="btnUpload">업로드(추가/합치기)</button>
-          <button class="btn danger" id="btnResetDb">DB 초기화</button>
-          <span class="pill">DB키: <span class="mono" id="dbKeyView"></span></span>
-          <span class="pill">LOG키: <span class="mono" id="logKeyView"></span></span>
-        </div>
-        <div class="stat" id="statLine">
-          <span>상태: <b id="stStatus">대기</b></span>
-          <span>총 행: <b id="stRows">0</b></span>
-          <span>총 셀 X: <b id="stX">0</b></span>
-          <span>마지막 파일: <b id="stFile">-</b></span>
-        </div>
-        <div class="hint">
-          • 업로드 후 위치가 움직이지 않도록 ANCHOR = 파일명|row:n 기준으로 고정 렌더합니다.<br/>
-          • X는 “그 셀만” X 처리(다른 셀/행 영향 없음) + 즉시 로그에 기록 + localStorage 저장
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="main">
-          <div class="tableWrap">
-            <table id="tbl">
-              <thead><tr id="theadRow"></tr></thead>
-              <tbody id="tbody"></tbody>
-            </table>
-          </div>
-
-          <div class="notice">
-            <div class="warn">주의: 이 화면은 “안정화 전용”이라 보기 예쁜 UI보다 “클릭/로그/섞임 차단”을 우선합니다.</div>
-          </div>
-        </div>
-
-        <div class="side card">
-          <div class="sideHead">자동 로그 (셀 X 클릭 시 즉시 누적/저장)</div>
-          <div class="sideBody mono" id="logBox"></div>
-          <div class="sideFoot">
-            <button class="btn" id="btnCopyLog">로그 복사</button>
-            <button class="btn danger" id="btnClearLog">로그 초기화</button>
-            <button class="btn" id="btnExportDb">DB 내보내기(JSON)</button>
-          </div>
-        </div>
+      <div class="pillRow" aria-label="status">
+        <span class="pill">상태: <b id="stStatus">대기</b></span>
+        <span class="pill">총 행: <b id="stRows">0</b></span>
+        <span class="pill">총 셀 X: <b id="stX">0</b></span>
+        <span class="pill">DB키: <b id="stDbKey"></b></span>
+        <span class="pill">LOG키: <b id="stLogKey"></b></span>
       </div>
     </div>
-  </div>
+
+    <div class="controls">
+      <div class="file">
+        <input id="file" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" />
+        <button class="btn primary" id="btnUpload">업로드(추가/합치기)</button>
+        <button class="btn danger" id="btnResetDb">DB 초기화</button>
+        <button class="btn" id="btnExport">DB 내보내기(JSON)</button>
+      </div>
+      <span class="hint">지원: CSV/TSV (첫 줄 헤더 권장) · 컬럼 하드고정: Publisher, Title, Sub Title, KOR_TITLE, KOR_SUBTITLE, ISBN, Price, Currency, Pub Date, Pages</span>
+    </div>
+
+    <p class="note">테이블(카드형): <b>KOR_TITLE은 Title 오른쪽</b>, <b>KOR_SUBTITLE은 Sub Title 오른쪽</b>에 고정 표시. 페이지는 스크롤 없음, <b>테이블 영역만</b> 스크롤.</p>
+  </section>
+
+  <section class="main">
+    <div class="tableWrap">
+      <div class="tableHead">
+        <div>
+          <div style="font-weight:900">데이터</div>
+          <div class="small" id="smallMeta">ANCHOR = 파일명|row:n 로 고정 렌더</div>
+        </div>
+        <div class="small" id="smallLast">마지막 파일: -</div>
+      </div>
+      <div class="scroller" id="grid"></div>
+    </div>
+  </section>
+
+  <section class="logWrap">
+    <div class="logHead">
+      <div>
+        <div style="font-weight:900">자동 로그 (셀 X 클릭 시 즉시 누적/저장)</div>
+        <div class="small">형식: [YYYY-MM-DD HH:MM:SS] 파일명|row:n | COL | before → after</div>
+      </div>
+      <div class="logBtns">
+        <button class="btn" id="btnCopyLog">로그 복사</button>
+        <button class="btn danger" id="btnClearLog">로그 초기화</button>
+      </div>
+    </div>
+    <div class="logBody" id="log"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast">저장됨</div>
 
 <script>
 (() => {
-  // ===== Fixed keys =====
+  "use strict";
+
+  // ====== 고정 키 ======
   const DB_KEY  = "wic_xdb_v27";
   const LOG_KEY = "wic_xlog_v27";
-  document.getElementById("dbKeyView").textContent = DB_KEY;
-  document.getElementById("logKeyView").textContent = LOG_KEY;
 
-  // ===== Column order MUST match instruction =====
+  // ====== 하드 고정 컬럼 ======
   const COLS = [
-    {key:"Publisher",     cls:"col-pub"},
-    {key:"Title",         cls:"col-title"},
-    {key:"KOR_TITLE",     cls:"col-kor"},       // Title RIGHT
-    {key:"Sub Title",     cls:"col-sub"},
-    {key:"KOR_SUBTITLE",  cls:"col-kor"},       // Sub Title RIGHT
-    {key:"ISBN",          cls:"col-isbn"},
-    {key:"Price",         cls:"col-price"},
-    {key:"Currency",      cls:"col-cur"},
-    {key:"Pub Date",      cls:"col-date"},
-    {key:"Pages",         cls:"col-pages"},
+    "Publisher",
+    "Title",
+    "KOR_TITLE",
+    "Sub Title",
+    "KOR_SUBTITLE",
+    "ISBN",
+    "Price",
+    "Currency",
+    "Pub Date",
+    "Pages"
   ];
 
-  // ===== In-memory =====
-  let db = loadDb();        // { anchors: [anchor...], rowsByAnchor: {anchor: rowObj}, xByAnchorCol: { "anchor|col": true }, fileByAnchor: {} }
-  let logLines = loadLog(); // [string...]
+  // ====== DOM ======
+  const el = (id) => document.getElementById(id);
+  const fileInput = el("file");
+  const btnUpload = el("btnUpload");
+  const btnResetDb = el("btnResetDb");
+  const btnExport = el("btnExport");
+  const grid = el("grid");
+  const logBox = el("log");
 
-  // ===== Render header =====
-  const theadRow = document.getElementById("theadRow");
-  theadRow.innerHTML = COLS.map(c => `<th class="${c.cls}">${escapeHtml(c.key)}</th>`).join("");
+  const stStatus = el("stStatus");
+  const stRows = el("stRows");
+  const stX = el("stX");
+  const stDbKey = el("stDbKey");
+  const stLogKey = el("stLogKey");
+  const smallLast = el("smallLast");
+  const btnCopyLog = el("btnCopyLog");
+  const btnClearLog = el("btnClearLog");
+  const toast = el("toast");
 
-  // ===== UI refs =====
-  const fileInput = document.getElementById("fileInput");
-  const btnUpload = document.getElementById("btnUpload");
-  const btnResetDb = document.getElementById("btnResetDb");
-  const btnCopyLog = document.getElementById("btnCopyLog");
-  const btnClearLog = document.getElementById("btnClearLog");
-  const btnExportDb = document.getElementById("btnExportDb");
+  stDbKey.textContent = DB_KEY;
+  stLogKey.textContent = LOG_KEY;
 
-  const stStatus = document.getElementById("stStatus");
-  const stRows = document.getElementById("stRows");
-  const stX = document.getElementById("stX");
-  const stFile = document.getElementById("stFile");
-  const tbody = document.getElementById("tbody");
-  const logBox = document.getElementById("logBox");
+  // ====== 유틸 ======
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const nowStamp = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  };
 
-  // ===== Init render =====
-  renderAll();
-  renderLog();
+  const showToast = (msg) => {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 900);
+  };
 
-  // ===== Handlers =====
-  btnUpload.addEventListener("click", async () => {
-    const f = fileInput.files?.[0];
-    if (!f) { setStatus("파일 없음"); return; }
-    const name = f.name || "unknown";
-    if (!/\.(csv|tsv|txt)$/i.test(name)) { setStatus("CSV/TSV만 지원"); return; }
+  // 간단 해시(섞임 감지용)
+  const hashStr = (s) => {
+    let h = 2166136261;
+    for (let i=0; i<s.length; i++){
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+  };
 
-    setStatus("읽는 중...");
-    const text = await f.text();
-    setStatus("파싱 중...");
-    const rows = parseDelimited(text, name);
-    // merge by anchor (file|row:n)
-    const beforeCount = db.anchors.length;
-    const {added, updated} = mergeRows(rows, name);
-    saveDb();
-    setStatus(`업로드 완료 (추가 ${added}, 갱신 ${updated}, 총 ${db.anchors.length})`);
-    stFile.textContent = name;
+  // CSV/TSV 파서(따옴표 처리)
+  const parseDelimited = (text, delim) => {
+    const rows = [];
+    let cur = "";
+    let row = [];
+    let inQ = false;
+    for (let i=0; i<text.length; i++){
+      const ch = text[i];
+      const nx = text[i+1];
 
-    appendLog(`[${ts()}] 파일 선택: ${name} (저장X)`);
-    appendLog(`[${ts()}] 업로드(추가/합치기): ${name} (추가 ${added}, 갱신 ${updated}, 총 ${db.anchors.length})`);
-    renderAll();
+      if (inQ){
+        if (ch === '"' && nx === '"'){ cur += '"'; i++; continue; }
+        if (ch === '"'){ inQ = false; continue; }
+        cur += ch;
+        continue;
+      }
+
+      if (ch === '"'){ inQ = true; continue; }
+      if (ch === delim){
+        row.push(cur);
+        cur = "";
+        continue;
+      }
+      if (ch === "\r"){
+        // ignore
+        continue;
+      }
+      if (ch === "\n"){
+        row.push(cur);
+        rows.push(row);
+        row = [];
+        cur = "";
+        continue;
+      }
+      cur += ch;
+    }
+    // tail
+    row.push(cur);
+    // 빈 마지막 줄 방지
+    if (!(row.length === 1 && row[0] === "")) rows.push(row);
+    return rows;
+  };
+
+  const normalizeKey = (k) =>
+    (k || "")
+      .toLowerCase()
+      .replace(/\s+/g," ")
+      .replace(/[_-]+/g," ")
+      .trim();
+
+  const mapHeader = (headerArr) => {
+    const map = {};
+    const normHeader = headerArr.map(h => normalizeKey(h));
+    for (let i=0; i<normHeader.length; i++){
+      const h = normHeader[i];
+      // 허용 별칭들
+      if (h === "publisher") map["Publisher"] = i;
+      if (h === "title") map["Title"] = i;
+      if (h === "sub title" || h === "subtitle") map["Sub Title"] = i;
+      if (h === "kor title" || h === "kor_title" || h === "korean title") map["KOR_TITLE"] = i;
+      if (h === "kor subtitle" || h === "kor_subtitle" || h === "korean subtitle") map["KOR_SUBTITLE"] = i;
+      if (h === "isbn") map["ISBN"] = i;
+      if (h === "price") map["Price"] = i;
+      if (h === "currency") map["Currency"] = i;
+      if (h === "pub date" || h === "pubdate" || h === "publication date") map["Pub Date"] = i;
+      if (h === "pages") map["Pages"] = i;
+    }
+    return map;
+  };
+
+  // ====== 저장 구조 ======
+  // db: { version:"v1", items:{[anchor]:{anchor,file,row,hash,cells:{col:val}, x:{col:true}}}, lastFile:"" }
+  const loadDB = () => {
+    try{
+      const raw = localStorage.getItem(DB_KEY);
+      if(!raw) return { version:"v1", items:{}, lastFile:"" };
+      const parsed = JSON.parse(raw);
+      if(!parsed.items) parsed.items = {};
+      if(!parsed.lastFile) parsed.lastFile = "";
+      if(!parsed.version) parsed.version = "v1";
+      return parsed;
+    }catch(e){
+      return { version:"v1", items:{}, lastFile:"" };
+    }
+  };
+
+  const saveDB = (db) => {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  };
+
+  const loadLOG = () => {
+    try{
+      const raw = localStorage.getItem(LOG_KEY);
+      if(!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){
+      return [];
+    }
+  };
+
+  const saveLOG = (arr) => {
+    localStorage.setItem(LOG_KEY, JSON.stringify(arr));
+  };
+
+  const pushLog = (line) => {
+    const logs = loadLOG();
+    logs.push(line);
+    // 너무 커지면 최근 2000줄만 유지
+    if (logs.length > 2000) logs.splice(0, logs.length - 2000);
+    saveLOG(logs);
     renderLog();
-  });
+  };
 
-  btnResetDb.addEventListener("click", () => {
-    db = { anchors: [], rowsByAnchor: {}, xByAnchorCol: {}, fileByAnchor: {} };
-    saveDb();
-    setStatus("DB 초기화");
-    appendLog(`[${ts()}] DB 초기화`);
-    renderAll();
+  // ====== 렌더 ======
+  const countX = (db) => {
+    let c = 0;
+    for (const a in db.items){
+      const it = db.items[a];
+      if (it && it.x){
+        c += Object.keys(it.x).length;
+      }
+    }
+    return c;
+  };
+
+  const renderStatus = (db) => {
+    const rows = Object.keys(db.items).length;
+    stRows.textContent = String(rows);
+    stX.textContent = String(countX(db));
+    smallLast.textContent = "마지막 파일: " + (db.lastFile || "-");
+  };
+
+  const makeField = ({anchor, col, label, value, disabledX}) => {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+
+    const lab = document.createElement("div");
+    lab.className = "label";
+    lab.textContent = label;
+    wrap.appendChild(lab);
+
+    const val = document.createElement("div");
+    val.className = "value";
+    if (!value){
+      val.classList.add("empty");
+      val.textContent = "(빈값)";
+    }else{
+      val.textContent = value;
+    }
+    wrap.appendChild(val);
+
+    const xb = document.createElement("button");
+    xb.className = "xbtn";
+    xb.type = "button";
+    xb.textContent = "X";
+    xb.title = "이 셀을 X 처리";
+    if (disabledX) xb.disabled = true;
+
+    xb.addEventListener("click", () => {
+      const db = loadDB();
+      const it = db.items[anchor];
+      if (!it) return;
+
+      const before = (it.cells && it.cells[col]) ? it.cells[col] : "";
+      // 이미 X 처리된 셀이면 추가 클릭은 무시(중복 로그/오류 방지)
+      if (it.x && it.x[col]) {
+        showToast("이미 X 처리됨");
+        return;
+      }
+
+      // 셀 값 비우기 + X 마킹
+      if (!it.cells) it.cells = {};
+      if (!it.x) it.x = {};
+      it.cells[col] = "";
+      it.x[col] = true;
+
+      db.items[anchor] = it;
+      saveDB(db);
+
+      const line = `[${nowStamp()}] ${anchor} | ${col} | ${before || "(빈값)"} → (빈값)`;
+      pushLog(line);
+
+      renderAll();
+      showToast("X 저장");
+    });
+
+    wrap.appendChild(xb);
+    return wrap;
+  };
+
+  const renderGrid = () => {
+    const db = loadDB();
+    renderStatus(db);
+
+    grid.innerHTML = "";
+    const anchors = Object.keys(db.items).sort((a,b) => {
+      // 파일명 우선, row 번호 우선
+      const [af, ar] = a.split("|row:");
+      const [bf, br] = b.split("|row:");
+      if (af !== bf) return af.localeCompare(bf);
+      return (Number(ar)||0) - (Number(br)||0);
+    });
+
+    if (anchors.length === 0){
+      const empty = document.createElement("div");
+      empty.style.padding = "14px";
+      empty.style.color = "#6b7280";
+      empty.style.fontWeight = "800";
+      empty.textContent = "데이터 없음 (CSV/TSV 업로드 후 표시)";
+      grid.appendChild(empty);
+      return;
+    }
+
+    for (const anchor of anchors){
+      const it = db.items[anchor];
+      if (!it) continue;
+
+      const card = document.createElement("div");
+      card.className = "rowCard";
+
+      const head = document.createElement("div");
+      head.className = "small";
+      head.style.marginBottom = "8px";
+      head.style.display = "flex";
+      head.style.justifyContent = "space-between";
+      head.style.gap = "10px";
+      head.style.flexWrap = "wrap";
+      head.innerHTML = `<span><b>${it.file || ""}</b> · ${anchor}</span><span>HASH: ${it.hash || "-"}</span>`;
+      card.appendChild(head);
+
+      const rowTop = document.createElement("div");
+      rowTop.className = "rowTop";
+      rowTop.appendChild(makeField({anchor, col:"Publisher", label:"Publisher", value: it.cells?.["Publisher"] || ""}));
+      rowTop.appendChild(makeField({anchor, col:"ISBN", label:"ISBN", value: it.cells?.["ISBN"] || ""}));
+      rowTop.appendChild(makeField({anchor, col:"Price", label:"Price", value: it.cells?.["Price"] || ""}));
+      rowTop.appendChild(makeField({anchor, col:"Currency", label:"Currency", value: it.cells?.["Currency"] || ""}));
+      rowTop.appendChild(makeField({anchor, col:"Pages", label:"Pages", value: it.cells?.["Pages"] || ""}));
+      card.appendChild(rowTop);
+
+      // Title + KOR_TITLE (오른쪽)
+      const rowMid = document.createElement("div");
+      rowMid.className = "rowMid";
+
+      const titlePair = document.createElement("div");
+      titlePair.className = "rowBottom";
+      titlePair.appendChild(makeField({anchor, col:"Title", label:"Title", value: it.cells?.["Title"] || ""}));
+      titlePair.appendChild(makeField({anchor, col:"KOR_TITLE", label:"KOR_TITLE (Title 오른쪽)", value: it.cells?.["KOR_TITLE"] || ""}));
+      rowMid.appendChild(titlePair);
+
+      const dateField = document.createElement("div");
+      dateField.className = "rowBottom";
+      dateField.appendChild(makeField({anchor, col:"Pub Date", label:"Pub Date", value: it.cells?.["Pub Date"] || ""}));
+      dateField.appendChild(document.createElement("div")); // 빈칸(정렬용)
+      rowMid.appendChild(dateField);
+
+      card.appendChild(rowMid);
+
+      // Sub Title + KOR_SUBTITLE (오른쪽)
+      const rowBottom = document.createElement("div");
+      rowBottom.className = "rowBottom";
+      rowBottom.appendChild(makeField({anchor, col:"Sub Title", label:"Sub Title", value: it.cells?.["Sub Title"] || ""}));
+      rowBottom.appendChild(makeField({anchor, col:"KOR_SUBTITLE", label:"KOR_SUBTITLE (Sub Title 오른쪽)", value: it.cells?.["KOR_SUBTITLE"] || ""}));
+      card.appendChild(rowBottom);
+
+      grid.appendChild(card);
+    }
+  };
+
+  const renderLog = () => {
+    const logs = loadLOG();
+    if (logs.length === 0){
+      logBox.textContent = "(로그 없음)";
+      return;
+    }
+    // 최근 250줄만 화면 표시(성능)
+    const tail = logs.slice(-250).join("\n");
+    logBox.textContent = tail;
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+
+  const renderAll = () => {
+    const db = loadDB();
+    stStatus.textContent = (Object.keys(db.items).length ? "업로드 완료" : "대기");
+    renderGrid();
     renderLog();
+  };
+
+  // ====== 업로드 ======
+  const readFileText = (file) => new Promise((resolve,reject)=>{
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result || ""));
+    fr.onerror = reject;
+    fr.readAsText(file, "utf-8");
   });
 
-  btnCopyLog.addEventListener("click", async () => {
-    const text = logLines.join("\n");
-    await navigator.clipboard.writeText(text);
-    setStatus("로그 복사됨");
-  });
+  const buildItemFromRow = (fileName, rowNumber, rowObj) => {
+    // 행 값으로 hash
+    const joined = COLS.map(c => (rowObj[c] ?? "")).join("|");
+    const h = hashStr(joined);
+    const anchor = `${fileName}|row:${rowNumber}`;
 
-  btnClearLog.addEventListener("click", () => {
-    logLines = [];
-    saveLog();
-    setStatus("로그 초기화");
-    renderLog();
-  });
+    return {
+      anchor,
+      file: fileName,
+      row: rowNumber,
+      hash: h,
+      cells: Object.fromEntries(COLS.map(c => [c, (rowObj[c] ?? "")])),
+      x: {} // 클릭 시 채움
+    };
+  };
 
-  btnExportDb.addEventListener("click", () => {
-    const payload = JSON.stringify(db, null, 2);
-    const blob = new Blob([payload], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "wic_xdb_v27_export.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setStatus("DB 내보내기 완료");
-  });
+  const handleUpload = async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file){
+      showToast("파일 선택");
+      return;
+    }
 
-  // ===== Cell X click (event delegation) =====
-  document.addEventListener("click", (e) => {
-    const b = e.target.closest(".xbtn");
-    if (!b) return;
-    const anchor = b.dataset.anchor;
-    const col = b.dataset.col;
-    const key = `${anchor}|${col}`;
-    const row = db.rowsByAnchor[anchor] || {};
-    const before = (row[col] ?? "").toString();
+    const name = file.name || "unknown.csv";
+    const text = await readFileText(file);
 
-    // toggle X
-    const nowPressed = !(db.xByAnchorCol[key] === true);
-    db.xByAnchorCol[key] = nowPressed;
+    // delimiter 추정(탭 우선)
+    const firstLine = text.split("\n")[0] || "";
+    const delim = firstLine.includes("\t") ? "\t" : ",";
 
-    // Persist
-    saveDb();
+    const rows = parseDelimited(text, delim).filter(r => r.some(v => String(v||"").trim() !== ""));
+    if (rows.length < 2){
+      showToast("행 부족");
+      return;
+    }
 
-    // Log
-    const after = nowPressed ? "X" : "(복구)";
-    appendLog(`[${ts()}] ${anchor} | ${col} | ${safeInline(before)} → ${after}`);
-    saveLog();
-    renderLog();
+    const header = rows[0].map(v => String(v||"").trim());
+    const map = mapHeader(header);
 
-    // Re-render only that row (no shifting)
-    refreshRow(anchor);
-    updateStats();
-  });
+    // 헤더에 필수(Title/ISBN 등)가 없어도, 있는 것만 채우고 나머지는 빈값
+    const db = loadDB();
+    db.lastFile = name;
 
-  // ===== Core =====
-  function mergeRows(parsedRows, fileName){
     let added = 0, updated = 0;
-    // parsedRows items: {anchor, rowIndex, data}
-    for (const item of parsedRows){
-      const anchor = item.anchor;
-      const data = normalizeRow(item.data);
 
-      if (!db.rowsByAnchor[anchor]) {
-        db.anchors.push(anchor);
-        db.rowsByAnchor[anchor] = data;
-        db.fileByAnchor[anchor] = fileName;
+    for (let i=1; i<rows.length; i++){
+      const arr = rows[i];
+      // CSV 기준 row 번호는 실제 엑셀 느낌으로 1-based, 헤더 포함이면 +1
+      const rowNumber = i + 1;
+
+      const rowObj = {};
+      for (const c of COLS){
+        const idx = map[c];
+        rowObj[c] = (idx === undefined) ? "" : String(arr[idx] ?? "").trim();
+      }
+
+      const item = buildItemFromRow(name, rowNumber, rowObj);
+      const exist = db.items[item.anchor];
+
+      if (!exist){
+        db.items[item.anchor] = item;
         added++;
       } else {
-        db.rowsByAnchor[anchor] = data;
-        db.fileByAnchor[anchor] = fileName;
+        // 섞임 방지: anchor가 같으면 같은 행으로만 갱신
+        // 기존 X 이력(x)은 유지, 값만 최신으로 반영
+        const keepX = exist.x || {};
+        db.items[item.anchor] = {
+          ...item,
+          x: keepX
+        };
         updated++;
       }
     }
-    // anchor order: stable (first seen order). no sorting.
-    return {added, updated};
-  }
 
-  function normalizeRow(obj){
-    const out = {};
-    for (const c of COLS) out[c.key] = (obj[c.key] ?? "").toString();
-    return out;
-  }
+    saveDB(db);
+    pushLog(`[${nowStamp()}] 업로드(추가/합치기): ${name} (추가 ${added}, 갱신 ${updated}, 총 ${Object.keys(db.items).length})`);
+    stStatus.textContent = "업로드 완료";
+    renderAll();
+    showToast("업로드 완료");
+  };
 
-  function renderAll(){
-    tbody.innerHTML = "";
-    for (const anchor of db.anchors){
-      tbody.appendChild(renderRow(anchor));
-    }
-    updateStats();
-  }
+  // ====== 버튼 ======
+  btnUpload.addEventListener("click", () => handleUpload().catch(() => showToast("업로드 실패")));
+  btnResetDb.addEventListener("click", () => {
+    localStorage.removeItem(DB_KEY);
+    pushLog(`[${nowStamp()}] DB 초기화`);
+    renderAll();
+    showToast("DB 초기화");
+  });
 
-  function refreshRow(anchor){
-    const tr = tbody.querySelector(`tr[data-anchor="${cssEscape(anchor)}"]`);
-    if (!tr) return;
-    const fresh = renderRow(anchor);
-    tr.replaceWith(fresh);
-  }
+  btnExport.addEventListener("click", () => {
+    const db = loadDB();
+    const blob = new Blob([JSON.stringify(db, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "wic_xdb_v27.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast("JSON 저장");
+  });
 
-  function renderRow(anchor){
-    const tr = document.createElement("tr");
-    tr.dataset.anchor = anchor;
-
-    const row = db.rowsByAnchor[anchor] || {};
-    for (const c of COLS){
-      const td = document.createElement("td");
-      td.className = c.cls;
-
-      const key = `${anchor}|${c.key}`;
-      const pressed = db.xByAnchorCol[key] === true;
-
-      // If X pressed, show X; else show original value
-      const raw = (row[c.key] ?? "").toString().trim();
-      const displayVal = pressed ? "X" : raw;
-
-      td.innerHTML = `
-        <div class="cell">
-          <div class="val ${displayVal ? "" : "small"}">
-            ${displayVal ? escapeHtml(displayVal) : '<span class="val small">(빈값)</span>'}
-          </div>
-          <button class="xbtn" aria-pressed="${pressed ? "true" : "false"}"
-            title="${pressed ? "X 해제" : "이 셀을 X 처리"}"
-            data-anchor="${escapeHtmlAttr(anchor)}" data-col="${escapeHtmlAttr(c.key)}">X</button>
-        </div>
-      `;
-      tr.appendChild(td);
-    }
-    return tr;
-  }
-
-  function updateStats(){
-    stRows.textContent = String(db.anchors.length);
-    const xCount = Object.values(db.xByAnchorCol).filter(v => v === true).length;
-    stX.textContent = String(xCount);
-  }
-
-  function setStatus(s){ stStatus.textContent = s; }
-
-  // ===== Log =====
-  function appendLog(line){
-    logLines.push(line);
-    // keep last 600 lines to avoid memory bloat
-    if (logLines.length > 600) logLines = logLines.slice(-600);
-    saveLog();
-  }
-  function renderLog(){
-    if (logLines.length === 0){
-      logBox.textContent = "로그 형식: [YYYY-MM-DD HH:MM:SS] 파일명|row:n | COL | before → after";
-      return;
-    }
-    logBox.textContent = logLines.join("\n");
-  }
-
-  // ===== Storage =====
-  function loadDb(){
+  btnCopyLog.addEventListener("click", async () => {
+    const logs = loadLOG();
+    const text = logs.join("\n");
     try{
-      const s = localStorage.getItem(DB_KEY);
-      if(!s) return { anchors: [], rowsByAnchor: {}, xByAnchorCol: {}, fileByAnchor: {} };
-      const o = JSON.parse(s);
-      // minimal validation
-      if(!o || !Array.isArray(o.anchors) || !o.rowsByAnchor) throw new Error("bad db");
-      if(!o.xByAnchorCol) o.xByAnchorCol = {};
-      if(!o.fileByAnchor) o.fileByAnchor = {};
-      return o;
-    }catch{
-      return { anchors: [], rowsByAnchor: {}, xByAnchorCol: {}, fileByAnchor: {} };
+      await navigator.clipboard.writeText(text);
+      showToast("로그 복사");
+    }catch(e){
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      showToast("로그 복사");
     }
-  }
-  function saveDb(){
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  }
-  function loadLog(){
-    try{
-      const s = localStorage.getItem(LOG_KEY);
-      if(!s) return [];
-      const o = JSON.parse(s);
-      return Array.isArray(o) ? o : [];
-    }catch{
-      return [];
-    }
-  }
-  function saveLog(){
-    localStorage.setItem(LOG_KEY, JSON.stringify(logLines));
-  }
+  });
 
-  // ===== Parser: CSV/TSV =====
-  // anchor = fileName|row:n (n starts from 2 when header exists)
-  function parseDelimited(text, fileName){
-    const delimiter = guessDelimiter(text, fileName);
-    const lines = splitLines(text);
-    if (lines.length === 0) return [];
+  btnClearLog.addEventListener("click", () => {
+    localStorage.removeItem(LOG_KEY);
+    renderLog();
+    showToast("로그 초기화");
+  });
 
-    // detect header
-    const first = parseLine(lines[0], delimiter);
-    const headerMap = buildHeaderMap(first);
-
-    const hasHeader = headerMap.score >= 2; // needs at least 2 matching fixed columns
-    const startIdx = hasHeader ? 1 : 0;
-
-    const out = [];
-    for (let i = startIdx; i < lines.length; i++){
-      const arr = parseLine(lines[i], delimiter);
-      if (arr.every(x => !x || !x.trim())) continue;
-
-      const rowObj = {};
-      if (hasHeader){
-        for (const c of COLS){
-          const idx = headerMap.idxByKey[c.key];
-          rowObj[c.key] = idx >= 0 ? (arr[idx] ?? "") : "";
-        }
-      } else {
-        // No header: fill by COLS order
-        for (let k = 0; k < COLS.length; k++){
-          rowObj[COLS[k].key] = (arr[k] ?? "");
-        }
-      }
-
-      const rowNumber = hasHeader ? (i + 1) : (i + 1); // 1-based in file
-      const anchor = `${fileName}|row:${rowNumber}`;
-      out.push({anchor, rowIndex: rowNumber, data: rowObj});
-    }
-    return out;
-  }
-
-  function guessDelimiter(text, fileName){
-    if (/\.tsv$/i.test(fileName)) return "\t";
-    const sample = text.slice(0, 5000);
-    const c = (sample.match(/,/g) || []).length;
-    const t = (sample.match(/\t/g) || []).length;
-    return (t > c) ? "\t" : ",";
-  }
-
-  function splitLines(text){
-    return text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(l => l.length > 0);
-  }
-
-  function parseLine(line, delimiter){
-    // simple CSV with quotes
-    const res = [];
-    let cur = "";
-    let q = false;
-    for (let i=0;i<line.length;i++){
-      const ch = line[i];
-      if (ch === '"'){
-        if (q && line[i+1] === '"'){ cur += '"'; i++; }
-        else { q = !q; }
-      } else if (!q && ch === delimiter){
-        res.push(cur.trim());
-        cur = "";
-      } else {
-        cur += ch;
-      }
-    }
-    res.push(cur.trim());
-    return res;
-  }
-
-  function buildHeaderMap(headerArr){
-    const norm = headerArr.map(h => normalizeHeader(h));
-    const idxByKey = {};
-    let score = 0;
-    for (const c of COLS){
-      const want = normalizeHeader(c.key);
-      const idx = norm.indexOf(want);
-      idxByKey[c.key] = idx;
-      if (idx >= 0) score++;
-    }
-    return {idxByKey, score};
-  }
-
-  function normalizeHeader(s){
-    return (s || "")
-      .toString()
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g," ")
-      .replace(/_/g," ");
-  }
-
-  // ===== Utils =====
-  function ts(){
-    const d = new Date();
-    const pad = (n)=> String(n).padStart(2,"0");
-    const y = d.getFullYear();
-    const m = pad(d.getMonth()+1);
-    const day = pad(d.getDate());
-    const hh = pad(d.getHours());
-    const mm = pad(d.getMinutes());
-    const ss = pad(d.getSeconds());
-    return `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
-  }
-
-  function safeInline(s){
-    return (s || "").toString().replace(/\s+/g," ").slice(0, 120);
-  }
-
-  function escapeHtml(s){
-    return (s ?? "").toString()
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  }
-  function escapeHtmlAttr(s){ return escapeHtml(s).replaceAll("\n"," "); }
-  function cssEscape(s){
-    // minimal escape for attribute selector
-    return (s ?? "").toString().replaceAll('"','\\"');
-  }
+  // ====== 초기 ======
+  renderAll();
 })();
 </script>
 </body>
