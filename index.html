@@ -1,703 +1,84 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 – 엑셀 업로드</title>
-  <style>
-    :root { --bd:#d0d7de; --bg:#fff; --fg:#111; --muted:#666; --ok:#1a7f37; --bad:#d1242f; --chip:#f6f8fa; }
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, "Noto Sans KR", sans-serif; color:var(--fg); background:var(--bg); }
-    header { padding:12px 14px; border-bottom:1px solid var(--bd); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    header h1 { font-size:16px; margin:0; font-weight:700; }
-    .btn { border:1px solid var(--bd); background:var(--chip); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px; }
-    .btn:active { transform: translateY(1px); }
-    .btn.primary { background:#0969da; color:#fff; border-color:#0969da; }
-    .btn.danger { background:var(--bad); color:#fff; border-color:var(--bad); }
-    .btn.ok { background:var(--ok); color:#fff; border-color:var(--ok); }
-    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px 14px; border-bottom:1px solid var(--bd); }
-    .label { font-size:12px; color:var(--muted); }
-    select, input[type="text"] { border:1px solid var(--bd); border-radius:8px; padding:6px 10px; font-size:13px; }
-    .meta { font-size:12px; color:var(--muted); }
-    .grid { display:grid; grid-template-columns: 1fr; gap:10px; padding:10px 14px; }
-    .card { border:1px solid var(--bd); border-radius:12px; overflow:hidden; }
-    .card .hd { background:var(--chip); padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-    .pill { padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--bd); background:#fff; }
-    .pill.ok { color:var(--ok); border-color:rgba(26,127,55,.35); background:rgba(26,127,55,.06); }
-    .pill.bad { color:var(--bad); border-color:rgba(209,36,47,.35); background:rgba(209,36,47,.06); }
-    table { width:100%; border-collapse:collapse; }
-    th, td { border-top:1px solid var(--bd); padding:6px 8px; font-size:12px; vertical-align:top; }
-    th { background:#fff; position:sticky; top:0; z-index:1; }
-    .nowrap { white-space:nowrap; }
-    .colBtns { display:flex; gap:6px; justify-content:center; }
-    .tiny { font-size:11px; padding:4px 8px; border-radius:8px; }
-    .xbtn { background:#fff; border:1px solid var(--bd); border-radius:8px; padding:4px 8px; cursor:pointer; font-size:11px; }
-    .xbtn.ok { border-color:rgba(26,127,55,.35); color:var(--ok); }
-    .xbtn.bad { border-color:rgba(209,36,47,.35); color:var(--bad); }
-    .statusCell { display:flex; gap:6px; align-items:center; justify-content:center; }
-    .muted { color:var(--muted); }
-    .log { max-height:180px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; padding:8px 10px; background:#0b1020; color:#e8eefc; }
-    .log div { padding:2px 0; border-bottom:1px solid rgba(255,255,255,.06); }
-    .warn { color:#ffcc66; }
-    .err { color:#ff6b6b; }
-    .okc { color:#7ee787; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>27 Technical Book Verifier</title>
+
+<style>
+body{font-family:system-ui;margin:10px}
+button{padding:6px 10px;margin:2px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px;font-size:12px}
+.pass{color:green}
+.x{color:red}
+</style>
 </head>
+
 <body>
-<header>
-  <h1>27번 도구 – 엑셀 업로드</h1>
-  <span class="pill" id="dbPill">DB: 준비</span>
-  <span class="meta" id="fileLabel">선택된 파일 없음</span>
-</header>
 
-<div class="row">
-  <input id="fileInput" type="file" accept=".xlsx,.xls" style="display:none" />
-  <button class="btn primary" id="pickBtn">파일 선택</button>
-  <button class="btn" id="mergeBtn">업로드(추가/합치기)</button>
-  <button class="btn" id="replaceBtn">업로드(전체 교체)</button>
-  <button class="btn ok" id="allPassBtn">전체 PASS</button>
-  <button class="btn danger" id="allXBtn">전체 X</button>
-  <button class="btn" id="exportBtn">백업 내보내기</button>
-  <button class="btn" id="importBtn">백업 불러오기</button>
-  <input id="importFile" type="file" accept=".json" style="display:none" />
-  <button class="btn" id="resetBtn">DB 초기화</button>
-</div>
+<h2>27번 도구 – 엑셀 업로드</h2>
 
-<div class="row">
-  <div class="label">정렬:</div>
-  <select id="sortSel">
-    <option value="pub_desc" selected>발행일 최신순</option>
-    <option value="pub_asc">발행일 오름차순</option>
-    <option value="isbn_asc">ISBN 오름차순</option>
-  </select>
-  <div class="label">필터:</div>
-  <select id="pubFilter">
-    <option value="ALL" selected>전체 발행사</option>
-  </select>
-  <div class="label">검색:</div>
-  <input id="q" type="text" placeholder="ISBN / Title / 한글" style="min-width:260px;" />
-  <div class="meta" id="stats">전체 0건 / 표시 0건 / X 0건</div>
-</div>
+<input type="file" id="file"/>
+<button onclick="upload()">업로드(전체 교체)</button>
 
-<div class="grid">
-  <div class="card">
-    <div class="hd">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <span class="pill">컬럼별 PASS/X</span>
-        <span class="meta muted">각 컬럼의 PASS/X는 “해당 컬럼만” 표기합니다.</span>
-        <span class="meta muted">행 PASS/X는 맨 오른쪽 PASS/X로 표기합니다.</span>
-      </div>
-    </div>
-    <div style="overflow:auto; max-height:52vh;">
-      <table id="tbl">
-        <thead>
-          <tr id="thRow"></tr>
-          <tr id="thCtrl"></tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-  </div>
+<table id="tbl">
+<thead>
+<tr>
+<th>Publisher</th>
+<th>Title</th>
+<th>ISBN</th>
+<th>Price</th>
+<th>Pub Date</th>
+<th>Pages</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 
-  <div class="card">
-    <div class="hd">
-      <span class="pill">이력(버튼 클릭 기록) — 브라우저/PC 재시작 후에도 유지</span>
-      <button class="btn tiny" id="logCopy">로그 복사</button>
-    </div>
-    <div class="log" id="log"></div>
-  </div>
-</div>
-
-<!-- 중요: CDN 말고 로컬 파일로 두는 걸 권장. index.html 옆에 xlsx.full.min.js 업로드 -->
-<script src="./xlsx.full.min.js"></script>
+<!-- 핵심: CDN XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-/* =========================
-   FIX 핵심
-   - IndexedDB createIndex 제거(공백 keyPath로 인한 DB 오류 원천 제거)
-   - 데이터 키는 화면용 라벨과 분리(내부키는 camelCase)
-   - 저장: IndexedDB(대용량) + localStorage는 사용 안 함
-========================= */
-
-const APP = {
-  dbName: 'tbv27_db_v2',   // ★ DB 이름/버전 바꿔서 기존 깨진 스키마와 충돌 방지
-  dbVer: 1,
-  storeRows: 'rows',
-  storeMeta: 'meta',
-  storeLog: 'log',
-  kMeta: 'meta:v1',
-  kLog: 'log:v1',
-};
-
-const COLS = [
-  { key:'publisher', label:'Publisher' },
-  { key:'korTitle', label:'KOR_TITLE' },
-  { key:'title', label:'Title' },
-  { key:'subTitle', label:'Sub Title' },
-  { key:'isbn', label:'ISBN' },
-  { key:'price', label:'Price' },
-  { key:'currency', label:'Currency' },
-  { key:'pubDate', label:'Pub Date' },
-  { key:'pages', label:'Pages' },
-  { key:'anchor', label:'ANCHOR' },
-  { key:'PASS', label:'PASS' },
-  { key:'X', label:'X' },
-];
-
-const FLAGGABLE = COLS.filter(c=>!['PASS','X'].includes(c.key)).map(c=>c.key);
-
-const $ = (id)=>document.getElementById(id);
-const thRow = $('thRow');
-const thCtrl = $('thCtrl');
-const tbody = $('tbody');
-
-let DB=null;
-let lastFile=null;
-let allRows=[];
-let colStatus={}; // {colKey:{pass:true,x:false}}
-let ui={ sort:'pub_desc', pub:'ALL', q:'' };
-
-function nowTS(){
-  const d=new Date(); const pad=n=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+function detectPublisher(name){
+ name=name.toLowerCase()
+ if(name.includes("springer"))return"Springer"
+ if(name.includes("elsevier"))return"Elsevier"
+ if(name.includes("wiley"))return"Wiley"
+ return"UNKNOWN"
 }
 
-function setDBPill(ok){
-  const p=$('dbPill');
-  p.textContent = ok ? 'DB: 준비' : 'DB: 오류';
-  p.className = 'pill ' + (ok ? 'ok' : 'bad');
+function excelDate(v){
+ if(typeof v==="number"){
+  const d=new Date((v-25569)*86400*1000)
+  return d.toISOString().slice(0,10)
+ }
+ return v||""
 }
 
-function escapeHTML(s){
-  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+async function upload(){
+ const f=document.getElementById("file").files[0]
+ if(!f)return alert("파일 선택")
+ const data=await f.arrayBuffer()
+ const wb=XLSX.read(data)
+ const ws=wb.Sheets[wb.SheetNames[0]]
+ const json=XLSX.utils.sheet_to_json(ws,{defval:""})
+ const pub=detectPublisher(f.name)
+ const tb=document.querySelector("#tbl tbody")
+ tb.innerHTML=""
+ json.forEach(r=>{
+  const tr=document.createElement("tr")
+  tr.innerHTML=`
+  <td>${pub}</td>
+  <td>${r.Title||""}</td>
+  <td>${r.ISBN||r.ISBN13||""}</td>
+  <td>${r["List Price (USD)"]||r["Price EUR"]||r["US$"]||""}</td>
+  <td>${excelDate(r["Pub date"]||r["Pub Date"]||r["Actual Publishing Date"])}</td>
+  <td>${r["No of Pages"]||r.Pages||r["No of Arabic Pages"]||""}</td>`
+  tb.appendChild(tr)
+ })
 }
-
-/* ===== IndexedDB ===== */
-function openDB(){
-  return new Promise((resolve,reject)=>{
-    const req = indexedDB.open(APP.dbName, APP.dbVer);
-    req.onupgradeneeded = ()=>{
-      const db=req.result;
-      if(!db.objectStoreNames.contains(APP.storeRows)){
-        // keyPath는 안전하게 'id'
-        db.createObjectStore(APP.storeRows, { keyPath:'id' });
-      }
-      if(!db.objectStoreNames.contains(APP.storeMeta)){
-        db.createObjectStore(APP.storeMeta, { keyPath:'k' });
-      }
-      if(!db.objectStoreNames.contains(APP.storeLog)){
-        db.createObjectStore(APP.storeLog, { keyPath:'k' });
-      }
-      // ★ createIndex 없음(=이번 오류 원천 차단)
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-}
-
-function os(name, mode='readonly'){
-  return DB.transaction(name, mode).objectStore(name);
-}
-function idbGet(name, key){
-  return new Promise((resolve,reject)=>{
-    const req=os(name,'readonly').get(key);
-    req.onsuccess=()=>resolve(req.result||null);
-    req.onerror=()=>reject(req.error);
-  });
-}
-function idbPut(name, val){
-  return new Promise((resolve,reject)=>{
-    const req=os(name,'readwrite').put(val);
-    req.onsuccess=()=>resolve(true);
-    req.onerror=()=>reject(req.error);
-  });
-}
-function idbClear(name){
-  return new Promise((resolve,reject)=>{
-    const req=os(name,'readwrite').clear();
-    req.onsuccess=()=>resolve(true);
-    req.onerror=()=>reject(req.error);
-  });
-}
-function idbGetAll(name){
-  return new Promise((resolve,reject)=>{
-    const req=os(name,'readonly').getAll();
-    req.onsuccess=()=>resolve(req.result||[]);
-    req.onerror=()=>reject(req.error);
-  });
-}
-
-/* ===== Log ===== */
-async function log(msg, level='info'){
-  const line=`[${nowTS()}] ${msg}`;
-  const cur = await idbGet(APP.storeLog, APP.kLog);
-  const arr = (cur && Array.isArray(cur.v)) ? cur.v : [];
-  arr.push({line, level});
-  while(arr.length>2000) arr.shift();
-  await idbPut(APP.storeLog, {k:APP.kLog, v:arr});
-  renderLog(arr);
-}
-function renderLog(arr){
-  const el=$('log');
-  el.innerHTML='';
-  arr.slice().reverse().forEach(it=>{
-    const d=document.createElement('div');
-    d.textContent=it.line;
-    if(it.level==='warn') d.className='warn';
-    if(it.level==='err') d.className='err';
-    if(it.level==='ok') d.className='okc';
-    el.appendChild(d);
-  });
-}
-async function loadLog(){
-  const cur=await idbGet(APP.storeLog, APP.kLog);
-  renderLog((cur&&Array.isArray(cur.v))?cur.v:[]);
-}
-
-/* ===== Meta ===== */
-async function saveMeta(){ await idbPut(APP.storeMeta, {k:APP.kMeta, v:{colStatus, ui}}); }
-async function loadMeta(){
-  const cur=await idbGet(APP.storeMeta, APP.kMeta);
-  if(cur && cur.v){
-    colStatus = cur.v.colStatus || {};
-    ui = cur.v.ui || ui;
-  }
-}
-
-/* ===== Table Head ===== */
-function buildTableHead(){
-  thRow.innerHTML='';
-  thCtrl.innerHTML='';
-  COLS.forEach(c=>{
-    const th=document.createElement('th');
-    th.className='nowrap';
-    th.textContent=c.label;
-    thRow.appendChild(th);
-  });
-
-  COLS.forEach(c=>{
-    const th=document.createElement('th');
-    if(c.key==='PASS' || c.key==='X'){
-      th.innerHTML = `<span class="muted">행</span>`;
-    }else{
-      const st = colStatus[c.key] || {pass:true,x:false};
-      th.innerHTML = `
-        <div class="colBtns">
-          <button class="xbtn ok tiny ${st.pass?'ok':''}" data-col="${c.key}" data-act="colPass">PASS</button>
-          <button class="xbtn bad tiny ${st.x?'bad':''}" data-col="${c.key}" data-act="colX">X</button>
-        </div>`;
-    }
-    thCtrl.appendChild(th);
-  });
-
-  thCtrl.onclick = async (e)=>{
-    const btn=e.target.closest('button'); if(!btn) return;
-    const col=btn.getAttribute('data-col');
-    const act=btn.getAttribute('data-act');
-    if(!col || !act) return;
-    if(act==='colPass'){
-      colStatus[col]={pass:true,x:false};
-      await saveMeta(); await log(`컬럼 PASS: ${col}`,'ok');
-    }else if(act==='colX'){
-      colStatus[col]={pass:false,x:true};
-      await saveMeta(); await log(`컬럼 X: ${col}`,'warn');
-    }
-    buildTableHead(); await render();
-  };
-}
-
-/* ===== Parsing ===== */
-function normHeader(h){ return String(h||'').trim().replace(/\s+/g,' ').toLowerCase(); }
-
-function detectPublisher(filename, headers){
-  const fn=(filename||'').toLowerCase();
-  const hs=headers.map(normHeader).join('|');
-  if(fn.includes('springer') || hs.includes('price eur') || hs.includes('actual publishing date')) return 'Springer';
-  if(fn.includes('elsevier') || hs.includes('list price') || (hs.includes('pub date') && hs.includes('no of pages'))) return 'Elsevier';
-  if(fn.includes('wiley') || hs.includes('isbn13') || hs.includes('us$')) return 'Wiley';
-  return 'UNKNOWN';
-}
-
-function excelDateToISO(v){
-  if(v===null || v===undefined || v==='') return '';
-  // 숫자(엑셀 시리얼)
-  if(typeof v==='number'){
-    const ms = Math.round((v - 25569) * 86400 * 1000);
-    const d = new Date(ms);
-    if(Number.isNaN(d.getTime())) return '';
-    return d.toISOString().slice(0,10);
-  }
-  const s=String(v).trim();
-  if(/^\d{4}[-\/]\d{2}[-\/]\d{2}$/.test(s)) return s.replace(/\//g,'-');
-  const m=s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
-  if(m){
-    const map={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
-    const dd=String(+m[1]).padStart(2,'0');
-    const mm=String(map[m[2].toLowerCase()]||0).padStart(2,'0');
-    if(mm!=='00') return `${m[3]}-${mm}-${dd}`;
-  }
-  // 모호하면 공란(생성 금지)
-  return '';
-}
-
-function parsePrice(v){
-  if(v===null || v===undefined || v==='') return '';
-  if(typeof v==='number') return v;
-  const s=String(v).trim();
-  if(!s) return '';
-  const cleaned=s.replace(/,/g,'').replace(/^\$/,'').replace(/^€/,'');
-  const n=Number(cleaned);
-  return Number.isFinite(n)?n:'';
-}
-
-function readFirstSheet(file){
-  return new Promise((resolve,reject)=>{
-    if(typeof XLSX==='undefined') return reject(new Error('XLSX 로드 실패: xlsx.full.min.js가 index.html 옆에 있어야 함'));
-    const r=new FileReader();
-    r.onerror=()=>reject(r.error);
-    r.onload=()=>{
-      try{
-        const data=new Uint8Array(r.result);
-        const wb=XLSX.read(data,{type:'array'});
-        const sn=wb.SheetNames[0];
-        const ws=wb.Sheets[sn];
-        const json=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
-        // 헤더
-        const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
-        const headers=[];
-        for(let C=range.s.c; C<=range.e.c; C++){
-          const cell=ws[XLSX.utils.encode_cell({r:0,c:C})];
-          headers.push(cell?cell.v:'');
-        }
-        resolve({json, headers});
-      }catch(e){ reject(e); }
-    };
-    r.readAsArrayBuffer(file);
-  });
-}
-
-function makeRow(){
-  const fieldStatus={};
-  FLAGGABLE.forEach(k=>fieldStatus[k]='PASS');
-  return {
-    id:'',
-    publisher:'',
-    korTitle:'',
-    title:'',
-    subTitle:'',
-    isbn:'',
-    price:'',
-    currency:'',
-    pubDate:'',
-    pages:'',
-    anchor:'',
-    rowPASS:true,
-    rowX:false,
-    fieldStatus
-  };
-}
-
-function applyMapping(publisher, obj, filename, rowIndex, headers){
-  const r=makeRow();
-  r.publisher=publisher;
-  r.anchor=`${filename} / row:${rowIndex}`;
-
-  const H={};
-  Object.keys(obj).forEach(k=>H[normHeader(k)] = obj[k]);
-
-  if(publisher==='Elsevier'){
-    r.isbn = String(H['isbn'] ?? '').trim();
-    r.title = String(H['title'] ?? '').trim();
-    r.price = parsePrice(H['list price (usd)'] ?? H['list price'] ?? '');
-    r.currency = 'USD';
-    r.pubDate = excelDateToISO(H['pub date'] ?? H['pub date '] ?? H['pub date\t'] ?? '');
-    r.pages = Number(H['no of pages'] ?? '') || '';
-  }else if(publisher==='Springer'){
-    r.isbn = String(H['isbn'] ?? '').trim();
-    r.title = String(H['title'] ?? '').trim();
-    r.subTitle = String(H['sub title'] ?? H['subtitle'] ?? '').trim();
-    r.price = parsePrice(H['price eur'] ?? H['price'] ?? '');
-    r.currency = 'EUR';
-    r.pubDate = excelDateToISO(H['actual publishing date'] ?? '');
-    r.pages = Number(H['no of arabic pages'] ?? H['pages'] ?? '') || '';
-  }else if(publisher==='Wiley'){
-    r.title = String(H['title'] ?? '').trim();
-    r.pubDate = excelDateToISO(H['pub date'] ?? '');
-    r.pages = Number(H['pages'] ?? '') || '';
-    r.isbn = String(H['isbn13'] ?? H['isbn'] ?? '').trim();
-    r.price = parsePrice(H['us$'] ?? '');
-    r.currency = 'USD';
-  }else{
-    r.isbn = String(H['isbn'] ?? H['isbn13'] ?? '').trim();
-    r.title = String(H['title'] ?? '').trim();
-    r.subTitle = String(H['sub title'] ?? H['subtitle'] ?? '').trim();
-    r.price = parsePrice(H['price'] ?? H['us$'] ?? H['list price (usd)'] ?? H['price eur'] ?? '');
-    r.currency = String(H['currency'] ?? '').trim();
-    r.pubDate = excelDateToISO(H['pub date'] ?? H['actual publishing date'] ?? '');
-    r.pages = Number(H['pages'] ?? H['no of pages'] ?? H['no of arabic pages'] ?? '') || '';
-  }
-
-  r.id = r.isbn ? `${publisher}:${r.isbn}` : `${publisher}:${filename}:${rowIndex}`;
-  return r;
-}
-
-/* ===== Data ops ===== */
-async function loadAllRows(){
-  allRows = await idbGetAll(APP.storeRows);
-  const pubs = Array.from(new Set(allRows.map(r=>r.publisher).filter(Boolean))).sort();
-  const sel=$('pubFilter');
-  const cur=sel.value||'ALL';
-  sel.innerHTML = `<option value="ALL">전체 발행사</option>` + pubs.map(p=>`<option value="${p}">${p}</option>`).join('');
-  sel.value = pubs.includes(cur)?cur:'ALL';
-}
-
-async function upsertRows(rows, mode){
-  if(mode==='replace') await idbClear(APP.storeRows);
-  let add=0, upd=0;
-  for(const r of rows){
-    const ex = await idbGet(APP.storeRows, r.id);
-    if(ex){
-      const merged = {...ex, ...r};
-      merged.fieldStatus = ex.fieldStatus || merged.fieldStatus;
-      merged.rowPASS = ex.rowPASS ?? true;
-      merged.rowX = ex.rowX ?? false;
-      await idbPut(APP.storeRows, merged);
-      upd++;
-    }else{
-      await idbPut(APP.storeRows, r);
-      add++;
-    }
-  }
-  await loadAllRows();
-  return {add, upd};
-}
-
-function pubKey(r){
-  const s=r.pubDate||'';
-  if(!s) return 0;
-  const t=Date.parse(s);
-  return Number.isFinite(t)?t:0;
-}
-
-function matchesQ(r, q){
-  if(!q) return true;
-  const s=q.toLowerCase();
-  return [r.isbn,r.title,r.subTitle,r.korTitle,r.publisher].some(v=>String(v||'').toLowerCase().includes(s));
-}
-
-async function render(){
-  ui.sort = $('sortSel').value || 'pub_desc';
-  ui.pub = $('pubFilter').value || 'ALL';
-  ui.q = $('q').value || '';
-  await saveMeta();
-
-  let rows=allRows.slice();
-  if(ui.pub!=='ALL') rows = rows.filter(r=>r.publisher===ui.pub);
-  if(ui.q) rows = rows.filter(r=>matchesQ(r, ui.q));
-
-  if(ui.sort==='pub_desc') rows.sort((a,b)=>pubKey(b)-pubKey(a) || String(a.isbn).localeCompare(String(b.isbn)));
-  if(ui.sort==='pub_asc') rows.sort((a,b)=>pubKey(a)-pubKey(b) || String(a.isbn).localeCompare(String(b.isbn)));
-  if(ui.sort==='isbn_asc') rows.sort((a,b)=>String(a.isbn).localeCompare(String(b.isbn)));
-
-  const xCount = rows.filter(r=>r.rowX===true).length;
-  $('stats').textContent = `전체 ${allRows.length}건 / 표시 ${rows.length}건 / X ${xCount}건`;
-
-  tbody.innerHTML='';
-  const frag=document.createDocumentFragment();
-  for(const r of rows.slice(0,2000)){
-    const tr=document.createElement('tr');
-    if(r.rowX) tr.style.background='rgba(209,36,47,.06)';
-
-    for(const c of COLS){
-      const td=document.createElement('td');
-
-      if(c.key==='PASS'){
-        td.className='nowrap';
-        td.innerHTML = `<div class="statusCell"><button class="xbtn ok" data-id="${r.id}" data-act="rowPass">PASS</button></div>`;
-      }else if(c.key==='X'){
-        td.className='nowrap';
-        td.innerHTML = `<div class="statusCell"><button class="xbtn bad" data-id="${r.id}" data-act="rowX">X</button></div>`;
-      }else{
-        const v = r[c.key] ?? '';
-        const fs = (r.fieldStatus && r.fieldStatus[c.key]) ? r.fieldStatus[c.key] : 'PASS';
-        td.innerHTML = `
-          <div style="display:flex; gap:8px; align-items:flex-start; justify-content:space-between;">
-            <div style="min-width:0; word-break:break-word;">${escapeHTML(v)}</div>
-            <div style="display:flex; gap:6px; flex:0 0 auto;">
-              <button class="xbtn ok tiny" data-id="${r.id}" data-col="${c.key}" data-act="cellPass">PASS</button>
-              <button class="xbtn bad tiny" data-id="${r.id}" data-col="${c.key}" data-act="cellX">X</button>
-            </div>
-          </div>
-          <div class="muted" style="margin-top:4px; font-size:11px;">상태: <span class="${fs==='X'?'bad':'ok'}">${fs}</span></div>
-        `;
-      }
-      tr.appendChild(td);
-    }
-    frag.appendChild(tr);
-  }
-  tbody.appendChild(frag);
-}
-
-tbody.onclick = async (e)=>{
-  const btn=e.target.closest('button'); if(!btn) return;
-  const act=btn.getAttribute('data-act');
-  const id=btn.getAttribute('data-id');
-  const col=btn.getAttribute('data-col');
-  if(!act || !id) return;
-  const r=await idbGet(APP.storeRows, id);
-  if(!r) return;
-
-  if(act==='rowPass'){ r.rowPASS=true; r.rowX=false; await idbPut(APP.storeRows,r); await loadAllRows(); await log(`행 PASS: ${id}`,'ok'); await render(); return; }
-  if(act==='rowX'){ r.rowPASS=false; r.rowX=true; await idbPut(APP.storeRows,r); await loadAllRows(); await log(`행 X: ${id}`,'warn'); await render(); return; }
-  if(act==='cellPass' && col){
-    r.fieldStatus=r.fieldStatus||{}; r.fieldStatus[col]='PASS';
-    await idbPut(APP.storeRows,r); await loadAllRows(); await log(`셀 PASS: ${col} / ${id}`,'ok'); await render(); return;
-  }
-  if(act==='cellX' && col){
-    r.fieldStatus=r.fieldStatus||{}; r.fieldStatus[col]='X';
-    r.rowPASS=false; r.rowX=true;
-    await idbPut(APP.storeRows,r); await loadAllRows(); await log(`셀 X: ${col} / ${id}`,'warn'); await render(); return;
-  }
-};
-
-/* ===== Backup ===== */
-function downloadText(filename, text){
-  const blob=new Blob([text],{type:'application/json;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-async function exportBackup(){
-  const rows=await idbGetAll(APP.storeRows);
-  const meta=await idbGet(APP.storeMeta, APP.kMeta);
-  const logCur=await idbGet(APP.storeLog, APP.kLog);
-  const payload={version:'tbv27-backup-v2', exportedAt:nowTS(), rows, meta:meta?.v||{}, log:logCur?.v||[]};
-  const fn=`tbv27_backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
-  downloadText(fn, JSON.stringify(payload));
-  await log(`백업 내보내기: ${fn} (${rows.length}건)`,'ok');
-}
-async function importBackupFile(file){
-  const txt=await file.text();
-  const payload=JSON.parse(txt);
-  if(!payload || !payload.rows){ await log('백업 불러오기 실패: 형식 불일치','err'); return; }
-  await idbClear(APP.storeRows);
-  for(const r of payload.rows) await idbPut(APP.storeRows, r);
-  colStatus = payload.meta?.colStatus || {};
-  ui = payload.meta?.ui || ui;
-  await idbPut(APP.storeMeta, {k:APP.kMeta, v:{colStatus, ui}});
-  await idbPut(APP.storeLog, {k:APP.kLog, v:payload.log||[]});
-  await loadAllRows();
-  $('sortSel').value = ui.sort || 'pub_desc';
-  $('q').value = ui.q || '';
-  $('pubFilter').value = ui.pub || 'ALL';
-  buildTableHead();
-  await render();
-  await loadLog();
-  await log(`백업 불러오기: ${file.name} (${payload.rows.length}건)`,'ok');
-}
-
-/* ===== Buttons ===== */
-$('pickBtn').onclick=()=>$('fileInput').click();
-$('fileInput').onchange=(e)=>{
-  lastFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-  $('fileLabel').textContent = lastFile ? lastFile.name : '선택된 파일 없음';
-};
-
-async function handleUpload(mode){
-  if(!lastFile){ await log('업로드 실패: 파일 선택 필요','warn'); return; }
-  try{
-    const file=lastFile;
-    $('fileLabel').textContent=file.name;
-    const {json, headers} = await readFirstSheet(file);
-    const publisher = detectPublisher(file.name, headers);
-
-    const rows=[];
-    for(let i=0;i<json.length;i++){
-      const rowIndex=i+2;
-      const r=applyMapping(publisher, json[i], file.name, rowIndex, headers);
-      rows.push(r);
-    }
-
-    const res = await upsertRows(rows, mode);
-    if(mode==='replace') await log(`업로드(전체 교체): ${file.name} (${rows.length}건)`,'ok');
-    else await log(`업로드(추가/합치기): ${file.name} (추가 ${res.add}, 갱신 ${res.upd})`,'ok');
-
-    buildTableHead();
-    await render();
-  }catch(e){
-    console.error(e);
-    await log(`업로드 오류: ${String(e && e.message ? e.message : e)}`,'err');
-    setDBPill(false);
-  }
-}
-
-$('mergeBtn').onclick=()=>handleUpload('merge');
-$('replaceBtn').onclick=()=>handleUpload('replace');
-
-$('allPassBtn').onclick=async ()=>{
-  const rows=await idbGetAll(APP.storeRows);
-  for(const r of rows){ r.rowPASS=true; r.rowX=false; await idbPut(APP.storeRows,r); }
-  await loadAllRows(); await log('전체 PASS','ok'); await render();
-};
-$('allXBtn').onclick=async ()=>{
-  const rows=await idbGetAll(APP.storeRows);
-  for(const r of rows){ r.rowPASS=false; r.rowX=true; await idbPut(APP.storeRows,r); }
-  await loadAllRows(); await log('전체 X','warn'); await render();
-};
-
-$('exportBtn').onclick=()=>exportBackup();
-$('importBtn').onclick=()=>$('importFile').click();
-$('importFile').onchange=(e)=>{
-  const f=e.target.files && e.target.files[0] ? e.target.files[0] : null;
-  if(f) importBackupFile(f);
-};
-
-$('resetBtn').onclick=async ()=>{
-  await idbClear(APP.storeRows);
-  await idbPut(APP.storeMeta, {k:APP.kMeta, v:{colStatus:{}, ui:{sort:'pub_desc', pub:'ALL', q:''}}});
-  await idbPut(APP.storeLog, {k:APP.kLog, v:[]});
-  colStatus={}; ui={sort:'pub_desc', pub:'ALL', q:''};
-  await loadAllRows();
-  buildTableHead();
-  await render();
-  await loadLog();
-  await log('DB 초기화','warn');
-};
-
-$('sortSel').onchange=()=>render();
-$('pubFilter').onchange=()=>render();
-$('q').oninput=()=>render();
-
-$('logCopy').onclick=async ()=>{
-  const cur=await idbGet(APP.storeLog, APP.kLog);
-  const arr=(cur&&Array.isArray(cur.v))?cur.v:[];
-  const txt=arr.map(x=>x.line).join('\n');
-  try{ await navigator.clipboard.writeText(txt); await log('로그 복사 완료','ok'); }
-  catch(_){ await log('로그 복사 실패','warn'); }
-};
-
-/* ===== Boot ===== */
-(async function main(){
-  try{
-    DB=await openDB();
-    setDBPill(true);
-    await loadMeta();
-    await loadAllRows();
-    await loadLog();
-    await log('페이지 로드','ok');
-
-    $('sortSel').value = ui.sort || 'pub_desc';
-    $('q').value = ui.q || '';
-    $('pubFilter').value = ui.pub || 'ALL';
-
-    buildTableHead();
-    await render();
-  }catch(e){
-    console.error(e);
-    setDBPill(false);
-  }
-})();
 </script>
+
 </body>
 </html>
