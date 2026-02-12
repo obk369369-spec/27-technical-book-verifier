@@ -1,122 +1,556 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<title>27번 도구 – 엑셀 업로드 (셀 X 방식 안정화 버전)</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-button { padding: 6px 10px; margin: 2px; cursor: pointer; }
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-th { background: #f5f5f5; }
-.cell-x { color: red; font-weight: bold; cursor: pointer; }
-.cell-disabled { background: #ffe5e5; color: #999; text-decoration: line-through; }
-.topbar { margin-bottom: 10px; }
-.log { background:#111; color:#0f0; padding:10px; font-size:12px; height:120px; overflow:auto; }
-.small { font-size:12px; color:#666; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#111826; --panel2:#0f1622; --text:#e7eefc; --muted:#9fb0d0;
+      --line:#24324a; --danger:#ff4d4f; --ok:#44d27d; --warn:#ffcc00;
+      --chip:#1a263a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    header{padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d1420,transparent)}
+    h1{margin:0;font-size:16px;letter-spacing:-0.2px}
+    .sub{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}
+    .wrap{padding:14px 16px;display:grid;gap:12px}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .btn{
+      border:1px solid var(--line); background:var(--panel2); color:var(--text);
+      padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:700; font-size:13px;
+    }
+    .btn:hover{filter:brightness(1.08)}
+    .btn:active{transform:translateY(1px)}
+    .btn.danger{border-color:#3a2230;background:#1a0f16}
+    .btn.ok{border-color:#1c3a2a;background:#0f1a14}
+    .btn.small{padding:8px 10px;font-size:12px}
+    input[type="file"]{color:var(--muted)}
+    .badge{display:inline-flex;gap:8px;align-items:center;padding:7px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+    .badge b{color:var(--text);font-weight:800}
+    .grid{display:grid;gap:12px}
+    .grid2{display:grid;gap:12px;grid-template-columns:1fr}
+    @media (min-width: 1200px){ .grid2{grid-template-columns: 1.2fr .8fr} }
+    .tableWrap{overflow:auto;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+    table{border-collapse:separate;border-spacing:0;width:max(1200px,100%)}
+    thead th{
+      position:sticky;top:0;background:#0f1724;color:#cfe0ff;
+      border-bottom:1px solid var(--line); padding:10px 10px; font-size:12px; text-align:left;
+      z-index:2;
+    }
+    tbody td{
+      border-bottom:1px solid rgba(36,50,74,0.6);
+      padding:8px 10px; font-size:13px; vertical-align:top;
+    }
+    tbody tr:hover td{background:rgba(255,255,255,0.02)}
+    .cell{
+      display:flex; gap:10px; align-items:flex-start; justify-content:space-between;
+      min-height:32px;
+    }
+    .val{white-space:pre-wrap;word-break:break-word;line-height:1.25;flex:1}
+    .val.muted{color:var(--muted)}
+    .xbtn{
+      width:44px;height:44px; flex:0 0 44px;
+      border-radius:12px; border:2px solid rgba(255,77,79,0.55);
+      background:rgba(255,77,79,0.12);
+      color:#ffd7d8; font-weight:900; cursor:pointer;
+      display:grid;place-items:center;
+      user-select:none;
+    }
+    .xbtn:hover{filter:brightness(1.15)}
+    .xbtn:active{transform:translateY(1px)}
+    .xmark{outline:2px solid rgba(255,77,79,0.35); outline-offset:-2px; border-radius:10px; padding:2px 4px}
+    .inp{
+      width:100%; min-width:220px;
+      background:#0c1220; border:1px solid var(--line); color:var(--text);
+      border-radius:10px; padding:10px 10px; font-size:13px;
+    }
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .logBox{
+      background:#0b111c;border:1px solid var(--line);border-radius:12px;padding:10px;
+      height:280px; overflow:auto; white-space:pre-wrap; word-break:break-word;
+      font-size:12px; color:#cfe0ff;
+    }
+    .hint{color:var(--muted);font-size:12px;line-height:1.35}
+    .warn{color:#ffe08a}
+    .oktxt{color:#a7f3c8}
+    .err{color:#ffb3b5}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:12px}
+    .pill b{color:var(--text)}
+  </style>
 </head>
 <body>
+  <header>
+    <h1>27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</h1>
+    <div class="sub">
+      셀마다 <b>X</b>만 존재 · PASS 없음 · 행 X 없음 · 정렬/재배치 없음 · <b>ANCHOR+HASH</b>로 행 섞임 원천 차단 · 로그 자동 저장(localStorage)
+    </div>
+  </header>
 
-<h2>27번 도구 – 엑셀 업로드 (셀 X 안정화 버전)</h2>
+  <div class="wrap">
+    <div class="row">
+      <span class="badge">상태: <b id="statusText">대기</b></span>
+      <span class="badge">총 행: <b id="countRows">0</b></span>
+      <span class="badge">총 셀 X: <b id="countX">0</b></span>
+      <span class="badge">DB키: <b class="mono">wic_xdb_v27</b></span>
+      <span class="badge">LOG키: <b class="mono">wic_xlog_v27</b></span>
+    </div>
 
-<div class="topbar">
-<input type="file" id="fileInput" accept=".xlsx,.xls" />
-<button onclick="uploadFile()">업로드(추가/합치기)</button>
-<button onclick="resetDB()">DB 초기화</button>
-</div>
+    <div class="card">
+      <div class="row">
+        <input id="file" type="file" accept=".csv,.tsv,.txt" />
+        <button class="btn ok" id="btnUpload">업로드(추가/합치기)</button>
+        <button class="btn danger" id="btnReset">DB 초기화</button>
+        <span class="pill">지원: <b>CSV/TSV</b> (첫 줄 헤더 권장)</span>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        • 컬럼 하드고정: Publisher, Title, Sub Title, KOR_TITLE, KOR_SUBTITLE, ISBN, Price, Currency, Pub Date, Pages<br/>
+        • 업로드 후 위치가 움직이지 않도록 <b>ANCHOR = 파일명|row:n</b> 기준으로 고정 렌더합니다.
+      </div>
+    </div>
 
-<div class="small">셀마다 X만 존재합니다. PASS 없음. 행 X 없음. 구조 안정화 전용.</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="hint">
+            <b>테이블</b> (KOR_TITLE은 Title 오른쪽, KOR_SUBTITLE은 Sub Title 오른쪽)
+          </div>
+          <button class="btn small" id="btnExportLog">로그 복사</button>
+        </div>
+        <div class="tableWrap" style="margin-top:10px">
+          <table id="tbl">
+            <thead><tr id="theadRow"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
 
-<table id="dataTable">
-<thead>
-<tr>
-<th>Publisher</th>
-<th>KOR_TITLE</th>
-<th>Title</th>
-<th>Sub Title</th>
-<th>ISBN</th>
-<th>Price</th>
-<th>Currency</th>
-<th>Pub Date</th>
-<th>Pages</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="hint"><b>자동 로그</b> (셀 X 클릭 시 즉시 누적/저장)</div>
+          <button class="btn small danger" id="btnClearLog">로그 초기화</button>
+        </div>
+        <div class="logBox mono" id="logBox" style="margin-top:10px"></div>
+        <div class="hint" style="margin-top:10px">
+          로그 형식: <span class="mono">[YYYY-MM-DD HH:MM:SS] 파일명|row:n | COL | before → after</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<h3>로그</h3>
-<div id="log" class="log"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
-let DB = JSON.parse(localStorage.getItem('DB')||'[]');
-let CELL_X = JSON.parse(localStorage.getItem('CELL_X')||'{}');
+(() => {
+  // ====== 고정 설정 ======
+  const DB_KEY  = "wic_xdb_v27";
+  const LOG_KEY = "wic_xlog_v27";
 
-function log(msg){
- const el=document.getElementById('log');
- const t=new Date().toLocaleTimeString();
- el.innerHTML += `[${t}] ${msg}<br>`;
- el.scrollTop = el.scrollHeight;
-}
+  // 화면 컬럼 순서(하드고정)
+  // KOR_TITLE은 Title 오른쪽, KOR_SUBTITLE은 Sub Title 오른쪽
+  const COLS = [
+    "Publisher",
+    "Title", "KOR_TITLE",
+    "Sub Title", "KOR_SUBTITLE",
+    "ISBN","Price","Currency","Pub Date","Pages"
+  ];
 
-function save(){
- localStorage.setItem('DB',JSON.stringify(DB));
- localStorage.setItem('CELL_X',JSON.stringify(CELL_X));
-}
+  // 입력 헤더 매핑(대소문자/공백/언더스코어/하이픈 변형 흡수)
+  const HEADER_MAP = new Map([
+    ["publisher","Publisher"],
+    ["kor_title","KOR_TITLE"],
+    ["kor subtitle","KOR_SUBTITLE"],
+    ["kor_subtitle","KOR_SUBTITLE"],
+    ["title","Title"],
+    ["sub title","Sub Title"],
+    ["subtitle","Sub Title"],
+    ["isbn","ISBN"],
+    ["isbn13","ISBN"],
+    ["price","Price"],
+    ["list price (usd)","Price"],
+    ["us$","Price"],
+    ["currency","Currency"],
+    ["pub date","Pub Date"],
+    ["pubdate","Pub Date"],
+    ["actual publishing date","Pub Date"],
+    ["pages","Pages"],
+    ["no of pages","Pages"],
+    ["no of arabic pages","Pages"],
+  ]);
 
-function resetDB(){
- if(!confirm('DB 초기화?')) return;
- DB=[]; CELL_X={}; save(); render(); log('DB 초기화');
-}
+  // ====== 상태/저장 ======
+  const $ = (sel) => document.querySelector(sel);
+  const statusText = $("#statusText");
+  const countRows  = $("#countRows");
+  const countX     = $("#countX");
+  const logBox     = $("#logBox");
+  const tbody      = $("#tbody");
+  const theadRow   = $("#theadRow");
 
-function uploadFile(){
- const f=document.getElementById('fileInput').files[0];
- if(!f){alert('파일 선택');return;}
- const reader=new FileReader();
- reader.onload=e=>{
-  const wb=XLSX.read(e.target.result,{type:'binary'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const data=XLSX.utils.sheet_to_json(ws);
-  DB=DB.concat(data);
-  save(); render(); log('업로드 완료 '+data.length+'건');
- };
- reader.readAsBinaryString(f);
-}
+  function setStatus(t, cls="") {
+    statusText.textContent = t;
+    statusText.className = cls;
+  }
 
-function cellKey(r,c){return r+'_'+c;}
+  function nowStr(){
+    const d = new Date();
+    const pad = (n)=> String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
 
-function toggleX(r,c){
- const k=cellKey(r,c);
- CELL_X[k]=!CELL_X[k];
- save(); render();
-}
+  function loadDB(){
+    try{
+      const raw = localStorage.getItem(DB_KEY);
+      return raw ? JSON.parse(raw) : { rows: [], cellX: {} };
+    }catch(e){
+      return { rows: [], cellX: {} };
+    }
+  }
+  function saveDB(db){
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  }
 
-function render(){
- const tb=document.querySelector('#dataTable tbody');
- tb.innerHTML='';
- DB.forEach((row,r)=>{
-  const tr=document.createElement('tr');
-  Object.values(row).slice(0,9).forEach((val,c)=>{
-   const td=document.createElement('td');
-   const k=cellKey(r,c);
-   const span=document.createElement('span');
-   span.textContent = val||'';
-   if(CELL_X[k]) span.className='cell-disabled';
-   const x=document.createElement('span');
-   x.textContent=' X';
-   x.className='cell-x';
-   x.onclick=()=>toggleX(r,c);
-   td.appendChild(span);
-   td.appendChild(x);
-   tr.appendChild(td);
+  function loadLog(){
+    try{
+      const raw = localStorage.getItem(LOG_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){
+      return [];
+    }
+  }
+  function saveLog(lines){
+    localStorage.setItem(LOG_KEY, JSON.stringify(lines));
+  }
+
+  function appendLog(line){
+    const lines = loadLog();
+    lines.push(line);
+    // 로그가 과도하게 커지면 최근 5000줄만 유지
+    if(lines.length > 5000) lines.splice(0, lines.length - 5000);
+    saveLog(lines);
+    renderLog();
+  }
+
+  function renderLog(){
+    const lines = loadLog();
+    logBox.textContent = lines.join("\n");
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ====== 해시(동기, 안정) ======
+  // FNV-1a 32-bit
+  function fnv1a(str){
+    let h = 0x811c9dc5;
+    for(let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = (h + ((h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24))) >>> 0;
+    }
+    return ("00000000" + h.toString(16)).slice(-8);
+  }
+
+  function normHeader(s){
+    return String(s||"")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g," ")
+      .replace(/[._-]+/g,"_")
+      .replace(/\u00A0/g," ")
+      .trim();
+  }
+
+  function detectDelimiter(sample){
+    // 탭 우선
+    const tab = (sample.match(/\t/g)||[]).length;
+    const comma = (sample.match(/,/g)||[]).length;
+    return tab >= comma ? "\t" : ",";
+  }
+
+  function parseCSVTSV(text, fileName){
+    const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(l=>l.trim().length>0);
+    if(lines.length < 2) throw new Error("데이터가 너무 적습니다(헤더+1행 필요).");
+
+    const delim = detectDelimiter(lines[0]);
+    const rawHeader = lines[0].split(delim).map(x=>x.trim());
+    const header = rawHeader.map(h=>{
+      const key = normHeader(h);
+      return HEADER_MAP.get(key) || HEADER_MAP.get(key.replace(/_/g," ")) || (h.trim());
+    });
+
+    // 인덱스 맵
+    const idx = {};
+    header.forEach((h,i)=>{ idx[h]=i; });
+
+    // 최소 요구(이 중 일부는 파일마다 없을 수 있으니, 없으면 빈칸 처리)
+    // 단, ISBN/Title 둘 중 하나는 있어야 함
+    const hasISBN  = ("ISBN" in idx);
+    const hasTitle = ("Title" in idx);
+    if(!hasISBN && !hasTitle){
+      throw new Error("헤더에 ISBN 또는 Title이 없습니다. (CSV/TSV 첫 줄 헤더 필요)");
+    }
+
+    const rows = [];
+    for(let li=1; li<lines.length; li++){
+      const parts = lines[li].split(delim);
+      const get = (col)=> {
+        const i = idx[col];
+        return (i===undefined) ? "" : (parts[i] ?? "").trim();
+      };
+
+      // rowIndex: 엑셀 기준 줄 번호 느낌으로 2부터 (헤더가 1행)
+      const rowIndex = li+1;
+      const ANCHOR = `${fileName}|row:${rowIndex}`;
+
+      const Publisher = get("Publisher");
+      const Title = get("Title");
+      const SubTitle = get("Sub Title");
+      const ISBN = get("ISBN");
+      const Price = get("Price");
+      const Currency = get("Currency");
+      const PubDate = get("Pub Date");
+      const Pages = get("Pages");
+
+      const base = `${ISBN}|${Title}|${PubDate}|${Price}|${Currency}|${Pages}`;
+      const HASH = fnv1a(base);
+
+      rows.push({
+        Publisher, Title,
+        KOR_TITLE: "",
+        SubTitle,
+        "KOR_SUBTITLE": "",
+        ISBN, Price, Currency,
+        PubDate, Pages,
+        ANCHOR, HASH
+      });
+    }
+    return rows;
+  }
+
+  function mergeRows(db, incoming){
+    // ANCHOR 기준 합치기(섞임 원천 차단)
+    const map = new Map(db.rows.map(r=>[r.ANCHOR, r]));
+    let added=0, updated=0;
+
+    for(const r of incoming){
+      const prev = map.get(r.ANCHOR);
+      if(!prev){
+        map.set(r.ANCHOR, r);
+        added++;
+      }else{
+        // HASH 다르면 같은 앵커라도 내용이 바뀐 것 => 갱신
+        if(prev.HASH !== r.HASH){
+          // 기존 셀X 기록은 유지(사용자가 눌렀던 작업 보호)
+          const keepKOR1 = prev.KOR_TITLE || "";
+          const keepKOR2 = prev.KOR_SUBTITLE || "";
+          map.set(r.ANCHOR, {...r, KOR_TITLE: keepKOR1, KOR_SUBTITLE: keepKOR2});
+          updated++;
+        }else{
+          // 동일 => 아무것도 안 함
+        }
+      }
+    }
+
+    // ANCHOR 정렬 고정(버튼/자동정렬 금지)
+    const rows = Array.from(map.values()).sort((a,b)=> a.ANCHOR.localeCompare(b.ANCHOR));
+
+    db.rows = rows;
+    return {added, updated, total: rows.length};
+  }
+
+  function cellX(db, anchor, col){
+    // col 값 지우고 X 기록
+    const row = db.rows.find(r=>r.ANCHOR===anchor);
+    if(!row) return;
+
+    const before = String(row[col] ?? "");
+    const after = ""; // X는 "비움"으로 확정
+    if(before === after) {
+      // 이미 비어있어도 X 기록은 남겨서 "눌렀다"를 확실히 남김
+    } else {
+      row[col] = after;
+    }
+
+    if(!db.cellX[anchor]) db.cellX[anchor] = {};
+    db.cellX[anchor][col] = true;
+
+    const line = `[${nowStr()}] ${anchor} | ${col} | ${before} → ${after}`;
+    appendLog(line);
+    saveDB(db);
+    render(db);
+  }
+
+  function countAllX(db){
+    let n=0;
+    for(const a in db.cellX){
+      for(const c in db.cellX[a]) if(db.cellX[a][c]) n++;
+    }
+    return n;
+  }
+
+  function renderHeader(){
+    theadRow.innerHTML = "";
+    for(const c of COLS){
+      const th = document.createElement("th");
+      th.textContent = c;
+      theadRow.appendChild(th);
+    }
+  }
+
+  function render(db){
+    // ===== 행 섞임 원천 차단 =====
+    // ANCHOR 기준으로 찾은 뒤 HASH가 현재 내용과 맞지 않으면 표시 금지
+    // (혹시라도 코드/상태 꼬여서 다른 행이 붙는 상황을 막기 위해)
+    const safeRows = [];
+    for(const r of db.rows){
+      const base = `${r.ISBN||""}|${r.Title||""}|${r.PubDate||""}|${r.Price||""}|${r.Currency||""}|${r.Pages||""}`;
+      const curHash = fnv1a(base);
+      if(curHash !== r.HASH){
+        // 표시 금지(섞임/깨짐으로 간주)
+        // 로그로 남겨서 추적 가능
+        appendLog(`[${nowStr()}] BLOCKED ${r.ANCHOR} | HASH_MISMATCH | stored:${r.HASH} cur:${curHash}`);
+        continue;
+      }
+      safeRows.push(r);
+    }
+
+    // 고정 정렬
+    safeRows.sort((a,b)=> a.ANCHOR.localeCompare(b.ANCHOR));
+
+    tbody.innerHTML = "";
+    for(const r of safeRows){
+      const tr = document.createElement("tr");
+      for(const col of COLS){
+        const td = document.createElement("td");
+
+        // 값 표시
+        const wrap = document.createElement("div");
+        wrap.className = "cell";
+
+        const val = document.createElement("div");
+        val.className = "val";
+        const v = (col==="Sub Title") ? (r.SubTitle ?? "") : (r[col] ?? "");
+        val.textContent = String(v);
+
+        // KOR 입력은 클릭 편의성 위해 입력칸 제공
+        if(col==="KOR_TITLE" || col==="KOR_SUBTITLE"){
+          val.innerHTML = "";
+          const inp = document.createElement("input");
+          inp.className = "inp";
+          inp.placeholder = (col==="KOR_TITLE") ? "한글 타이틀" : "한글 서브타이틀";
+          inp.value = String(r[col] ?? "");
+          inp.addEventListener("change", ()=>{
+            const before = String(r[col] ?? "");
+            const after = inp.value;
+            r[col] = after;
+            // 입력 변경도 로그 남김(사용자가 뭘 했는지 남겨달라 했으므로)
+            appendLog(`[${nowStr()}] ${r.ANCHOR} | ${col} | ${before} → ${after}`);
+            saveDB(db);
+          });
+          val.appendChild(inp);
+        } else {
+          if(!String(v).trim()){
+            val.classList.add("muted");
+            val.textContent = "(빈값)";
+          }
+        }
+
+        // X 버튼(크게)
+        const xb = document.createElement("button");
+        xb.className = "xbtn";
+        xb.type = "button";
+        xb.textContent = "X";
+        xb.title = `${col} 셀을 X 처리(비움)`;
+        xb.addEventListener("click", ()=> cellX(db, r.ANCHOR, (col==="Sub Title") ? "SubTitle" : col));
+
+        // X 표시(눌렀던 셀에 가시성)
+        const marked = db.cellX[r.ANCHOR]?.[(col==="Sub Title") ? "SubTitle" : col] ? true : false;
+        if(marked && col!=="KOR_TITLE" && col!=="KOR_SUBTITLE"){
+          // 텍스트 셀만 살짝 강조(입력칸은 사용자가 직접 지우는 게 자연스러움)
+          val.classList.add("xmark");
+        }
+
+        wrap.appendChild(val);
+        wrap.appendChild(xb);
+        td.appendChild(wrap);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+
+    countRows.textContent = String(safeRows.length);
+    countX.textContent = String(countAllX(db));
+  }
+
+  // ====== 이벤트 ======
+  renderHeader();
+  renderLog();
+  setStatus("대기", "");
+
+  $("#btnUpload").addEventListener("click", async ()=>{
+    const f = $("#file").files?.[0];
+    if(!f){
+      setStatus("파일 없음", "err");
+      return;
+    }
+    const fileName = f.name;
+    try{
+      setStatus("읽는 중…", "warn");
+      const text = await f.text();
+      const incoming = parseCSVTSV(text, fileName);
+
+      const db = loadDB();
+      const res = mergeRows(db, incoming);
+      saveDB(db);
+
+      appendLog(`[${nowStr()}] 파일 선택: ${fileName} (저장X)`);
+      appendLog(`[${nowStr()}] 업로드(추가/합치기): ${fileName} (추가 ${res.added}, 갱신 ${res.updated}, 총 ${res.total})`);
+
+      render(db);
+      setStatus("업로드 완료", "oktxt");
+    }catch(e){
+      setStatus("업로드 실패", "err");
+      appendLog(`[${nowStr()}] ERROR 업로드 실패: ${f.name} | ${String(e.message||e)}`);
+      alert("업로드 실패: " + (e.message||e));
+    }
   });
-  tb.appendChild(tr);
- });
-}
 
-render();
-log('페이지 로드');
+  $("#btnReset").addEventListener("click", ()=>{
+    // 확인창 없이 즉시 초기화(요청대로 빠르게)
+    localStorage.removeItem(DB_KEY);
+    localStorage.removeItem(LOG_KEY);
+    renderHeader();
+    renderLog();
+    render(loadDB());
+    setStatus("DB 초기화", "warn");
+    appendLog(`[${nowStr()}] DB 초기화`);
+  });
+
+  $("#btnClearLog").addEventListener("click", ()=>{
+    localStorage.removeItem(LOG_KEY);
+    renderLog();
+    setStatus("로그 초기화", "warn");
+  });
+
+  $("#btnExportLog").addEventListener("click", async ()=>{
+    const text = loadLog().join("\n");
+    try{
+      await navigator.clipboard.writeText(text);
+      setStatus("로그 복사됨", "oktxt");
+    }catch(e){
+      // 클립보드 권한 막히면 fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      setStatus("로그 복사됨", "oktxt");
+    }
+  });
+
+  // 초기 렌더
+  render(loadDB());
+
+})();
 </script>
 </body>
 </html>
