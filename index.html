@@ -1,107 +1,564 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>27 Technical Book Verifier</title>
-<style>
-body{font-family:Arial;margin:16px}
-h1{font-size:18px}
-.bar{margin-bottom:10px}
-button{padding:6px 10px;margin-right:6px;cursor:pointer}
-table{border-collapse:collapse;width:100%}
-th,td{border:1px solid #ccc;padding:6px;font-size:12px}
-th{background:#f0f0f0}
-.btn{border:1px solid #888;background:#fff}
-.btn.active{background:#000;color:#fff}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>27 Technical Book Verifier</title>
+  <style>
+    :root { --b:#d0d0d0; --bg:#f7f7f7; --ok:#1a7f37; --x:#b42318; --muted:#666; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 14px; }
+    .top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .badge { padding:6px 10px; border:1px solid var(--b); border-radius:10px; background:#fff; }
+    button { cursor:pointer; padding:6px 10px; border:1px solid var(--b); background:#fff; border-radius:8px; }
+    button:hover { background: var(--bg); }
+    .danger { border-color: var(--x); color: var(--x); }
+    .ok { border-color: var(--ok); color: var(--ok); }
+    input[type="file"] { padding:6px; border:1px solid var(--b); border-radius:8px; background:#fff; }
+    .small { font-size:12px; color:var(--muted); }
+    .wrap { margin-top:10px; border:1px solid var(--b); border-radius:10px; overflow:hidden; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid var(--b); border-right:1px solid var(--b); padding:6px 8px; vertical-align:top; }
+    th:last-child, td:last-child { border-right:none; }
+    th { background: var(--bg); position: sticky; top: 0; z-index: 2; }
+    .cell { display:flex; gap:6px; align-items:flex-start; }
+    .v { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 420px; }
+    .tog { display:flex; gap:4px; flex-shrink:0; }
+    .pill { font-size:12px; padding:2px 6px; border-radius:999px; border:1px solid var(--b); user-select:none; }
+    .pill.pass { border-color: var(--ok); color: var(--ok); }
+    .pill.x { border-color: var(--x); color: var(--x); }
+    .pill.on { background:#fff; font-weight:700; }
+    .muted { color: var(--muted); }
+    .colBtns { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:6px; }
+    .colBtns button { padding:3px 8px; font-size:12px; border-radius:999px; }
+    .controls { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+    .controls input, .controls select { padding:6px 8px; border:1px solid var(--b); border-radius:8px; }
+    .right { margin-left:auto; }
+    .log { margin-top:10px; border:1px solid var(--b); border-radius:10px; padding:10px; background:#fff; }
+    .log pre { margin:0; white-space:pre-wrap; word-break:break-word; font-size:12px; }
+    .nowrap { white-space:nowrap; }
+  </style>
 </head>
 <body>
+  <div class="top">
+    <div class="badge"><b>27번 도구 – 엑셀 업로드</b></div>
+    <input id="file" type="file" accept=".xlsx,.xls,.csv" />
+    <button id="btnMerge" class="ok">업로드(추가/합치기)</button>
+    <button id="btnReplace" class="danger">업로드(전체 교체)</button>
+    <button id="btnAllPass" class="ok">전체 PASS</button>
+    <button id="btnAllX" class="danger">전체 X</button>
+    <button id="btnClear" class="danger">localStorage 초기화</button>
+    <div class="badge" id="badgeFile">선택된 파일 없음</div>
+  </div>
 
-<h1>27번 도구 – 엑셀 업로드</h1>
+  <div class="controls">
+    <label class="small">정렬:
+      <select id="sortBy">
+        <option value="pub_desc">발행일 최신순</option>
+        <option value="pub_asc">발행일 오래된순</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="publisher_asc">발행사 A→Z</option>
+      </select>
+    </label>
+    <label class="small">필터:
+      <select id="filterPub">
+        <option value="ALL">전체 발행사</option>
+      </select>
+    </label>
+    <label class="small">검색:
+      <input id="q" placeholder="ISBN / Title / 한글" />
+    </label>
+    <span class="small right" id="stats"></span>
+  </div>
 
-<div class="bar">
-<input type="file" id="file" accept=".xlsx"/>
-<button id="allPass">전체 PASS</button>
-<button id="allX">전체 X</button>
-</div>
+  <div class="wrap">
+    <table id="tbl">
+      <thead>
+        <tr id="hdrRow"></tr>
+      </thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
 
-<table id="tbl">
-<thead>
-<tr>
-<th>Title</th>
-<th>ISBN</th>
-<th>ANCHOR</th>
-<th>Price</th>
-<th>Pub Date</th>
-<th>Pages</th>
-<th>PASS</th>
-<th>X</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+  <div class="log">
+    <div class="small"><b>이력(버튼 클릭 기록)</b> — 6번 도구처럼 남음 (브라우저/PC 재시작 후에도 유지)</div>
+    <pre id="history"></pre>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script>
-const tbody=document.querySelector("#tbl tbody");
-let rows=[];
+  <!-- SheetJS (엑셀 파싱용) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    // ===============================
+    // STORAGE KEYS
+    // ===============================
+    const LS_DATA = "tbv27:data:v1";
+    const LS_FLAGS = "tbv27:flags:v1";     // per-cell PASS/X
+    const LS_HIST = "tbv27:history:v1";    // click history
+    const LS_META = "tbv27:meta:v1";       // last file name etc.
 
-function render(){
-tbody.innerHTML="";
-rows.forEach((r,i)=>{
-const tr=document.createElement("tr");
-tr.innerHTML=`
-<td>${r.title}</td>
-<td>${r.isbn}</td>
-<td>${r.anchor}</td>
-<td>${r.price||""}</td>
-<td>${r.date||""}</td>
-<td>${r.pages||""}</td>
-<td><button class="btn ${r.status==='PASS'?'active':''}" onclick="setStatus(${i},'PASS')">PASS</button></td>
-<td><button class="btn ${r.status==='X'?'active':''}" onclick="setStatus(${i},'X')">X</button></td>
-`;
-tbody.appendChild(tr);
-});
-}
+    // ===============================
+    // CANONICAL COLUMNS (공통 화면 컬럼)
+    // ===============================
+    // NOTE: Springer/Sub Title, Currency(EUR/USD) 포함, 한글 타이틀 포함, 발행사 포함
+    const COLS = [
+      { key:"publisher", label:"Publisher" },
+      { key:"kor_title", label:"KOR_TITLE" },
+      { key:"title", label:"Title" },
+      { key:"sub_title", label:"Sub Title" },
+      { key:"isbn", label:"ISBN" },
+      { key:"price", label:"Price" },
+      { key:"currency", label:"Currency" },
+      { key:"pub_date", label:"Pub Date" },
+      { key:"pages", label:"Pages" },
+      { key:"anchor", label:"ANCHOR" },
+      { key:"pass", label:"PASS" },
+      { key:"x", label:"X" }
+    ];
 
-function setStatus(i,val){
-rows[i].status=val;
-render();
-}
+    // PASS/X를 "각 컬럼별"로도 찍을 수 있게: 실제 플래그 대상 컬럼
+    const FLAGGABLE = ["publisher","kor_title","title","sub_title","isbn","price","currency","pub_date","pages","anchor"];
 
-document.getElementById("allPass").onclick=()=>{
-rows.forEach(r=>r.status='PASS');
-render();
-};
-document.getElementById("allX").onclick=()=>{
-rows.forEach(r=>r.status='X');
-render();
-};
+    // ===============================
+    // STATE
+    // ===============================
+    let data = loadJSON(LS_DATA, []);              // array of rows
+    let flags = loadJSON(LS_FLAGS, {});            // { rowId: { colKey: "PASS"|"X" } }
+    let hist = loadJSON(LS_HIST, []);              // array of strings
+    let meta = loadJSON(LS_META, { lastFile:"" }); // meta
 
-document.getElementById("file").addEventListener("change",async e=>{
-const f=e.target.files[0];
-const buf=await f.arrayBuffer();
-const wb=XLSX.read(buf,{type:'array'});
-const ws=wb.Sheets[wb.SheetNames[0]];
-const data=XLSX.utils.sheet_to_json(ws,{header:1});
-rows=[];
-for(let i=1;i<data.length;i++){
-let r=data[i];
-if(!r[0])continue;
-rows.push({
-title:r[1]||r[0],
-isbn:r[0],
-anchor:f.name+" / row:"+ (i+1),
-price:r[2]||"",
-date:r[3]||"",
-pages:r[4]||"",
-status:"PASS"
-});
-}
-render();
-});
-</script>
+    // ===============================
+    // HELPERS
+    // ===============================
+    function loadJSON(k, fallback) {
+      try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+    }
+    function saveAll() {
+      localStorage.setItem(LS_DATA, JSON.stringify(data));
+      localStorage.setItem(LS_FLAGS, JSON.stringify(flags));
+      localStorage.setItem(LS_HIST, JSON.stringify(hist));
+      localStorage.setItem(LS_META, JSON.stringify(meta));
+      render();
+    }
+    function addHist(msg) {
+      const ts = new Date().toISOString().replace("T"," ").slice(0,19);
+      hist.unshift(`[${ts}] ${msg}`);
+      if (hist.length > 200) hist = hist.slice(0,200);
+      localStorage.setItem(LS_HIST, JSON.stringify(hist));
+      document.getElementById("history").textContent = hist.join("\n");
+    }
+    function norm(s) { return (s ?? "").toString().trim(); }
 
+    function detectPublisherFromFileName(name) {
+      const n = (name||"").toLowerCase();
+      if (n.includes("springer")) return "Springer";
+      if (n.includes("elsevier")) return "Elsevier";
+      if (n.includes("wiley")) return "Wiley";
+      return "Unknown";
+    }
+
+    // Excel date serial -> YYYY-MM-DD
+    function excelSerialToISO(v) {
+      // Handles numbers like 46419 or Date strings already
+      if (v === null || v === undefined || v === "") return "";
+      if (typeof v === "string") {
+        const s = v.trim();
+        // already ISO
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        // formats like 1-Feb-2027 or 2022/08/24
+        // try Date.parse
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+        return s; // keep as-is if unknown
+      }
+      if (typeof v === "number") {
+        // Excel epoch 1899-12-30
+        const ms = Math.round((v - 25569) * 86400 * 1000);
+        const d = new Date(ms);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+        return String(v);
+      }
+      return String(v);
+    }
+
+    function parsePriceToNumber(v) {
+      if (v === null || v === undefined || v === "") return "";
+      const s = String(v).trim();
+      // remove currency symbols and commas
+      const cleaned = s.replace(/[$€£,]/g,"").replace(/\s+/g,"");
+      const n = Number(cleaned);
+      if (!isNaN(n)) return n;
+      return "";
+    }
+
+    function rowId(row) {
+      // stable id: publisher|isbn|anchor
+      return `${norm(row.publisher)}|${norm(row.isbn)}|${norm(row.anchor)}`;
+    }
+
+    function ensureFlagsForRow(r) {
+      const id = rowId(r);
+      if (!flags[id]) flags[id] = {};
+      // default PASS for each flaggable if empty
+      for (const k of FLAGGABLE) {
+        if (!flags[id][k]) flags[id][k] = "PASS";
+      }
+      return id;
+    }
+
+    function setFlag(id, colKey, v) {
+      if (!flags[id]) flags[id] = {};
+      flags[id][colKey] = v;
+      localStorage.setItem(LS_FLAGS, JSON.stringify(flags));
+    }
+
+    function computeRowPassX(r) {
+      const id = rowId(r);
+      const f = flags[id] || {};
+      // if any X -> row is X
+      const anyX = FLAGGABLE.some(k => (f[k]||"PASS") === "X");
+      return anyX ? { pass:"", x:"X" } : { pass:"PASS", x:"" };
+    }
+
+    // ===============================
+    // EXCEL PARSING (header-name 기반: 자리 밀림 방지)
+    // ===============================
+    function mapSheetRows(jsonRows, fileName, publisherHint) {
+      const publisher = publisherHint || detectPublisherFromFileName(fileName);
+
+      // normalize headers (case-insensitive)
+      // We'll try detect per publisher by required headers
+      const rows = [];
+      for (let i=0; i<jsonRows.length; i++) {
+        const src = jsonRows[i] || {};
+        const keys = Object.keys(src);
+
+        // header helpers
+        const get = (...cands) => {
+          for (const c of cands) {
+            const found = keys.find(k => k.trim().toLowerCase() === c.trim().toLowerCase());
+            if (found !== undefined) return src[found];
+          }
+          return "";
+        };
+
+        // detect row empty
+        const hasAny = keys.some(k => norm(src[k]) !== "");
+        if (!hasAny) continue;
+
+        // publisher-specific pulls by header name
+        let out = {
+          publisher,
+          kor_title: "",      // 한글 타이틀: 자동 생성 금지 → 빈칸, 사용자가 나중에 채움(또는 별도 규칙으로 채움)
+          title: "",
+          sub_title: "",
+          isbn: "",
+          price: "",
+          currency: "",
+          pub_date: "",
+          pages: "",
+          anchor: `${fileName} / row:${i+2}` // +2: header row 가정
+        };
+
+        if (publisher === "Elsevier") {
+          out.isbn = norm(get("ISBN"));
+          out.title = norm(get("Title"));
+          out.price = parsePriceToNumber(get("List Price (USD)", "List Price", "List Price (US)", "List Price USD"));
+          out.currency = "USD";
+          out.pub_date = excelSerialToISO(get("Pub date", "Pub Date", "Publishing Date"));
+          out.pages = norm(get("No of Pages", "Pages", "No of Arabic Pages"));
+        } else if (publisher === "Springer") {
+          out.isbn = norm(get("ISBN"));
+          out.title = norm(get("Title"));
+          out.sub_title = norm(get("Sub Title", "Subtitle"));
+          out.price = parsePriceToNumber(get("Price EUR", "Price"));
+          out.currency = "EUR";
+          out.pub_date = excelSerialToISO(get("Actual Publishing Date", "Publishing Date", "Pub date", "Pub Date"));
+          out.pages = norm(get("No of Arabic Pages", "Pages", "No of Pages"));
+        } else if (publisher === "Wiley") {
+          out.title = norm(get("Title"));
+          out.pub_date = excelSerialToISO(get("Pub Date", "Pub date", "Publishing Date"));
+          out.pages = norm(get("Pages", "No of Pages"));
+          out.isbn = norm(get("ISBN13", "ISBN"));
+          out.price = parsePriceToNumber(get("US$", "US$", "USD", "Price"));
+          out.currency = "USD";
+        } else {
+          // fallback: best-effort by common headers
+          out.title = norm(get("Title"));
+          out.sub_title = norm(get("Sub Title", "Subtitle"));
+          out.isbn = norm(get("ISBN", "ISBN13"));
+          out.price = parsePriceToNumber(get("US$", "Price EUR", "List Price (USD)", "Price"));
+          out.pub_date = excelSerialToISO(get("Pub Date", "Pub date", "Actual Publishing Date"));
+          out.pages = norm(get("Pages", "No of Pages", "No of Arabic Pages"));
+          out.currency = norm(get("Currency")) || "";
+        }
+
+        rows.push(out);
+      }
+      return rows;
+    }
+
+    function readExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const wb = XLSX.read(e.target.result, { type: "array" });
+            const first = wb.SheetNames[0];
+            const ws = wb.Sheets[first];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+            resolve({ json, sheet:first });
+          } catch (err) { reject(err); }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // ===============================
+    // RENDER
+    // ===============================
+    function buildHeader() {
+      const hdr = document.getElementById("hdrRow");
+      hdr.innerHTML = "";
+      for (const c of COLS) {
+        const th = document.createElement("th");
+        th.className = "nowrap";
+        th.innerHTML = `<div>${c.label}</div>`;
+
+        // 컬럼별 전체 PASS/X 버튼(요청사항)
+        if (FLAGGABLE.includes(c.key)) {
+          const wrap = document.createElement("div");
+          wrap.className = "colBtns";
+          const bP = document.createElement("button");
+          bP.className = "ok";
+          bP.textContent = "PASS";
+          bP.onclick = () => bulkSetColumn(c.key, "PASS");
+
+          const bX = document.createElement("button");
+          bX.className = "danger";
+          bX.textContent = "X";
+          bX.onclick = () => bulkSetColumn(c.key, "X");
+
+          wrap.appendChild(bP); wrap.appendChild(bX);
+          th.appendChild(wrap);
+        }
+
+        hdr.appendChild(th);
+      }
+    }
+
+    function bulkSetColumn(colKey, v) {
+      // set for currently visible rows only (filter/search 적용)
+      const rows = getViewRows();
+      for (const r of rows) {
+        const id = ensureFlagsForRow(r);
+        setFlag(id, colKey, v);
+      }
+      addHist(`컬럼 전체 ${colKey} = ${v} (${rows.length}건)`);
+      saveAll();
+    }
+
+    function bulkAll(v) {
+      const rows = getViewRows();
+      for (const r of rows) {
+        const id = ensureFlagsForRow(r);
+        for (const k of FLAGGABLE) setFlag(id, k, v);
+      }
+      addHist(`전체 ${v} (${rows.length}건)`);
+      saveAll();
+    }
+
+    function getViewRows() {
+      const pub = document.getElementById("filterPub").value;
+      const q = norm(document.getElementById("q").value).toLowerCase();
+      let rows = [...data];
+
+      if (pub !== "ALL") rows = rows.filter(r => r.publisher === pub);
+      if (q) {
+        rows = rows.filter(r => {
+          const hay = [
+            r.publisher, r.kor_title, r.title, r.sub_title, r.isbn,
+            String(r.price), r.currency, r.pub_date, String(r.pages), r.anchor
+          ].join(" ").toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      // sorting
+      const s = document.getElementById("sortBy").value;
+      const pubKey = r => (r.pub_date || "");
+      if (s === "pub_desc") rows.sort((a,b) => pubKey(b).localeCompare(pubKey(a)));
+      if (s === "pub_asc") rows.sort((a,b) => pubKey(a).localeCompare(pubKey(b)));
+      if (s === "title_asc") rows.sort((a,b) => (a.title||"").localeCompare(b.title||""));
+      if (s === "publisher_asc") rows.sort((a,b) => (a.publisher||"").localeCompare(b.publisher||""));
+      return rows;
+    }
+
+    function render() {
+      buildHeader();
+
+      // publisher filter list
+      const pubs = Array.from(new Set(data.map(r => r.publisher))).sort();
+      const sel = document.getElementById("filterPub");
+      const cur = sel.value || "ALL";
+      sel.innerHTML = `<option value="ALL">전체 발행사</option>` + pubs.map(p => `<option value="${p}">${p}</option>`).join("");
+      sel.value = pubs.includes(cur) ? cur : "ALL";
+
+      // file badge
+      document.getElementById("badgeFile").textContent = meta.lastFile ? meta.lastFile : "선택된 파일 없음";
+
+      // body
+      const body = document.getElementById("body");
+      body.innerHTML = "";
+
+      const view = getViewRows();
+      for (const r of view) {
+        const id = ensureFlagsForRow(r);
+        const tr = document.createElement("tr");
+
+        // compute row pass/x from flags
+        const px = computeRowPassX(r);
+
+        for (const c of COLS) {
+          const td = document.createElement("td");
+
+          if (c.key === "pass") {
+            td.innerHTML = px.pass ? `<span class="pill pass on">PASS</span>` : `<span class="pill muted"> </span>`;
+          } else if (c.key === "x") {
+            td.innerHTML = px.x ? `<span class="pill x on">X</span>` : `<span class="pill muted"> </span>`;
+          } else if (FLAGGABLE.includes(c.key)) {
+            const v = (r[c.key] ?? "").toString();
+            const f = (flags[id]?.[c.key] || "PASS");
+            const wrap = document.createElement("div");
+            wrap.className = "cell";
+
+            const vv = document.createElement("div");
+            vv.className = "v";
+            vv.title = v;
+            vv.textContent = v;
+
+            const tog = document.createElement("div");
+            tog.className = "tog";
+
+            const p = document.createElement("span");
+            p.className = `pill pass ${f==="PASS"?"on":""}`;
+            p.textContent = "PASS";
+            p.onclick = () => {
+              setFlag(id, c.key, "PASS");
+              addHist(`${id} / ${c.key} = PASS`);
+              saveAll();
+            };
+
+            const x = document.createElement("span");
+            x.className = `pill x ${f==="X"?"on":""}`;
+            x.textContent = "X";
+            x.onclick = () => {
+              setFlag(id, c.key, "X");
+              addHist(`${id} / ${c.key} = X`);
+              saveAll();
+            };
+
+            tog.appendChild(p); tog.appendChild(x);
+            wrap.appendChild(vv); wrap.appendChild(tog);
+            td.appendChild(wrap);
+          } else {
+            td.textContent = (r[c.key] ?? "").toString();
+          }
+
+          tr.appendChild(td);
+        }
+        body.appendChild(tr);
+      }
+
+      // stats
+      const total = data.length;
+      const shown = view.length;
+      const xCount = view.filter(r => computeRowPassX(r).x === "X").length;
+      document.getElementById("stats").textContent = `전체 ${total}건 / 표시 ${shown}건 / X ${xCount}건`;
+
+      // history
+      document.getElementById("history").textContent = hist.join("\n");
+    }
+
+    // ===============================
+    // EVENTS
+    // ===============================
+    document.getElementById("sortBy").addEventListener("change", render);
+    document.getElementById("filterPub").addEventListener("change", render);
+    document.getElementById("q").addEventListener("input", render);
+
+    document.getElementById("file").addEventListener("change", (e) => {
+      const f = e.target.files?.[0];
+      if (f) document.getElementById("badgeFile").textContent = f.name;
+    });
+
+    async function handleUpload(mode) {
+      const f = document.getElementById("file").files?.[0];
+      if (!f) { alert("엑셀 파일을 선택하세요."); return; }
+
+      const fileName = f.name;
+      const publisherHint = detectPublisherFromFileName(fileName);
+
+      const { json } = await readExcel(f);
+      const mapped = mapSheetRows(json, fileName, publisherHint);
+
+      // normalize values: pub_date to ISO, price number, pages string
+      for (const r of mapped) {
+        r.pub_date = excelSerialToISO(r.pub_date);
+        // price already number or empty
+        if (r.price !== "" && typeof r.price !== "number") r.price = parsePriceToNumber(r.price);
+        // pages: keep raw
+      }
+
+      if (mode === "replace") {
+        data = mapped;
+        flags = {}; // flags reset, then default PASS applied on render
+        addHist(`업로드(전체 교체): ${fileName} (${mapped.length}건)`);
+      } else {
+        // merge by (publisher|isbn|anchor) but if same publisher+isbn exists, keep latest and update anchor
+        const idx = new Map();
+        for (let i=0; i<data.length; i++) idx.set(`${data[i].publisher}|${data[i].isbn}`, i);
+
+        let added = 0, replaced = 0;
+        for (const r of mapped) {
+          const k = `${r.publisher}|${r.isbn}`;
+          if (idx.has(k)) {
+            const pos = idx.get(k);
+            data[pos] = r;
+            replaced++;
+          } else {
+            data.push(r);
+            added++;
+          }
+        }
+        addHist(`업로드(추가/합치기): ${fileName} (추가 ${added}, 갱신 ${replaced})`);
+      }
+
+      meta.lastFile = fileName;
+      saveAll();
+    }
+
+    document.getElementById("btnMerge").onclick = () => handleUpload("merge");
+    document.getElementById("btnReplace").onclick = () => handleUpload("replace");
+
+    document.getElementById("btnAllPass").onclick = () => bulkAll("PASS");
+    document.getElementById("btnAllX").onclick = () => bulkAll("X");
+
+    document.getElementById("btnClear").onclick = () => {
+      localStorage.removeItem(LS_DATA);
+      localStorage.removeItem(LS_FLAGS);
+      localStorage.removeItem(LS_HIST);
+      localStorage.removeItem(LS_META);
+      data = []; flags = {}; hist = []; meta = { lastFile:"" };
+      addHist("localStorage 초기화");
+      render();
+    };
+
+    // ===============================
+    // INIT
+    // ===============================
+    // ensure defaults for existing rows
+    for (const r of data) ensureFlagsForRow(r);
+    render();
+  </script>
 </body>
 </html>
