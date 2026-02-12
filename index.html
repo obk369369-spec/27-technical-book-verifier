@@ -3,858 +3,764 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</title>
+  <title>27번 도구 - 엑셀 업로드 (셀 X 안정화 v1)</title>
   <style>
     :root{
       --bg:#f6f7fb;
-      --card:#ffffff;
+      --panel:#ffffff;
       --ink:#1f2937;
       --muted:#6b7280;
       --line:#e5e7eb;
-      --accent:#2f6fed;
-      --danger:#e11d48;
-      --dangerBg:#ffe4ea;
-      --btn:#eef2ff;
-      --shadow: 0 6px 18px rgba(17,24,39,.08);
-      --radius:14px;
+      --accent:#2563eb;
+      --danger:#ef4444;
+      --dangerSoft:#ffe4e6;
+      --shadow: 0 6px 18px rgba(0,0,0,.08);
+      --radius: 14px;
+      --btn: 44px;          /* X 버튼 크기 */
+      --btnHit: 54px;       /* 실제 클릭영역 */
+      --rowH: 54px;         /* 행 높이 */
+      --font: system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{
       margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+      font-family:var(--font);
       color:var(--ink);
       background:var(--bg);
-      overflow:hidden; /* 페이지 자체 스크롤 금지 */
     }
-    .app{
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      padding:12px;
+
+    /* 상단 바 */
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      background:linear-gradient(180deg,#ffffff 0%, #fbfbfe 100%);
+      border-bottom:1px solid var(--line);
     }
-    .top{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding:10px 12px;
-    }
-    .titleRow{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .h1{
-      font-weight:800;
-      font-size:16px;
-      margin:0;
-      line-height:1.2;
+    .wrap{max-width:1400px; margin:0 auto; padding:14px 16px;}
+    h1{
+      margin:0 0 8px 0;
+      font-size:18px;
+      letter-spacing:-0.3px;
     }
     .sub{
-      margin:4px 0 0 0;
+      margin:0;
       color:var(--muted);
       font-size:12px;
-      line-height:1.3;
+      line-height:1.35;
     }
-    .pillRow{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin-top:10px;
-    }
-    .pill{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      color:var(--ink);
-    }
-    .pill b{font-weight:800}
+
+    /* 컨트롤 */
     .controls{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      display:flex; flex-wrap:wrap; gap:10px;
       align-items:center;
-      margin-top:10px;
+      margin-top:12px;
+    }
+    .controls .group{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:10px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
     }
     .btn{
       border:1px solid var(--line);
       background:#fff;
-      padding:9px 12px;
+      color:var(--ink);
+      padding:10px 12px;
       border-radius:12px;
-      font-weight:700;
       font-size:13px;
       cursor:pointer;
-      transition:.12s transform, .12s background;
       user-select:none;
+      transition:transform .05s ease, border-color .15s ease, box-shadow .15s ease;
     }
-    .btn:hover{background:#fafafa}
-    .btn:active{transform:scale(.98)}
+    .btn:hover{border-color:#cbd5e1; box-shadow:0 4px 12px rgba(0,0,0,.07)}
+    .btn:active{transform:translateY(1px)}
     .btn.primary{
-      border-color: rgba(47,111,237,.35);
-      background: rgba(47,111,237,.08);
+      background:var(--accent);
+      border-color:var(--accent);
+      color:#fff;
     }
     .btn.danger{
-      border-color: rgba(225,29,72,.35);
-      background: rgba(225,29,72,.08);
-      color:#9f1239;
+      background:#fff;
+      border-color:#fecaca;
+      color:#b91c1c;
     }
     .file{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      font-size:13px;
+      color:var(--muted);
     }
     input[type="file"]{
-      border:1px dashed var(--line);
-      padding:8px;
-      border-radius:12px;
+      border:1px dashed #cbd5e1;
       background:#fff;
-      width:min(520px, 100%);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      max-width:360px;
+    }
+    .status{
+      display:flex; gap:12px; flex-wrap:wrap;
+      font-size:12px; color:var(--muted);
+    }
+    .pill{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 10px;
+      box-shadow:0 4px 10px rgba(0,0,0,.05);
+      white-space:nowrap;
+    }
+    .pill b{color:var(--ink)}
+    .keys{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:11px;
+      color:#374151;
     }
 
+    /* 테이블 영역: 세로 스크롤만 */
     .main{
-      flex:1;
-      min-height:0;
-      display:flex;
-      gap:10px;
+      max-width:1400px;
+      margin:0 auto;
+      padding:12px 16px 10px 16px;
     }
-    .tableWrap{
-      flex:1;
-      min-width:0;
-      background:var(--card);
+    .tableBox{
+      background:var(--panel);
       border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      display:flex;
-      flex-direction:column;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .tableHead{
-      padding:10px 12px;
+    .tableScroll{
+      /* 세로 스크롤만 */
+      overflow-y:auto;
+      overflow-x:hidden;
+      max-height: calc(100vh - 320px);
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      table-layout:fixed;
+      font-size:13px;
+    }
+    thead th{
+      position:sticky; top:0; z-index:10;
+      background:#f8fafc;
       border-bottom:1px solid var(--line);
+      color:#111827;
+      font-weight:700;
+      text-align:left;
+      padding:10px 10px;
+      height:44px;
+      white-space:nowrap;
+    }
+    tbody td{
+      border-bottom:1px solid #f1f5f9;
+      padding:0;
+      vertical-align:top;
+      height:var(--rowH);
+      background:#fff;
+    }
+    tbody tr:hover td{background:#fbfdff}
+
+    /* 셀 내부(값 + 큰 X 버튼) */
+    .cell{
       display:flex;
-      gap:10px;
       align-items:center;
       justify-content:space-between;
-      flex-wrap:wrap;
-    }
-    .small{
-      font-size:12px;
-      color:var(--muted);
-    }
-
-    /* 테이블 영역만 스크롤 */
-    .scroller{
-      flex:1;
-      min-height:0;
-      overflow:auto;
-      padding:10px;
-      background:linear-gradient(#fff,#fff);
-    }
-
-    /* “가로 스크롤 최소”를 위해: 한 줄 카드형 행 */
-    .rowCard{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:10px;
-      background:#fff;
-      box-shadow: 0 2px 10px rgba(17,24,39,.04);
-      margin-bottom:10px;
-    }
-    .rowTop{
-      display:grid;
-      grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
       gap:10px;
-      align-items:start;
+      padding:8px 10px;
+      min-height:var(--rowH);
     }
-    .rowMid{
-      display:grid;
-      grid-template-columns: 1.7fr 1.3fr;
-      gap:10px;
-      margin-top:10px;
-    }
-    .rowBottom{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-      margin-top:10px;
-    }
-
-    /* 각 필드 블록 */
-    .field{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px 10px 10px 10px;
-      position:relative;
-      background:#fbfbfd;
-      min-height:66px;
-    }
-    .label{
-      font-size:11px;
-      color:var(--muted);
-      font-weight:800;
-      letter-spacing:.02em;
-      margin-bottom:6px;
-    }
-    .value{
-      font-size:13px;
+    .val{
+      min-width:0;
+      flex:1 1 auto;
       line-height:1.25;
-      white-space:pre-wrap;
       word-break:break-word;
-      padding-right:56px; /* X 버튼 자리 */
-      min-height:20px;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
     }
-    .empty{
-      color:#9ca3af;
-      font-weight:700;
+    .val.mono{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:12px;
+      letter-spacing:0.1px;
     }
-
-    /* 큰 X 버튼 */
-    .xbtn{
-      position:absolute;
-      top:10px;
-      right:10px;
-      width:46px;
-      height:46px;
-      border-radius:14px;
-      border:2px solid rgba(225,29,72,.25);
-      background: var(--dangerBg);
-      color:#9f1239;
-      font-weight:900;
-      font-size:18px;
-      cursor:pointer;
+    .val.muted{color:var(--muted)}
+    .xbtnWrap{
+      flex:0 0 auto;
+      width:var(--btnHit);
+      height:var(--btnHit);
       display:flex;
       align-items:center;
       justify-content:center;
-      box-shadow: 0 6px 14px rgba(225,29,72,.12);
-      user-select:none;
     }
-    .xbtn:hover{
-      border-color: rgba(225,29,72,.45);
-      transform: translateY(-1px);
-    }
-    .xbtn:active{transform: translateY(0px) scale(.98)}
-    .xbtn[disabled]{
-      opacity:.35;
-      cursor:not-allowed;
-      box-shadow:none;
-      transform:none;
-    }
-
-    .note{
-      font-size:12px;
-      color:var(--muted);
-      margin:6px 0 0 0;
-    }
-
-    /* 로그는 “아래”에 고정 */
-    .logWrap{
-      height:190px;
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+    .xbtn{
+      width:var(--btn);
+      height:var(--btn);
+      border-radius:14px;
+      border:2px solid #fca5a5;
+      background:var(--dangerSoft);
+      color:#7f1d1d;
+      font-weight:900;
+      font-size:18px;
+      cursor:pointer;
+      box-shadow:0 6px 12px rgba(239,68,68,.15);
       display:flex;
-      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      transition:transform .05s ease, filter .15s ease;
+    }
+    .xbtn:hover{filter:brightness(1.02)}
+    .xbtn:active{transform:translateY(1px)}
+    .xmark{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:800;
+      color:#991b1b;
+      background:#ffe4e6;
+      border:1px solid #fecaca;
+      border-radius:999px;
+      padding:2px 8px;
+      margin-left:8px;
+      white-space:nowrap;
+    }
+
+    /* 컬럼 너비 (가로 스크롤 없이 “줄바꿈”으로 처리) */
+    col.pub{width:140px}
+    col.title{width:330px}
+    col.kort{width:220px}
+    col.sub{width:260px}
+    col.kors{width:220px}
+    col.isbn{width:150px}
+    col.price{width:110px}
+    col.cur{width:110px}
+    col.date{width:130px}
+    col.pages{width:110px}
+
+    /* 하단 로그: 화면 아래 고정 */
+    .logbar{
+      position:sticky;
+      bottom:0;
+      z-index:40;
+      background:linear-gradient(180deg, rgba(246,247,251,0) 0%, rgba(246,247,251,.75) 30%, rgba(246,247,251,1) 100%);
+      padding:10px 0 14px 0;
+      margin-top:10px;
+    }
+    .logBox{
+      max-width:1400px;
+      margin:0 auto;
+      padding:0 16px;
+    }
+    .logPanel{
+      background:#0b1220;
+      color:#e5e7eb;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
       overflow:hidden;
     }
     .logHead{
-      padding:10px 12px;
-      border-bottom:1px solid var(--line);
       display:flex;
-      gap:8px;
       align-items:center;
       justify-content:space-between;
-      flex-wrap:wrap;
+      gap:10px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
     }
+    .logHead .title{
+      font-size:13px;
+      font-weight:800;
+    }
+    .logBtns{display:flex; gap:8px; flex-wrap:wrap}
+    .logBtn{
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+      color:#e5e7eb;
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .logBtn:hover{background:rgba(255,255,255,.10)}
     .logBody{
-      flex:1;
-      min-height:0;
+      max-height:170px;
       overflow:auto;
       padding:10px 12px;
-      background:#0b1220; /* 로그는 진하게(가독성) */
-      color:#e5e7eb;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      font-size:12px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:11px;
       line-height:1.35;
       white-space:pre-wrap;
       word-break:break-word;
     }
-    .logBtns{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .hint{
-      font-size:11px;
-      color:var(--muted);
-    }
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:12px;
-      transform:translateX(-50%);
-      background:#111827;
-      color:#fff;
-      padding:10px 14px;
-      border-radius:999px;
-      font-weight:800;
-      font-size:12px;
-      opacity:0;
-      pointer-events:none;
-      transition:.18s opacity, .18s transform;
-    }
-    .toast.show{
-      opacity:1;
-      transform:translateX(-50%) translateY(-6px);
-    }
 
-    @media (max-width: 920px){
-      .rowTop{grid-template-columns:1fr 1fr}
-      .rowMid{grid-template-columns:1fr}
-      .rowBottom{grid-template-columns:1fr}
+    /* 경고/안내 */
+    .note{
+      margin-top:10px;
+      padding:10px 12px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      color:var(--muted);
+      font-size:12px;
+      box-shadow:var(--shadow);
     }
+    .note b{color:var(--ink)}
   </style>
 </head>
 <body>
-<div class="app">
-  <section class="top">
-    <div class="titleRow">
-      <div>
-        <p class="h1">27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</p>
-        <p class="sub">셀마다 X만 존재 · PASS 없음 · 행 X 없음 · 정렬/재배치 없음 · ANCHOR+HASH로 행 섞임 원천 차단 · 로그 자동 저장(localStorage)</p>
-      </div>
-      <div class="pillRow" aria-label="status">
-        <span class="pill">상태: <b id="stStatus">대기</b></span>
-        <span class="pill">총 행: <b id="stRows">0</b></span>
-        <span class="pill">총 셀 X: <b id="stX">0</b></span>
-        <span class="pill">DB키: <b id="stDbKey"></b></span>
-        <span class="pill">LOG키: <b id="stLogKey"></b></span>
-      </div>
-    </div>
+  <div class="topbar">
+    <div class="wrap">
+      <h1>27번 도구 – 엑셀 업로드 (셀 X 안정화 v1)</h1>
+      <p class="sub">
+        셀마다 X만 존재 · PASS 없음 · 행 X 없음 · 정렬/재배치 없음 · ANCHOR+HASH로 행 섞임 원천 차단 · 로그 자동 저장(localStorage)
+      </p>
 
-    <div class="controls">
-      <div class="file">
-        <input id="file" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" />
-        <button class="btn primary" id="btnUpload">업로드(추가/합치기)</button>
-        <button class="btn danger" id="btnResetDb">DB 초기화</button>
-        <button class="btn" id="btnExport">DB 내보내기(JSON)</button>
-      </div>
-      <span class="hint">지원: CSV/TSV (첫 줄 헤더 권장) · 컬럼 하드고정: Publisher, Title, Sub Title, KOR_TITLE, KOR_SUBTITLE, ISBN, Price, Currency, Pub Date, Pages</span>
-    </div>
-
-    <p class="note">테이블(카드형): <b>KOR_TITLE은 Title 오른쪽</b>, <b>KOR_SUBTITLE은 Sub Title 오른쪽</b>에 고정 표시. 페이지는 스크롤 없음, <b>테이블 영역만</b> 스크롤.</p>
-  </section>
-
-  <section class="main">
-    <div class="tableWrap">
-      <div class="tableHead">
-        <div>
-          <div style="font-weight:900">데이터</div>
-          <div class="small" id="smallMeta">ANCHOR = 파일명|row:n 로 고정 렌더</div>
+      <div class="controls">
+        <div class="group">
+          <div class="file">
+            <label><b>파일 선택</b></label>
+            <input id="file" type="file" accept=".csv,.tsv,.txt" />
+            <span id="fileName">(미선택)</span>
+          </div>
+          <button class="btn primary" id="btnUpload">업로드(추가/합치기)</button>
+          <button class="btn danger" id="btnResetDB">DB 초기화</button>
+          <button class="btn" id="btnExportDB">DB 내보내기(JSON)</button>
         </div>
-        <div class="small" id="smallLast">마지막 파일: -</div>
-      </div>
-      <div class="scroller" id="grid"></div>
-    </div>
-  </section>
 
-  <section class="logWrap">
-    <div class="logHead">
-      <div>
-        <div style="font-weight:900">자동 로그 (셀 X 클릭 시 즉시 누적/저장)</div>
-        <div class="small">형식: [YYYY-MM-DD HH:MM:SS] 파일명|row:n | COL | before → after</div>
+        <div class="group status">
+          <span class="pill">상태: <b id="st">대기</b></span>
+          <span class="pill">총 행: <b id="rowCount">0</b></span>
+          <span class="pill">총 셀 X: <b id="xCount">0</b></span>
+          <span class="pill">DB키: <span class="keys" id="dbKey"></span></span>
+          <span class="pill">LOG키: <span class="keys" id="logKey"></span></span>
+        </div>
       </div>
-      <div class="logBtns">
-        <button class="btn" id="btnCopyLog">로그 복사</button>
-        <button class="btn danger" id="btnClearLog">로그 초기화</button>
+
+      <div class="note">
+        지원: <b>CSV/TSV</b> (첫 줄 헤더 권장) · 컬럼 하드고정:
+        <b>Publisher, Title, Sub Title, KOR_TITLE, KOR_SUBTITLE, ISBN, Price, Currency, Pub Date, Pages</b><br/>
+        렌더 고정: <b>ANCHOR = 파일명|row:n</b> 기반 (업로드 후 위치 고정) · KOR_TITLE은 Title 오른쪽, KOR_SUBTITLE은 Sub Title 오른쪽.
       </div>
     </div>
-    <div class="logBody" id="log"></div>
-  </section>
-</div>
+  </div>
 
-<div class="toast" id="toast">저장됨</div>
+  <div class="main">
+    <div class="tableBox">
+      <div class="tableScroll" id="tableScroll">
+        <table id="tbl">
+          <colgroup>
+            <col class="pub" />
+            <col class="title" />
+            <col class="kort" />
+            <col class="sub" />
+            <col class="kors" />
+            <col class="isbn" />
+            <col class="price" />
+            <col class="cur" />
+            <col class="date" />
+            <col class="pages" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Publisher</th>
+              <th>Title</th>
+              <th>KOR_TITLE</th>
+              <th>Sub Title</th>
+              <th>KOR_SUBTITLE</th>
+              <th>ISBN</th>
+              <th>Price</th>
+              <th>Currency</th>
+              <th>Pub Date</th>
+              <th>Pages</th>
+            </tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="logbar">
+    <div class="logBox">
+      <div class="logPanel">
+        <div class="logHead">
+          <div class="title">자동 로그 (셀 X 클릭 시 즉시 누적/저장)</div>
+          <div class="logBtns">
+            <button class="logBtn" id="btnCopyLog">로그 복사</button>
+            <button class="logBtn" id="btnClearLog">로그 초기화</button>
+          </div>
+        </div>
+        <div class="logBody" id="logBody"></div>
+      </div>
+    </div>
+  </div>
 
 <script>
 (() => {
-  "use strict";
-
-  // ====== 고정 키 ======
-  const DB_KEY  = "wic_xdb_v27";
-  const LOG_KEY = "wic_xlog_v27";
-
-  // ====== 하드 고정 컬럼 ======
+  // ====== 고정 컬럼 ======
   const COLS = [
-    "Publisher",
-    "Title",
-    "KOR_TITLE",
-    "Sub Title",
-    "KOR_SUBTITLE",
-    "ISBN",
-    "Price",
-    "Currency",
-    "Pub Date",
-    "Pages"
+    "Publisher","Title","KOR_TITLE","Sub Title","KOR_SUBTITLE",
+    "ISBN","Price","Currency","Pub Date","Pages"
   ];
 
-  // ====== DOM ======
+  // ====== localStorage 키 ======
+  const DB_KEY  = "wic_xdb_v27";
+  const LOG_KEY = "wic_xlog_v27";
+  document.getElementById("dbKey").textContent = DB_KEY;
+  document.getElementById("logKey").textContent = LOG_KEY;
+
+  // ====== 상태 ======
   const el = (id) => document.getElementById(id);
+  const st = el("st"), rowCount = el("rowCount"), xCount = el("xCount");
   const fileInput = el("file");
-  const btnUpload = el("btnUpload");
-  const btnResetDb = el("btnResetDb");
-  const btnExport = el("btnExport");
-  const grid = el("grid");
-  const logBox = el("log");
+  const fileName = el("fileName");
+  const tb = el("tb");
+  const logBody = el("logBody");
 
-  const stStatus = el("stStatus");
-  const stRows = el("stRows");
-  const stX = el("stX");
-  const stDbKey = el("stDbKey");
-  const stLogKey = el("stLogKey");
-  const smallLast = el("smallLast");
-  const btnCopyLog = el("btnCopyLog");
-  const btnClearLog = el("btnClearLog");
-  const toast = el("toast");
-
-  stDbKey.textContent = DB_KEY;
-  stLogKey.textContent = LOG_KEY;
+  // ====== DB 구조 ======
+  // db = { rows: { [anchor]: { anchor, hash, file, rowNo, cells: {col: value} } },
+  //        xmarks: { [anchor+"|"+col]: { before, after, ts } } }
+  let db = loadDB();
+  let logs = loadLogs();
 
   // ====== 유틸 ======
-  const pad2 = (n) => String(n).padStart(2, "0");
-  const nowStamp = () => {
+  function nowStamp(){
     const d = new Date();
-    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-  };
+    const p = (n)=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+  function safeText(v){
+    if (v === null || v === undefined) return "";
+    return String(v).replace(/\u0000/g,"").trim();
+  }
 
-  const showToast = (msg) => {
-    toast.textContent = msg;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 900);
-  };
-
-  // 간단 해시(섞임 감지용)
-  const hashStr = (s) => {
-    let h = 2166136261;
-    for (let i=0; i<s.length; i++){
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619);
+  // 간단 해시(FNV-1a)
+  function fnv1a(str){
+    let h = 0x811c9dc5;
+    for (let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0;
     }
-    return (h >>> 0).toString(16);
-  };
+    return ("00000000"+h.toString(16)).slice(-8);
+  }
 
-  // CSV/TSV 파서(따옴표 처리)
-  const parseDelimited = (text, delim) => {
+  // CSV/TSV 파서(간단, 따옴표 대응)
+  function parseDelimited(text, delim){
     const rows = [];
-    let cur = "";
+    let cur = "", inQ = false;
     let row = [];
-    let inQ = false;
-    for (let i=0; i<text.length; i++){
+    for (let i=0;i<text.length;i++){
       const ch = text[i];
-      const nx = text[i+1];
+      const next = text[i+1];
 
       if (inQ){
-        if (ch === '"' && nx === '"'){ cur += '"'; i++; continue; }
+        if (ch === '"' && next === '"'){ cur += '"'; i++; continue; }
         if (ch === '"'){ inQ = false; continue; }
         cur += ch;
-        continue;
+      } else {
+        if (ch === '"'){ inQ = true; continue; }
+        if (ch === "\r") continue;
+        if (ch === "\n"){
+          row.push(cur);
+          rows.push(row);
+          row = []; cur = "";
+          continue;
+        }
+        if (ch === delim){
+          row.push(cur);
+          cur = "";
+          continue;
+        }
+        cur += ch;
       }
-
-      if (ch === '"'){ inQ = true; continue; }
-      if (ch === delim){
-        row.push(cur);
-        cur = "";
-        continue;
-      }
-      if (ch === "\r"){
-        // ignore
-        continue;
-      }
-      if (ch === "\n"){
-        row.push(cur);
-        rows.push(row);
-        row = [];
-        cur = "";
-        continue;
-      }
-      cur += ch;
     }
-    // tail
-    row.push(cur);
-    // 빈 마지막 줄 방지
-    if (!(row.length === 1 && row[0] === "")) rows.push(row);
+    // last
+    if (cur.length>0 || row.length>0){
+      row.push(cur);
+      rows.push(row);
+    }
     return rows;
-  };
+  }
 
-  const normalizeKey = (k) =>
-    (k || "")
-      .toLowerCase()
-      .replace(/\s+/g," ")
-      .replace(/[_-]+/g," ")
-      .trim();
+  function detectDelimiter(text){
+    // 탭 우선
+    const firstLine = text.split(/\r?\n/)[0] || "";
+    const tabs = (firstLine.match(/\t/g)||[]).length;
+    const commas = (firstLine.match(/,/g)||[]).length;
+    return tabs >= commas ? "\t" : ",";
+  }
 
-  const mapHeader = (headerArr) => {
-    const map = {};
-    const normHeader = headerArr.map(h => normalizeKey(h));
-    for (let i=0; i<normHeader.length; i++){
-      const h = normHeader[i];
-      // 허용 별칭들
-      if (h === "publisher") map["Publisher"] = i;
-      if (h === "title") map["Title"] = i;
-      if (h === "sub title" || h === "subtitle") map["Sub Title"] = i;
-      if (h === "kor title" || h === "kor_title" || h === "korean title") map["KOR_TITLE"] = i;
-      if (h === "kor subtitle" || h === "kor_subtitle" || h === "korean subtitle") map["KOR_SUBTITLE"] = i;
-      if (h === "isbn") map["ISBN"] = i;
-      if (h === "price") map["Price"] = i;
-      if (h === "currency") map["Currency"] = i;
-      if (h === "pub date" || h === "pubdate" || h === "publication date") map["Pub Date"] = i;
-      if (h === "pages") map["Pages"] = i;
+  function normalizeHeader(h){
+    return safeText(h).toLowerCase().replace(/\s+/g," ").trim();
+  }
+
+  function mapRowToFixed(header, values){
+    // header 매핑(없으면 순서 매핑)
+    const out = {};
+    if (header && header.length){
+      const idx = {};
+      header.forEach((h,i)=>{ idx[normalizeHeader(h)] = i; });
+      for (const c of COLS){
+        const key = normalizeHeader(c);
+        const i = idx[key];
+        out[c] = i === undefined ? "" : safeText(values[i] ?? "");
+      }
+    } else {
+      // 순서대로 채움
+      for (let i=0;i<COLS.length;i++){
+        out[COLS[i]] = safeText(values[i] ?? "");
+      }
     }
-    return map;
-  };
+    return out;
+  }
 
-  // ====== 저장 구조 ======
-  // db: { version:"v1", items:{[anchor]:{anchor,file,row,hash,cells:{col:val}, x:{col:true}}}, lastFile:"" }
-  const loadDB = () => {
+  function loadDB(){
     try{
       const raw = localStorage.getItem(DB_KEY);
-      if(!raw) return { version:"v1", items:{}, lastFile:"" };
+      if (!raw) return { rows:{}, xmarks:{} };
       const parsed = JSON.parse(raw);
-      if(!parsed.items) parsed.items = {};
-      if(!parsed.lastFile) parsed.lastFile = "";
-      if(!parsed.version) parsed.version = "v1";
+      if (!parsed.rows) parsed.rows = {};
+      if (!parsed.xmarks) parsed.xmarks = {};
       return parsed;
-    }catch(e){
-      return { version:"v1", items:{}, lastFile:"" };
+    } catch(e){
+      return { rows:{}, xmarks:{} };
     }
-  };
-
-  const saveDB = (db) => {
+  }
+  function saveDB(){
     localStorage.setItem(DB_KEY, JSON.stringify(db));
-  };
+  }
 
-  const loadLOG = () => {
+  function loadLogs(){
     try{
       const raw = localStorage.getItem(LOG_KEY);
-      if(!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    }catch(e){
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch(e){
       return [];
     }
-  };
+  }
+  function saveLogs(){
+    localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+  }
 
-  const saveLOG = (arr) => {
-    localStorage.setItem(LOG_KEY, JSON.stringify(arr));
-  };
-
-  const pushLog = (line) => {
-    const logs = loadLOG();
+  function pushLog(line){
     logs.push(line);
-    // 너무 커지면 최근 2000줄만 유지
-    if (logs.length > 2000) logs.splice(0, logs.length - 2000);
-    saveLOG(logs);
+    // 너무 길어지면 뒤에서 2000줄만 유지
+    if (logs.length > 2000) logs = logs.slice(-2000);
+    saveLogs();
     renderLog();
-  };
+  }
 
-  // ====== 렌더 ======
-  const countX = (db) => {
-    let c = 0;
-    for (const a in db.items){
-      const it = db.items[a];
-      if (it && it.x){
-        c += Object.keys(it.x).length;
-      }
-    }
-    return c;
-  };
+  function renderLog(){
+    logBody.textContent = logs.join("\n");
+    // 최신 로그가 보이도록 아래로
+    logBody.scrollTop = logBody.scrollHeight;
+  }
 
-  const renderStatus = (db) => {
-    const rows = Object.keys(db.items).length;
-    stRows.textContent = String(rows);
-    stX.textContent = String(countX(db));
-    smallLast.textContent = "마지막 파일: " + (db.lastFile || "-");
-  };
+  function updateStatus(){
+    const rows = Object.keys(db.rows).length;
+    const x = Object.keys(db.xmarks).length;
+    rowCount.textContent = String(rows);
+    xCount.textContent = String(x);
+  }
 
-  const makeField = ({anchor, col, label, value, disabledX}) => {
-    const wrap = document.createElement("div");
-    wrap.className = "field";
+  // ====== 렌더(엑셀 표) ======
+  function cellView(anchor, col, value){
+    const key = anchor + "|" + col;
+    const xed = !!db.xmarks[key];
 
-    const lab = document.createElement("div");
-    lab.className = "label";
-    lab.textContent = label;
-    wrap.appendChild(lab);
+    const td = document.createElement("td");
+    const box = document.createElement("div");
+    box.className = "cell";
 
     const val = document.createElement("div");
-    val.className = "value";
-    if (!value){
-      val.classList.add("empty");
+    const isMono = ["ISBN","Price","Pages","Pub Date","Currency"].includes(col);
+    val.className = "val" + (isMono ? " mono" : "");
+    if (!safeText(value)) {
+      val.classList.add("muted");
       val.textContent = "(빈값)";
-    }else{
-      val.textContent = value;
+    } else {
+      val.textContent = safeText(value);
     }
-    wrap.appendChild(val);
 
-    const xb = document.createElement("button");
-    xb.className = "xbtn";
-    xb.type = "button";
-    xb.textContent = "X";
-    xb.title = "이 셀을 X 처리";
-    if (disabledX) xb.disabled = true;
+    if (xed){
+      const tag = document.createElement("span");
+      tag.className = "xmark";
+      tag.textContent = "X처리";
+      val.appendChild(tag);
+    }
 
-    xb.addEventListener("click", () => {
-      const db = loadDB();
-      const it = db.items[anchor];
-      if (!it) return;
+    const btnWrap = document.createElement("div");
+    btnWrap.className = "xbtnWrap";
+    const btn = document.createElement("button");
+    btn.className = "xbtn";
+    btn.type = "button";
+    btn.textContent = "X";
+    btn.title = "이 셀을 X 처리";
 
-      const before = (it.cells && it.cells[col]) ? it.cells[col] : "";
-      // 이미 X 처리된 셀이면 추가 클릭은 무시(중복 로그/오류 방지)
-      if (it.x && it.x[col]) {
-        showToast("이미 X 처리됨");
-        return;
-      }
-
-      // 셀 값 비우기 + X 마킹
-      if (!it.cells) it.cells = {};
-      if (!it.x) it.x = {};
-      it.cells[col] = "";
-      it.x[col] = true;
-
-      db.items[anchor] = it;
-      saveDB(db);
-
-      const line = `[${nowStamp()}] ${anchor} | ${col} | ${before || "(빈값)"} → (빈값)`;
-      pushLog(line);
-
-      renderAll();
-      showToast("X 저장");
+    btn.addEventListener("click", () => {
+      toggleX(anchor, col);
     });
 
-    wrap.appendChild(xb);
-    return wrap;
-  };
+    btnWrap.appendChild(btn);
+    box.appendChild(val);
+    box.appendChild(btnWrap);
+    td.appendChild(box);
+    return td;
+  }
 
-  const renderGrid = () => {
-    const db = loadDB();
-    renderStatus(db);
-
-    grid.innerHTML = "";
-    const anchors = Object.keys(db.items).sort((a,b) => {
-      // 파일명 우선, row 번호 우선
-      const [af, ar] = a.split("|row:");
-      const [bf, br] = b.split("|row:");
-      if (af !== bf) return af.localeCompare(bf);
-      return (Number(ar)||0) - (Number(br)||0);
+  function renderTable(){
+    tb.innerHTML = "";
+    // ANCHOR 기준으로 안정적 정렬(파일명 -> rowNo)
+    const list = Object.values(db.rows).slice().sort((a,b)=>{
+      if (a.file !== b.file) return a.file.localeCompare(b.file);
+      return (a.rowNo||0) - (b.rowNo||0);
     });
 
-    if (anchors.length === 0){
-      const empty = document.createElement("div");
-      empty.style.padding = "14px";
-      empty.style.color = "#6b7280";
-      empty.style.fontWeight = "800";
-      empty.textContent = "데이터 없음 (CSV/TSV 업로드 후 표시)";
-      grid.appendChild(empty);
-      return;
-    }
-
-    for (const anchor of anchors){
-      const it = db.items[anchor];
-      if (!it) continue;
-
-      const card = document.createElement("div");
-      card.className = "rowCard";
-
-      const head = document.createElement("div");
-      head.className = "small";
-      head.style.marginBottom = "8px";
-      head.style.display = "flex";
-      head.style.justifyContent = "space-between";
-      head.style.gap = "10px";
-      head.style.flexWrap = "wrap";
-      head.innerHTML = `<span><b>${it.file || ""}</b> · ${anchor}</span><span>HASH: ${it.hash || "-"}</span>`;
-      card.appendChild(head);
-
-      const rowTop = document.createElement("div");
-      rowTop.className = "rowTop";
-      rowTop.appendChild(makeField({anchor, col:"Publisher", label:"Publisher", value: it.cells?.["Publisher"] || ""}));
-      rowTop.appendChild(makeField({anchor, col:"ISBN", label:"ISBN", value: it.cells?.["ISBN"] || ""}));
-      rowTop.appendChild(makeField({anchor, col:"Price", label:"Price", value: it.cells?.["Price"] || ""}));
-      rowTop.appendChild(makeField({anchor, col:"Currency", label:"Currency", value: it.cells?.["Currency"] || ""}));
-      rowTop.appendChild(makeField({anchor, col:"Pages", label:"Pages", value: it.cells?.["Pages"] || ""}));
-      card.appendChild(rowTop);
-
-      // Title + KOR_TITLE (오른쪽)
-      const rowMid = document.createElement("div");
-      rowMid.className = "rowMid";
-
-      const titlePair = document.createElement("div");
-      titlePair.className = "rowBottom";
-      titlePair.appendChild(makeField({anchor, col:"Title", label:"Title", value: it.cells?.["Title"] || ""}));
-      titlePair.appendChild(makeField({anchor, col:"KOR_TITLE", label:"KOR_TITLE (Title 오른쪽)", value: it.cells?.["KOR_TITLE"] || ""}));
-      rowMid.appendChild(titlePair);
-
-      const dateField = document.createElement("div");
-      dateField.className = "rowBottom";
-      dateField.appendChild(makeField({anchor, col:"Pub Date", label:"Pub Date", value: it.cells?.["Pub Date"] || ""}));
-      dateField.appendChild(document.createElement("div")); // 빈칸(정렬용)
-      rowMid.appendChild(dateField);
-
-      card.appendChild(rowMid);
-
-      // Sub Title + KOR_SUBTITLE (오른쪽)
-      const rowBottom = document.createElement("div");
-      rowBottom.className = "rowBottom";
-      rowBottom.appendChild(makeField({anchor, col:"Sub Title", label:"Sub Title", value: it.cells?.["Sub Title"] || ""}));
-      rowBottom.appendChild(makeField({anchor, col:"KOR_SUBTITLE", label:"KOR_SUBTITLE (Sub Title 오른쪽)", value: it.cells?.["KOR_SUBTITLE"] || ""}));
-      card.appendChild(rowBottom);
-
-      grid.appendChild(card);
-    }
-  };
-
-  const renderLog = () => {
-    const logs = loadLOG();
-    if (logs.length === 0){
-      logBox.textContent = "(로그 없음)";
-      return;
-    }
-    // 최근 250줄만 화면 표시(성능)
-    const tail = logs.slice(-250).join("\n");
-    logBox.textContent = tail;
-    logBox.scrollTop = logBox.scrollHeight;
-  };
-
-  const renderAll = () => {
-    const db = loadDB();
-    stStatus.textContent = (Object.keys(db.items).length ? "업로드 완료" : "대기");
-    renderGrid();
-    renderLog();
-  };
-
-  // ====== 업로드 ======
-  const readFileText = (file) => new Promise((resolve,reject)=>{
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result || ""));
-    fr.onerror = reject;
-    fr.readAsText(file, "utf-8");
-  });
-
-  const buildItemFromRow = (fileName, rowNumber, rowObj) => {
-    // 행 값으로 hash
-    const joined = COLS.map(c => (rowObj[c] ?? "")).join("|");
-    const h = hashStr(joined);
-    const anchor = `${fileName}|row:${rowNumber}`;
-
-    return {
-      anchor,
-      file: fileName,
-      row: rowNumber,
-      hash: h,
-      cells: Object.fromEntries(COLS.map(c => [c, (rowObj[c] ?? "")])),
-      x: {} // 클릭 시 채움
-    };
-  };
-
-  const handleUpload = async () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file){
-      showToast("파일 선택");
-      return;
-    }
-
-    const name = file.name || "unknown.csv";
-    const text = await readFileText(file);
-
-    // delimiter 추정(탭 우선)
-    const firstLine = text.split("\n")[0] || "";
-    const delim = firstLine.includes("\t") ? "\t" : ",";
-
-    const rows = parseDelimited(text, delim).filter(r => r.some(v => String(v||"").trim() !== ""));
-    if (rows.length < 2){
-      showToast("행 부족");
-      return;
-    }
-
-    const header = rows[0].map(v => String(v||"").trim());
-    const map = mapHeader(header);
-
-    // 헤더에 필수(Title/ISBN 등)가 없어도, 있는 것만 채우고 나머지는 빈값
-    const db = loadDB();
-    db.lastFile = name;
-
-    let added = 0, updated = 0;
-
-    for (let i=1; i<rows.length; i++){
-      const arr = rows[i];
-      // CSV 기준 row 번호는 실제 엑셀 느낌으로 1-based, 헤더 포함이면 +1
-      const rowNumber = i + 1;
-
-      const rowObj = {};
-      for (const c of COLS){
-        const idx = map[c];
-        rowObj[c] = (idx === undefined) ? "" : String(arr[idx] ?? "").trim();
+    for (const r of list){
+      const tr = document.createElement("tr");
+      for (const col of COLS){
+        tr.appendChild(cellView(r.anchor, col, (r.cells||{})[col] ?? ""));
       }
+      tb.appendChild(tr);
+    }
+    updateStatus();
+  }
 
-      const item = buildItemFromRow(name, rowNumber, rowObj);
-      const exist = db.items[item.anchor];
+  // ====== X 토글(셀 단위) ======
+  function toggleX(anchor, col){
+    const row = db.rows[anchor];
+    if (!row) return;
 
-      if (!exist){
-        db.items[item.anchor] = item;
-        added++;
+    const key = anchor + "|" + col;
+    const before = safeText((row.cells||{})[col] ?? "");
+    const ts = nowStamp();
+
+    if (db.xmarks[key]){
+      // X 해제(원래 값 복원)
+      const prev = db.xmarks[key];
+      row.cells[col] = prev.before ?? "";
+      delete db.xmarks[key];
+      saveDB();
+      pushLog(`[${ts}] ${anchor} | ${col} | X 해제 → "${safeText(row.cells[col])}"`);
+      renderTable();
+      return;
+    }
+
+    // X 처리: 값은 빈칸으로 만들고, xmarks에 before 저장
+    db.xmarks[key] = { before, after:"", ts };
+    row.cells[col] = "";
+    saveDB();
+    pushLog(`[${ts}] ${anchor} | ${col} | "${before}" → ""`);
+    renderTable();
+  }
+
+  // ====== 업로드(추가/합치기) ======
+  async function readFileText(file){
+    return await file.text();
+  }
+
+  function upsertRowsFromText(filename, text){
+    const delim = detectDelimiter(text);
+    const parsed = parseDelimited(text, delim);
+    if (!parsed.length){
+      st.textContent = "빈 파일";
+      return { add:0, update:0, total:Object.keys(db.rows).length };
+    }
+
+    // 헤더 판단: 첫 줄에 고정 컬럼 중 2개 이상 포함하면 헤더로 간주
+    const first = parsed[0].map(safeText);
+    const firstNorm = first.map(normalizeHeader);
+    const hits = COLS.reduce((acc,c)=> acc + (firstNorm.includes(normalizeHeader(c)) ? 1 : 0), 0);
+    const hasHeader = hits >= 2;
+
+    const header = hasHeader ? first : null;
+    const start = hasHeader ? 1 : 0;
+
+    let add=0, update=0;
+    for (let i=start;i<parsed.length;i++){
+      const rowNo = i+1; // "엑셀 row:n"처럼 보이게(헤더 포함 시 실제 행번호 느낌)
+      const values = parsed[i];
+      const cells = mapRowToFixed(header, values);
+
+      // anchor 고정
+      const anchor = `${filename}|row:${rowNo}`;
+      const join = COLS.map(c=>safeText(cells[c]??"")).join("||");
+      const hash = fnv1a(join);
+
+      const exists = db.rows[anchor];
+      if (!exists){
+        db.rows[anchor] = { anchor, hash, file: filename, rowNo, cells };
+        add++;
       } else {
-        // 섞임 방지: anchor가 같으면 같은 행으로만 갱신
-        // 기존 X 이력(x)은 유지, 값만 최신으로 반영
-        const keepX = exist.x || {};
-        db.items[item.anchor] = {
-          ...item,
-          x: keepX
-        };
-        updated++;
+        // 동일 anchor면 갱신(단, hash가 바뀐 경우만)
+        if (exists.hash !== hash){
+          db.rows[anchor] = { anchor, hash, file: filename, rowNo, cells };
+          update++;
+        }
       }
     }
+    saveDB();
+    return { add, update, total:Object.keys(db.rows).length };
+  }
 
-    saveDB(db);
-    pushLog(`[${nowStamp()}] 업로드(추가/합치기): ${name} (추가 ${added}, 갱신 ${updated}, 총 ${Object.keys(db.items).length})`);
-    stStatus.textContent = "업로드 완료";
-    renderAll();
-    showToast("업로드 완료");
-  };
-
-  // ====== 버튼 ======
-  btnUpload.addEventListener("click", () => handleUpload().catch(() => showToast("업로드 실패")));
-  btnResetDb.addEventListener("click", () => {
-    localStorage.removeItem(DB_KEY);
-    pushLog(`[${nowStamp()}] DB 초기화`);
-    renderAll();
-    showToast("DB 초기화");
+  // ====== 버튼 동작 ======
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files && fileInput.files[0];
+    fileName.textContent = f ? f.name : "(미선택)";
   });
 
-  btnExport.addEventListener("click", () => {
-    const db = loadDB();
-    const blob = new Blob([JSON.stringify(db, null, 2)], {type:"application/json"});
+  el("btnUpload").addEventListener("click", async () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f){
+      st.textContent = "파일 선택 필요";
+      return;
+    }
+    const ts = nowStamp();
+    st.textContent = "업로드 중…";
+    const text = await readFileText(f);
+
+    const { add, update, total } = upsertRowsFromText(f.name, text);
+    st.textContent = "업로드 완료";
+
+    pushLog(`[${ts}] 업로드(추가/합치기): ${f.name} (추가 ${add}, 갱신 ${update}, 총 ${total})`);
+    renderTable();
+  });
+
+  el("btnResetDB").addEventListener("click", () => {
+    db = { rows:{}, xmarks:{} };
+    saveDB();
+    const ts = nowStamp();
+    pushLog(`[${ts}] DB 초기화`);
+    st.textContent = "DB 초기화";
+    renderTable();
+  });
+
+  el("btnExportDB").addEventListener("click", () => {
+    const data = JSON.stringify(db, null, 2);
+    const blob = new Blob([data], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = "wic_xdb_v27.json";
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
-    showToast("JSON 저장");
+    a.remove();
+    URL.revokeObjectURL(url);
   });
 
-  btnCopyLog.addEventListener("click", async () => {
-    const logs = loadLOG();
+  el("btnCopyLog").addEventListener("click", async () => {
     const text = logs.join("\n");
     try{
       await navigator.clipboard.writeText(text);
-      showToast("로그 복사");
-    }catch(e){
+    } catch(e){
       // fallback
       const ta = document.createElement("textarea");
       ta.value = text;
@@ -862,18 +768,20 @@
       ta.select();
       document.execCommand("copy");
       ta.remove();
-      showToast("로그 복사");
     }
   });
 
-  btnClearLog.addEventListener("click", () => {
-    localStorage.removeItem(LOG_KEY);
+  el("btnClearLog").addEventListener("click", () => {
+    logs = [];
+    saveLogs();
     renderLog();
-    showToast("로그 초기화");
   });
 
-  // ====== 초기 ======
-  renderAll();
+  // ====== 초기 렌더 ======
+  st.textContent = "로드 완료";
+  renderTable();
+  renderLog();
+  updateStatus();
 })();
 </script>
 </body>
