@@ -1,125 +1,160 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>27번 도구 – 엑셀 업로드</title>
-
+<meta charset="UTF-8" />
+<title>27번 도구 – 엑셀 업로드 · 표준 매핑 · X 자동검증</title>
 <style>
-body { font-family: Arial; margin:0; padding:0; background:#ffffff; }
-header { padding:10px; background:#f2f2f2; border-bottom:1px solid #ccc; }
-button { padding:6px 12px; margin:4px; cursor:pointer; }
-table { border-collapse: collapse; width:100%; }
-th, td { border:1px solid #ccc; padding:4px; font-size:13px; }
-th { background:#f7f7f7; }
-.xbtn {
-  background:#ff5555;
-  color:white;
-  border:none;
-  font-weight:bold;
-  width:28px;
-  height:28px;
-  font-size:16px;
-}
-#logBox {
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  height:140px;
-  overflow:auto;
-  background:#ffffff;
-  border-top:1px solid #ccc;
-  font-size:12px;
-  padding:6px;
-}
+body{font-family:Arial;margin:12px}
+button{margin:2px 4px;padding:6px 10px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid #ccc;padding:4px;text-align:left}
+th{background:#f3f3f3}
+.xbtn{font-weight:bold;color:#c00;cursor:pointer}
+.log{position:fixed;left:0;right:0;bottom:0;height:140px;background:#fff;border-top:2px solid #000;overflow:auto;font-size:12px}
+.logHeader{background:#eee;padding:4px;cursor:pointer}
+.hidden{display:none}
 </style>
-
-<script>
-/* ===== REPLACE HARD LOCK ===== */
-const TOOL_ID = "tool27";
-const REPLACE_KEY = "wic_replace_lock_" + TOOL_ID;
-const REPLACE_MAX = 1;
-
-(function(){
-  let count = Number(localStorage.getItem(REPLACE_KEY) || 0);
-  if (count >= REPLACE_MAX) {
-    document.body.innerHTML = "<h2>MIN UI MODE</h2>";
-    throw new Error("REPLACE LOCK");
-  }
-  localStorage.setItem(REPLACE_KEY, count + 1);
-})();
-
-/* ===== DB / LOG ===== */
-const DB_KEY = "wic_xdb_v27";
-const LOG_KEY = "wic_xlog_v27";
-
-function log(msg){
-  let logs = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
-  let time = new Date().toISOString();
-  logs.push(`[${time}] ${msg}`);
-  localStorage.setItem(LOG_KEY, JSON.stringify(logs));
-  renderLog();
-}
-
-function renderLog(){
-  let logs = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
-  document.getElementById("logBox").innerText = logs.join("\n");
-}
-
-function clearLog(){
-  localStorage.removeItem(LOG_KEY);
-  renderLog();
-}
-
-/* ===== TABLE ===== */
-function makeRow(cols){
-  let tr = document.createElement("tr");
-  cols.forEach((c,i)=>{
-    let td = document.createElement("td");
-    td.innerText = c || "(빈값)";
-    let x = document.createElement("button");
-    x.className="xbtn";
-    x.innerText="X";
-    x.onclick=()=>log(`셀 X: col${i}`);
-    td.appendChild(document.createElement("br"));
-    td.appendChild(x);
-    tr.appendChild(td);
-  });
-  return tr;
-}
-
-function addDummy(){
-  const table = document.getElementById("tbl");
-  table.appendChild(makeRow([
-    "Publisher","Title","Sub","ISBN","Price"
-  ]));
-}
-
-/* ===== INIT ===== */
-window.onload=()=>{
-  renderLog();
-};
-</script>
 </head>
-
 <body>
 
-<header>
-<button onclick="addDummy()">테스트 행 추가</button>
-<button onclick="clearLog()">로그 초기화</button>
-</header>
+<h3>27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X 자동검증</h3>
 
-<table id="tbl">
-<tr>
-<th>Publisher</th>
-<th>Title</th>
-<th>Sub Title</th>
-<th>ISBN</th>
-<th>Price</th>
-</tr>
-</table>
+<input type="file" id="fileInput" accept=".csv" />
+<button onclick="loadCSV()">업로드</button>
+<button onclick="clearDB()">DB 초기화</button>
 
-<div id="logBox"></div>
+<hr/>
+
+<h4>표준 표(작업)</h4>
+<table id="stdTable"></table>
+
+<div class="log" id="logBox">
+  <div class="logHeader" onclick="toggleLog()">자동 로그 (접기/펼치기)</div>
+  <div id="logBody"></div>
+</div>
+
+<script>
+// ===== FREEZE 상수 =====
+const FIELD_ORDER = [
+"Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE",
+"ISBN","Price","Currency","Pub Date","Pages"
+];
+
+// ===== 상태 =====
+let stdRows = [];
+let logs = [];
+
+// ===== CSV 로드 =====
+function loadCSV(){
+  const f=document.getElementById('fileInput').files[0];
+  if(!f) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const txt=e.target.result;
+    parseCSV(txt,f.name);
+  };
+  reader.readAsText(f);
+}
+
+// ===== CSV 파싱 =====
+function parseCSV(txt,filename){
+  const lines=txt.split(/\r?\n/).filter(l=>l.trim());
+  const headers=lines[0].split(",");
+  const pub = filename.split(" ")[0]; // 발행사 자동
+  stdRows=[];
+
+  for(let i=1;i<lines.length;i++){
+    const cols=lines[i].split(",");
+    let row={};
+    FIELD_ORDER.forEach(f=>row[f]="");
+
+    row["Publisher"]=pub;
+
+    headers.forEach((h,idx)=>{
+      const v=cols[idx]||"";
+      if(h.toLowerCase().includes("title")) row["Title"]=v;
+      if(h.toLowerCase().includes("isbn")) row["ISBN"]=v;
+      if(h.toLowerCase().includes("date")) row["Pub Date"]=v;
+      if(h.toLowerCase().includes("price")) row["Price"]=v;
+    });
+
+    stdRows.push(row);
+  }
+
+  sortByDate();
+  autoX();
+  render();
+}
+
+// ===== 정렬 =====
+function sortByDate(){
+  stdRows.sort((a,b)=> new Date(a["Pub Date"]) - new Date(b["Pub Date"]));
+}
+
+// ===== X 자동 분류 =====
+function autoX(){
+  stdRows.forEach(r=>{
+    r._x={};
+    if(r.Price==="0") r._x.Price=true;
+    if(r.ISBN && r.ISBN.length<10) r._x.ISBN=true;
+  });
+}
+
+// ===== 렌더 =====
+function render(){
+  const t=document.getElementById("stdTable");
+  t.innerHTML="";
+  let tr=document.createElement("tr");
+  FIELD_ORDER.forEach(f=>{
+    let th=document.createElement("th");
+    th.textContent=f;
+    tr.appendChild(th);
+  });
+  t.appendChild(tr);
+
+  stdRows.forEach((r,ri)=>{
+    let tr=document.createElement("tr");
+    FIELD_ORDER.forEach(f=>{
+      let td=document.createElement("td");
+      td.textContent=r[f]||"(빈칸)";
+      if(r._x && r._x[f]){
+        const x=document.createElement("span");
+        x.textContent=" X";
+        x.className="xbtn";
+        x.onclick=()=>toggleX(ri,f);
+        td.appendChild(x);
+      }
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+}
+
+// ===== X 토글 =====
+function toggleX(r,f){
+  stdRows[r]._x[f]=!stdRows[r]._x[f];
+  addLog(`X 토글: ${r} / ${f}`);
+  render();
+}
+
+// ===== 로그 =====
+function addLog(msg){
+  logs.push(msg);
+  document.getElementById("logBody").innerHTML=logs.join("<br>");
+}
+
+function toggleLog(){
+  document.getElementById("logBody").classList.toggle("hidden");
+}
+
+// ===== DB 초기화 =====
+function clearDB(){
+  stdRows=[];
+  logs=[];
+  render();
+  document.getElementById("logBody").innerHTML="";
+}
+</script>
 
 </body>
 </html>
