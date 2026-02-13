@@ -1,865 +1,125 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 – 엑셀 업로드 (셀 X 안정화 v2) · 수동 매핑 · 엑셀형 표</title>
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --text:#111827;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --brand:#2563eb;
-      --danger:#ef4444;
-      --dangerSoft:#fee2e2;
-      --btn:#111827;
-      --btnText:#ffffff;
-      --shadow: 0 8px 24px rgba(0,0,0,.08);
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
-    header{
-      padding:14px 16px;
-      background:var(--panel);
-      border-bottom:1px solid var(--line);
-      position:sticky;
-      top:0;
-      z-index:50;
-    }
-    h1{
-      margin:0 0 6px 0;
-      font-size:16px;
-      font-weight:800;
-    }
-    .sub{
-      margin:0;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.35;
-    }
-    .wrap{
-      display:grid;
-      grid-template-rows:auto auto 1fr auto;
-      height:100vh;
-    }
-    .toolbar{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      padding:12px 16px;
-    }
-    .pill{
-      display:inline-flex;
-      gap:10px;
-      align-items:center;
-      padding:8px 10px;
-      border:1px solid var(--line);
-      background:var(--panel);
-      border-radius:12px;
-      box-shadow:0 2px 10px rgba(0,0,0,.04);
-    }
-    .pill b{font-size:12px}
-    .pill span{font-size:12px;color:var(--muted)}
-    .btn{
-      border:1px solid var(--line);
-      background:var(--panel);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:800;
-      font-size:13px;
-      box-shadow:0 2px 10px rgba(0,0,0,.04);
-    }
-    .btn.primary{
-      background:var(--brand);
-      border-color:transparent;
-      color:#fff;
-    }
-    .btn.danger{
-      background:var(--danger);
-      border-color:transparent;
-      color:#fff;
-    }
-    .btn:active{transform:translateY(1px)}
-    input[type="file"]{
-      font-size:12px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:var(--panel);
-      max-width:520px;
-    }
-    .statusbar{
-      padding:10px 16px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      color:var(--muted);
-      font-size:12px;
-    }
-    .badge{
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:var(--panel);
-      box-shadow:0 2px 10px rgba(0,0,0,.04);
-      color:var(--text);
-      font-weight:800;
-    }
-    .layout{
-      padding:0 16px 12px 16px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-      min-height:0;
-    }
-    @media (max-width: 1100px){
-      .layout{grid-template-columns:1fr}
-    }
-    .panel{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:14px;
-      box-shadow: var(--shadow);
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      overflow:hidden;
-    }
-    .panelHead{
-      padding:10px 12px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .panelHead h2{
-      margin:0;
-      font-size:13px;
-      font-weight:900;
-    }
-    .panelHead .hint{
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width:60%;
-    }
-    .panelBody{
-      padding:0;
-      min-height:0;
-      overflow:auto; /* ✅ 스크롤은 살림(세로) */
-    }
+<meta charset="UTF-8">
+<title>27번 도구 – 엑셀 업로드</title>
 
-    /* ✅ 엑셀형 표 */
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      table-layout:fixed; /* ✅ 화면 안에 텍스트가 들어오도록 */
-      font-size:12px;
-    }
-    thead th{
-      position:sticky;
-      top:0;
-      z-index:2;
-      background:#f9fafb;
-      border-bottom:1px solid var(--line);
-      color:#0f172a;
-      font-weight:900;
-      padding:10px 8px;
-      text-align:left;
-    }
-    tbody td{
-      border-bottom:1px solid var(--line);
-      vertical-align:top;
-      padding:8px;
-      color:#111827;
-      overflow:hidden;
-    }
-    tbody tr:hover td{background:#fbfdff}
-    .cell{
-      display:grid;
-      grid-template-columns: 1fr auto;
-      gap:8px;
-      align-items:start;
-      min-height:42px;
-    }
-    .val{
-      white-space:normal;      /* ✅ 줄바꿈 */
-      word-break:break-word;   /* ✅ 삐져나감 방지 */
-      line-height:1.25;
-    }
-    .empty{color:var(--muted)}
-    /* ✅ 큰 X 버튼 */
-    .xbtn{
-      width:44px;
-      height:44px;
-      border-radius:12px;
-      border:2px solid #fca5a5;
-      background:var(--dangerSoft);
-      color:#7f1d1d;
-      font-weight:1000;
-      font-size:18px;
-      cursor:pointer;
-      flex:0 0 auto;
-    }
-    .xbtn:active{transform:translateY(1px)}
-    .xbtn[aria-pressed="true"]{
-      background:#fecaca;
-      border-color:#ef4444;
-      color:#991b1b;
-    }
-
-    /* 매핑 */
-    .mapGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-      padding:12px;
-    }
-    @media (max-width: 700px){
-      .mapGrid{grid-template-columns:1fr}
-    }
-    .mapRow{
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:#fff;
-    }
-    .mapRow b{
-      display:block;
-      font-size:12px;
-      margin-bottom:6px;
-    }
-    select{
-      width:100%;
-      padding:10px 10px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:#fff;
-      font-size:12px;
-    }
-    .mapActions{
-      display:flex;
-      gap:8px;
-      padding:0 12px 12px 12px;
-      flex-wrap:wrap;
-    }
-
-    /* 로그: 화면 하단 고정 + 스크롤 */
-    .logDock{
-      position:sticky;
-      bottom:0;
-      z-index:60;
-      background:transparent;
-      padding:0 16px 14px 16px;
-    }
-    .logPanel{
-      background:#0b1220;
-      color:#e5e7eb;
-      border:1px solid #111827;
-      border-radius:14px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .logHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .logHead b{font-size:12px}
-    .logBtns{display:flex; gap:8px; flex-wrap:wrap}
-    .logBtn{
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);
-      color:#fff;
-      padding:8px 10px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:900;
-      font-size:12px;
-    }
-    .logBody{
-      max-height:170px;  /* ✅ 하단 고정, 안에만 스크롤 */
-      overflow:auto;
-      padding:10px 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size:11px;
-      line-height:1.35;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-    .mutedSmall{font-size:11px;color:rgba(229,231,235,.75)}
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <h1>27번 도구 – 엑셀 업로드 (셀 X 안정화 v2) · 수동 매핑 · 엑셀형 표</h1>
-    <p class="sub">
-      CSV/TSV만 지원 · <b>원본 컬럼 그대로 보기</b> + <b>표준 컬럼 매핑(수동)</b> 2단 구조 · 셀마다 큰 X ·
-      ANCHOR = 파일명|row:n · HASH로 섞임 차단 · 로그는 하단 고정 + localStorage 자동 저장
-    </p>
-  </header>
-
-  <div class="toolbar">
-    <input id="file" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" />
-    <button class="btn primary" id="btnUpload">업로드(추가/합치기)</button>
-    <button class="btn danger" id="btnReset">DB 초기화</button>
-    <button class="btn" id="btnExport">DB 내보내기(JSON)</button>
-    <span class="pill"><b>DB키</b><span id="dbKey">wic_xdb_v27</span></span>
-    <span class="pill"><b>LOG키</b><span id="logKey">wic_xlog_v27</span></span>
-    <span class="pill"><b>마지막 파일</b><span id="lastFile">(없음)</span></span>
-  </div>
-
-  <div class="statusbar">
-    <span class="badge">총 행: <span id="stRows">0</span></span>
-    <span class="badge">총 셀 X: <span id="stX">0</span></span>
-    <span class="badge">상태: <span id="stMsg">대기</span></span>
-    <span class="pill"><b>지원</b><span>CSV/TSV (구분자 자동 감지)</span></span>
-    <span class="pill"><b>표준 컬럼</b><span>Publisher, Title, KOR_TITLE, Sub Title, KOR_SUBTITLE, ISBN, Price, Currency, Pub Date, Pages</span></span>
-  </div>
-
-  <div class="layout">
-    <!-- 매핑 패널 -->
-    <section class="panel" id="mapPanel">
-      <div class="panelHead">
-        <h2>매핑(수동) – 원본 컬럼을 표준 컬럼에 연결</h2>
-        <div class="hint">✅ KOR_TITLE은 Title 오른쪽 / KOR_SUBTITLE은 Sub Title 오른쪽(고정)</div>
-      </div>
-      <div class="panelBody">
-        <div class="mapGrid" id="mapGrid"></div>
-        <div class="mapActions">
-          <button class="btn primary" id="btnApplyMap">매핑 적용</button>
-          <button class="btn" id="btnClearMap">매핑 초기화</button>
-          <span class="pill"><b>TIP</b><span>원본 표에서 헤더를 확인 → 여기서 연결 → 표준 표에서 X 작업</span></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 원본 표 패널 -->
-    <section class="panel">
-      <div class="panelHead">
-        <h2>원본 표(그대로)</h2>
-        <div class="hint" id="rawHint">업로드 후 표시</div>
-      </div>
-      <div class="panelBody">
-        <table id="rawTable">
-          <thead><tr id="rawTh"></tr></thead>
-          <tbody id="rawTb"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 표준 표 패널 -->
-    <section class="panel" style="grid-column:1 / -1;">
-      <div class="panelHead">
-        <h2>표준 표(작업) – 여기서 X 누르면 즉시 로그 + 저장</h2>
-        <div class="hint" id="stdHint">표준 컬럼 고정 · 엑셀형 표 · 줄바꿈/자동맞춤</div>
-      </div>
-      <div class="panelBody">
-        <table id="stdTable">
-          <thead><tr id="stdTh"></tr></thead>
-          <tbody id="stdTb"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <!-- 로그(하단 고정) -->
-  <div class="logDock">
-    <div class="logPanel">
-      <div class="logHead">
-        <div>
-          <b>자동 로그 (셀 X 클릭 시 즉시 누적/저장)</b>
-          <div class="mutedSmall">형식: [YYYY-MM-DD HH:MM:SS] 파일명|row:n | COL | before → after</div>
-        </div>
-        <div class="logBtns">
-          <button class="logBtn" id="btnCopyLog">로그 복사</button>
-          <button class="logBtn" id="btnClearLog">로그 초기화</button>
-        </div>
-      </div>
-      <div class="logBody" id="logBox"></div>
-    </div>
-  </div>
-</div>
+<style>
+body { font-family: Arial; margin:0; padding:0; background:#ffffff; }
+header { padding:10px; background:#f2f2f2; border-bottom:1px solid #ccc; }
+button { padding:6px 12px; margin:4px; cursor:pointer; }
+table { border-collapse: collapse; width:100%; }
+th, td { border:1px solid #ccc; padding:4px; font-size:13px; }
+th { background:#f7f7f7; }
+.xbtn {
+  background:#ff5555;
+  color:white;
+  border:none;
+  font-weight:bold;
+  width:28px;
+  height:28px;
+  font-size:16px;
+}
+#logBox {
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  height:140px;
+  overflow:auto;
+  background:#ffffff;
+  border-top:1px solid #ccc;
+  font-size:12px;
+  padding:6px;
+}
+</style>
 
 <script>
-/* =========================
-   고정 설정
-========================= */
-const DB_KEY = 'wic_xdb_v27';
-const LOG_KEY = 'wic_xlog_v27';
-const STD_COLS = [
-  'Publisher','Title','KOR_TITLE','Sub Title','KOR_SUBTITLE','ISBN','Price','Currency','Pub Date','Pages'
-];
+/* ===== REPLACE HARD LOCK ===== */
+const TOOL_ID = "tool27";
+const REPLACE_KEY = "wic_replace_lock_" + TOOL_ID;
+const REPLACE_MAX = 1;
 
-// 상태 DOM
-const $ = (id)=>document.getElementById(id);
-$('dbKey').textContent = DB_KEY;
-$('logKey').textContent = LOG_KEY;
+(function(){
+  let count = Number(localStorage.getItem(REPLACE_KEY) || 0);
+  if (count >= REPLACE_MAX) {
+    document.body.innerHTML = "<h2>MIN UI MODE</h2>";
+    throw new Error("REPLACE LOCK");
+  }
+  localStorage.setItem(REPLACE_KEY, count + 1);
+})();
 
-let selectedFile = null;
-let db = loadDB();      // { rows: [ {anchor, hash, file, rown, raw:{}, std:{}, x:{col:true}} ], rawHeaders:[], lastFile:'' }
-let logs = loadLogs();  // string[]
-renderAll();
+/* ===== DB / LOG ===== */
+const DB_KEY = "wic_xdb_v27";
+const LOG_KEY = "wic_xlog_v27";
 
-/* =========================
-   유틸
-========================= */
-function now(){
-  const d = new Date();
-  const pad = (n)=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-function setStatus(msg){ $('stMsg').textContent = msg; }
-function pushLog(line){
-  logs.push(line);
-  if(logs.length > 2000) logs = logs.slice(-2000);
+function log(msg){
+  let logs = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+  let time = new Date().toISOString();
+  logs.push(`[${time}] ${msg}`);
   localStorage.setItem(LOG_KEY, JSON.stringify(logs));
   renderLog();
-}
-function copyText(t){
-  navigator.clipboard.writeText(t).then(()=>setStatus('복사됨'), ()=>setStatus('복사 실패(권한 확인)'));
-}
-function safeStr(v){
-  if(v === null || v === undefined) return '';
-  return String(v).replace(/\u0000/g,'').trim();
-}
-
-/* =========================
-   CSV/TSV 파서 (구분자 자동)
-========================= */
-function detectDelimiter(text){
-  text = text.replace(/^\uFEFF/, '');
-  const firstLine = (text.split(/\r\n|\n|\r/).find(l => l.trim() !== '') || '');
-  const counts = {
-    ',': (firstLine.match(/,/g) || []).length,
-    ';': (firstLine.match(/;/g) || []).length,
-    '\t': (firstLine.match(/\t/g) || []).length,
-  };
-  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
-}
-
-function parseDelimited(text, delim){
-  text = text.replace(/^\uFEFF/, '');
-  const lines = text.split(/\r\n|\n|\r/).filter(l => l !== '');
-  if(!lines.length) return {headers:[], rows:[]};
-
-  const rows = [];
-  for(const line of lines){
-    rows.push(parseLine(line, delim));
-  }
-
-  const headers = (rows.shift() || []).map(h => safeStr(h));
-  const outRows = rows.map(cols=>{
-    const obj = {};
-    for(let i=0;i<headers.length;i++){
-      const key = headers[i] || `COL_${i+1}`;
-      obj[key] = safeStr(cols[i] ?? '');
-    }
-    return obj;
-  });
-  return {headers, rows: outRows};
-}
-
-function parseLine(line, delim){
-  const out = [];
-  let cur = '';
-  let inQ = false;
-  for(let i=0;i<line.length;i++){
-    const ch = line[i];
-    if(inQ){
-      if(ch === '"'){
-        if(line[i+1] === '"'){ cur+='"'; i++; }
-        else { inQ=false; }
-      } else cur += ch;
-    } else {
-      if(ch === '"') inQ=true;
-      else if(ch === delim){ out.push(cur); cur=''; }
-      else cur += ch;
-    }
-  }
-  out.push(cur);
-  return out;
-}
-
-/* =========================
-   해시 (섞임 차단)
-========================= */
-function hashRow(anchor, rawObj){
-  // 간단 but 안정: anchor + 정렬된 key=value
-  const keys = Object.keys(rawObj).sort();
-  let s = anchor + '||' + keys.map(k=>k+'='+safeStr(rawObj[k])).join('||');
-  // djb2
-  let h = 5381;
-  for(let i=0;i<s.length;i++){ h = ((h<<5)+h) + s.charCodeAt(i); h |= 0; }
-  return 'h' + (h>>>0).toString(16);
-}
-
-/* =========================
-   저장/로드
-========================= */
-function loadDB(){
-  try{
-    const raw = localStorage.getItem(DB_KEY);
-    if(!raw) return { rows:[], rawHeaders:[], lastFile:'', map:{} };
-    const j = JSON.parse(raw);
-    if(!j || !Array.isArray(j.rows)) throw 0;
-    return { rows:j.rows||[], rawHeaders:j.rawHeaders||[], lastFile:j.lastFile||'', map:j.map||{} };
-  }catch(e){
-    return { rows:[], rawHeaders:[], lastFile:'', map:{} };
-  }
-}
-function saveDB(){
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
-}
-function loadLogs(){
-  try{
-    const raw = localStorage.getItem(LOG_KEY);
-    if(!raw) return [];
-    const j = JSON.parse(raw);
-    return Array.isArray(j) ? j : [];
-  }catch(e){ return []; }
-}
-
-/* =========================
-   렌더
-========================= */
-function renderAll(){
-  $('lastFile').textContent = db.lastFile || '(없음)';
-  $('stRows').textContent = String(db.rows.length);
-  $('stX').textContent = String(countTotalX());
-  renderLog();
-  renderMappingUI();
-  renderRawTable();
-  renderStdTable();
-  setStatus('로드 완료');
 }
 
 function renderLog(){
-  $('logBox').textContent = logs.join('\n');
+  let logs = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+  document.getElementById("logBox").innerText = logs.join("\n");
 }
 
-function countTotalX(){
-  let c=0;
-  for(const r of db.rows){
-    if(!r.x) continue;
-    c += Object.keys(r.x).length;
-  }
-  return c;
-}
-
-function renderMappingUI(){
-  const grid = $('mapGrid');
-  grid.innerHTML = '';
-  const rawHeaders = db.rawHeaders || [];
-  const options = ['(매핑 안함)', ...rawHeaders];
-
-  for(const std of STD_COLS){
-    const wrap = document.createElement('div');
-    wrap.className = 'mapRow';
-    const label = document.createElement('b');
-    label.textContent = std;
-    const sel = document.createElement('select');
-    sel.dataset.std = std;
-
-    for(const opt of options){
-      const o = document.createElement('option');
-      o.value = opt === '(매핑 안함)' ? '' : opt;
-      o.textContent = opt;
-      sel.appendChild(o);
-    }
-
-    // ✅ 수동 우선: 기본은 비움(자동추천 없음)
-    sel.value = db.map?.[std] || '';
-
-    wrap.appendChild(label);
-    wrap.appendChild(sel);
-    grid.appendChild(wrap);
-  }
-}
-
-function renderRawTable(){
-  const th = $('rawTh');
-  const tb = $('rawTb');
-  th.innerHTML = '';
-  tb.innerHTML = '';
-
-  const headers = db.rawHeaders || [];
-  $('rawHint').textContent = headers.length ? `원본 헤더 ${headers.length}개` : '업로드 후 표시';
-
-  if(!headers.length || !db.rows.length) return;
-
-  for(const h of headers){
-    const cell = document.createElement('th');
-    cell.textContent = h;
-    th.appendChild(cell);
-  }
-
-  // ✅ 너무 무겁지 않게: 원본 표는 60행까지만 미리보기(필요하면 확장 가능)
-  const previewN = Math.min(60, db.rows.length);
-  for(let i=0;i<previewN;i++){
-    const r = db.rows[i];
-    const tr = document.createElement('tr');
-    for(const h of headers){
-      const td = document.createElement('td');
-      const v = safeStr(r.raw?.[h] ?? '');
-      td.textContent = v || '(빈값)';
-      if(!v) td.className = 'empty';
-      tr.appendChild(td);
-    }
-    tb.appendChild(tr);
-  }
-}
-
-function renderStdTable(){
-  const th = $('stdTh');
-  const tb = $('stdTb');
-  th.innerHTML = '';
-  tb.innerHTML = '';
-
-  for(const col of STD_COLS){
-    const cell = document.createElement('th');
-    cell.textContent = col;
-    th.appendChild(cell);
-  }
-
-  if(!db.rows.length){
-    $('stdHint').textContent = '업로드 후 매핑 → 표준 표에서 작업';
-    return;
-  }
-  $('stdHint').textContent = `표준 컬럼 고정 · 총 ${db.rows.length}행 · (빈값)은 비어있는 셀`;
-
-  for(const r of db.rows){
-    const tr = document.createElement('tr');
-    for(const col of STD_COLS){
-      const td = document.createElement('td');
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-
-      const v = safeStr(r.std?.[col] ?? '');
-      const val = document.createElement('div');
-      val.className = 'val' + (v ? '' : ' empty');
-      val.textContent = v ? v : '(빈값)';
-
-      const btn = document.createElement('button');
-      btn.className = 'xbtn';
-      btn.type = 'button';
-      btn.textContent = 'X';
-      const pressed = !!(r.x && r.x[col]);
-      btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-      btn.title = '이 셀을 X 처리';
-
-      btn.addEventListener('click', ()=>{
-        toggleX(r.anchor, col);
-      });
-
-      cell.appendChild(val);
-      cell.appendChild(btn);
-      td.appendChild(cell);
-      tr.appendChild(td);
-    }
-    tb.appendChild(tr);
-  }
-}
-
-/* =========================
-   동작
-========================= */
-$('file').addEventListener('change', (e)=>{
-  const f = e.target.files && e.target.files[0];
-  selectedFile = f || null;
-  if(selectedFile){
-    setStatus('파일 선택됨');
-    $('lastFile').textContent = selectedFile.name;
-  }else{
-    setStatus('대기');
-  }
-});
-
-$('btnUpload').addEventListener('click', async ()=>{
-  if(!selectedFile){
-    setStatus('파일을 먼저 선택');
-    return;
-  }
-  try{
-    setStatus('읽는 중...');
-    let text = await selectedFile.text();
-    text = text.replace(/^\uFEFF/, '');
-
-    const delim = detectDelimiter(text);
-    const parsed = parseDelimited(text, delim);
-
-    if(!parsed.headers.length){
-      pushLog(`[${now()}] 업로드 실패: 헤더 없음 (구분자="${delim}")`);
-      setStatus('업로드 실패: 헤더 없음');
-      return;
-    }
-    if(!parsed.rows.length){
-      pushLog(`[${now()}] 업로드 실패: 데이터 0행 (구분자="${delim}")`);
-      setStatus('업로드 실패: 데이터 0행');
-      return;
-    }
-
-    // ✅ rawHeaders는 "이번 파일" 기준으로 갱신(매핑 UI는 파일마다 바뀜)
-    db.rawHeaders = parsed.headers;
-    db.lastFile = selectedFile.name;
-
-    // ✅ 추가/합치기: anchor(파일명|row:n) 기준으로 업데이트
-    let added=0, updated=0;
-    parsed.rows.forEach((rawObj, idx)=>{
-      const rown = idx + 2; // 1행 헤더 가정
-      const anchor = `${selectedFile.name}|row:${rown}`;
-      const h = hashRow(anchor, rawObj);
-
-      const existingIdx = db.rows.findIndex(x => x.anchor === anchor);
-      const rowPack = {
-        anchor,
-        file: selectedFile.name,
-        rown,
-        hash: h,
-        raw: rawObj,
-        std: {},     // 매핑 적용 후 채움
-        x: (existingIdx>=0 ? (db.rows[existingIdx].x || {}) : {})
-      };
-
-      if(existingIdx >= 0){
-        // 섞임 방지: anchor 동일이면 같은 행으로만 교체
-        db.rows[existingIdx] = rowPack;
-        updated++;
-      }else{
-        db.rows.push(rowPack);
-        added++;
-      }
-    });
-
-    // ✅ 업로드 후: 기존 매핑을 유지하되, 원본 헤더가 바뀌면 UI에서 조정
-    saveDB();
-    pushLog(`[${now()}] 업로드(추가/합치기): ${selectedFile.name} (추가 ${added}, 갱신 ${updated}, 총 ${db.rows.length})`);
-    setStatus('업로드 완료');
-
-    // 표준 값 자동 채우기(현재 매핑으로)
-    applyMappingToStd();
-
-    renderAll();
-  }catch(err){
-    pushLog(`[${now()}] 업로드 실패: ${selectedFile.name} (${String(err)})`);
-    setStatus('업로드 실패');
-  }
-});
-
-$('btnReset').addEventListener('click', ()=>{
-  db = { rows:[], rawHeaders:[], lastFile:'', map:{} };
-  saveDB();
-  pushLog(`[${now()}] DB 초기화`);
-  renderAll();
-  setStatus('DB 초기화');
-});
-
-$('btnExport').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'wic_xdb_v27.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  setStatus('DB 내보내기 완료');
-});
-
-$('btnCopyLog').addEventListener('click', ()=>{
-  copyText(logs.join('\n'));
-});
-$('btnClearLog').addEventListener('click', ()=>{
-  logs = [];
-  localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+function clearLog(){
+  localStorage.removeItem(LOG_KEY);
   renderLog();
-  pushLog(`[${now()}] 로그 초기화`);
-  setStatus('로그 초기화');
-});
-
-$('btnApplyMap').addEventListener('click', ()=>{
-  const sels = Array.from(document.querySelectorAll('#mapGrid select'));
-  const next = {};
-  for(const s of sels){
-    next[s.dataset.std] = s.value || '';
-  }
-  db.map = next;
-  saveDB();
-  applyMappingToStd();
-  pushLog(`[${now()}] 매핑 적용`);
-  renderStdTable();
-  setStatus('매핑 적용');
-});
-
-$('btnClearMap').addEventListener('click', ()=>{
-  db.map = {};
-  saveDB();
-  renderMappingUI();
-  applyMappingToStd();
-  pushLog(`[${now()}] 매핑 초기화`);
-  renderStdTable();
-  setStatus('매핑 초기화');
-});
-
-function applyMappingToStd(){
-  // 표준값 = raw[매핑된 원본헤더]
-  for(const r of db.rows){
-    r.std = r.std || {};
-    for(const col of STD_COLS){
-      const src = db.map?.[col] || '';
-      r.std[col] = src ? safeStr(r.raw?.[src] ?? '') : '';
-    }
-    // ✅ 고정 규칙(자리): 이미 표준 컬럼 순서가 Title 옆에 KOR_TITLE이 있으므로 UI에서 해결됨
-  }
-  saveDB();
 }
 
-function toggleX(anchor, col){
-  const idx = db.rows.findIndex(r => r.anchor === anchor);
-  if(idx < 0) return;
-  const r = db.rows[idx];
-  r.x = r.x || {};
-  const before = safeStr(r.std?.[col] ?? '');
-  if(r.x[col]){
-    // X 해제: 값 복구(표준값은 그대로 유지), 로그는 남김
-    delete r.x[col];
-    pushLog(`[${now()}] ${anchor} | ${col} | (X 해제) ${before} → ${before}`);
-  }else{
-    r.x[col] = true;
-    pushLog(`[${now()}] ${anchor} | ${col} | ${before || '(빈값)'} → X`);
-  }
-  saveDB();
-  $('stX').textContent = String(countTotalX());
-  renderStdTable();
-  setStatus('X 업데이트');
+/* ===== TABLE ===== */
+function makeRow(cols){
+  let tr = document.createElement("tr");
+  cols.forEach((c,i)=>{
+    let td = document.createElement("td");
+    td.innerText = c || "(빈값)";
+    let x = document.createElement("button");
+    x.className="xbtn";
+    x.innerText="X";
+    x.onclick=()=>log(`셀 X: col${i}`);
+    td.appendChild(document.createElement("br"));
+    td.appendChild(x);
+    tr.appendChild(td);
+  });
+  return tr;
 }
 
-/* 최초 렌더 */
-function renderAll(){
-  $('lastFile').textContent = db.lastFile || '(없음)';
-  $('stRows').textContent = String(db.rows.length);
-  $('stX').textContent = String(countTotalX());
+function addDummy(){
+  const table = document.getElementById("tbl");
+  table.appendChild(makeRow([
+    "Publisher","Title","Sub","ISBN","Price"
+  ]));
+}
+
+/* ===== INIT ===== */
+window.onload=()=>{
   renderLog();
-  renderMappingUI();
-  renderRawTable();
-  renderStdTable();
-}
+};
 </script>
+</head>
+
+<body>
+
+<header>
+<button onclick="addDummy()">테스트 행 추가</button>
+<button onclick="clearLog()">로그 초기화</button>
+</header>
+
+<table id="tbl">
+<tr>
+<th>Publisher</th>
+<th>Title</th>
+<th>Sub Title</th>
+<th>ISBN</th>
+<th>Price</th>
+</tr>
+</table>
+
+<div id="logBox"></div>
+
 </body>
 </html>
