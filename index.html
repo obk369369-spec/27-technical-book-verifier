@@ -6,100 +6,47 @@
   <title>27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X 자동검증</title>
   <style>
     :root{
-      /* ✅ 라이트 테마(검은색 금지) */
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --panel2:#f2f4f8;
-      --txt:#111827;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-
-      --ok:#16a34a;
-      --bad:#dc2626;
-      --warn:#d97706;
-
-      --btn:#ffffff;
-      --btn2:#f3f4f6;
-      --primary:#2563eb;
+      --bg:#0b0f14; --panel:#121924; --panel2:#0f1620; --txt:#e9eef6; --muted:#9fb0c3;
+      --line:#243044; --ok:#2bd576; --bad:#ff4d4d; --warn:#ffcc00; --btn:#1b2636;
     }
     *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:var(--bg);
-      color:var(--txt);
-    }
-    header{
-      position:sticky; top:0; z-index:50;
-      background:rgba(246,247,251,.92);
-      backdrop-filter:saturate(160%) blur(6px);
-      border-bottom:1px solid var(--line);
-    }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--txt); }
+    header{ position:sticky; top:0; z-index:50; background:linear-gradient(180deg, rgba(11,15,20,.98), rgba(11,15,20,.86)); border-bottom:1px solid var(--line); }
     .wrap{ max-width:1200px; margin:0 auto; padding:12px; }
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .panel{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-    }
-    .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
-    .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
-    .kpi{
-      padding:6px 10px;
-      border-radius:999px;
-      background:var(--panel);
-      border:1px solid var(--line);
-      font-size:12px;
-      color:var(--muted);
-    }
+    .badge{ padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(18,25,36,.7); font-size:12px; color:var(--muted); }
     .btn{
-      background:var(--btn);
-      color:var(--txt);
-      border:1px solid var(--line);
-      padding:10px 12px;
-      border-radius:10px;
-      cursor:pointer;
-      font-size:13px;
+      background:var(--btn); color:var(--txt); border:1px solid var(--line);
+      padding:10px 12px; border-radius:10px; cursor:pointer; font-size:13px;
     }
     .btn:active{ transform:translateY(1px); }
-    .btn.primary{ border-color:var(--primary); }
-    .btn.primary{ box-shadow:0 0 0 2px rgba(37,99,235,.10) inset; }
-    .btn.danger{ border-color:var(--bad); }
-    .btn.ok{ border-color:var(--ok); }
+    .btn.primary{ border-color:#2a79ff; }
+    .btn.danger{ border-color:#ff4d4d; }
+    .btn.ok{ border-color:#2bd576; }
     .btn.small{ padding:6px 10px; border-radius:8px; font-size:12px; }
     input[type="file"]{ display:none; }
-
+    .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
+    .panel{ background:rgba(18,25,36,.6); border:1px solid var(--line); border-radius:14px; padding:10px; }
+    .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
+    .kpi{ padding:6px 10px; border-radius:999px; background:rgba(15,22,32,.8); border:1px solid var(--line); font-size:12px; color:var(--muted); }
+    main .wrap{ padding-top:8px; }
     .tableWrap{
-      border:1px solid var(--line);
-      border-radius:14px;
-      overflow:hidden;
-      background:var(--panel);
+      border:1px solid var(--line); border-radius:14px; overflow:hidden;
+      background:rgba(18,25,36,.45);
     }
     table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
     thead th{
-      position:sticky;
-      top:76px;
-      z-index:10;
-      background:var(--panel2);
-      color:var(--muted);
-      border-bottom:1px solid var(--line);
-      padding:10px 8px;
-      font-size:12px;
-      text-align:left;
+      position:sticky; top:64px; z-index:10;
+      background:rgba(15,22,32,.98); color:var(--muted);
+      border-bottom:1px solid var(--line); padding:10px 8px; font-size:12px; text-align:left;
       white-space:nowrap;
     }
     tbody td{
-      border-bottom:1px solid var(--line);
-      padding:8px;
-      vertical-align:top;
-      font-size:13px;
-      word-break:break-word;
-      overflow-wrap:anywhere;
-      background:#fff;
+      border-bottom:1px solid rgba(36,48,68,.65);
+      padding:8px; vertical-align:top; font-size:13px;
+      word-break:break-word; overflow-wrap:anywhere;
     }
-    tbody tr:hover td{ background:#fafafa; }
-
+    tbody tr:hover td{ background:rgba(15,22,32,.55); }
     .colTiny{ width:64px; }
     .colPub{ width:110px; }
     .colISBN{ width:150px; }
@@ -108,79 +55,43 @@
     .colDate{ width:110px; }
     .colPages{ width:80px; }
     .colAnchor{ width:220px; color:var(--muted); font-size:11px; }
-
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      font-size:12px;
-      color:var(--muted);
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:rgba(15,22,32,.7); font-size:12px; color:var(--muted); }
+    .markX{ color:var(--bad); font-weight:700; }
+    .markOK{ color:var(--ok); font-weight:700; }
+    .xbtn{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:30px; height:24px; border-radius:8px;
+      border:1px solid var(--line); background:rgba(15,22,32,.8); cursor:pointer;
+      font-weight:800; user-select:none;
     }
-    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .right{ margin-left:auto; }
-
+    .xbtn.on{ border-color:var(--bad); background:rgba(255,77,77,.12); color:var(--bad); }
+    .xbtn.off{ border-color:rgba(43,213,118,.4); background:rgba(43,213,118,.08); color:var(--ok); }
     .footerBar{
       position:fixed; left:0; right:0; bottom:0; z-index:60;
-      background:rgba(246,247,251,.95);
-      border-top:1px solid var(--line);
+      background:rgba(11,15,20,.95); border-top:1px solid var(--line);
     }
-    details{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-    }
+    details{ background:rgba(18,25,36,.55); border:1px solid var(--line); border-radius:14px; padding:10px; }
     details summary{ cursor:pointer; color:var(--muted); font-size:13px; }
-    pre{
-      margin:8px 0 0;
-      max-height:240px;
-      overflow:auto;
-      background:#fff;
-      padding:10px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      font-size:12px;
-    }
-
-    /* ✅ X 리스트 모달 */
+    pre{ margin:8px 0 0; max-height:240px; overflow:auto; background:rgba(15,22,32,.7); padding:10px; border-radius:12px; border:1px solid var(--line); font-size:12px; }
     .modalBack{
-      position:fixed; inset:0;
-      background:rgba(17,24,39,.40);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:80;
+      position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:80;
       padding:14px;
     }
     .modal{
-      width:min(980px, 100%);
-      max-height:86vh;
-      overflow:auto;
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
+      width:min(980px, 100%); max-height:86vh; overflow:auto;
+      background:rgba(18,25,36,.98); border:1px solid var(--line); border-radius:16px; padding:12px;
     }
     .modal h3{ margin:0 0 10px; font-size:14px; color:var(--txt); }
     .list{ display:flex; flex-direction:column; gap:8px; }
-    .item{
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:#fff;
-    }
+    .item{ border:1px solid var(--line); border-radius:12px; padding:10px; background:rgba(15,22,32,.7); }
     .itemTop{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
     .itemMeta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .reason{ color:var(--muted); font-size:12px; margin-top:6px; }
-    .actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-
-    .spacer{ height:120px; }
-
-    /* ✅ 모바일 잠금 */
+    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .right{ margin-left:auto; }
+    .spacer{ height:110px; }
     @media (max-width:720px){
-      thead th{ top:132px; }
+      thead th{ top:118px; }
       header .row{ align-items:flex-start; }
     }
   </style>
@@ -191,7 +102,7 @@
     <div class="row">
       <div class="panel" style="flex:1; min-width:260px;">
         <div style="font-weight:700; font-size:14px;">27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X 자동검증</div>
-        <div class="hint">원본 우선 · 값 생성 금지 · 공란 허용 · FREEZE(필드/순서/라벨 고정) · ANCHOR(file|row|id) 필수</div>
+        <div class="hint">FREEZE: 필드/순서/라벨 고정(값만 공란) · ANCHOR: (file|row|id) · 원본에 없는 값 생성 금지</div>
       </div>
 
       <label class="btn primary" for="fileInput">업로드(추가)</label>
@@ -200,17 +111,16 @@
       <button class="btn danger" id="btnResetDB">DB 초기화</button>
       <button class="btn" id="btnClearLog">로그 초기화</button>
 
-      <!-- ✅ AUTO LOOP 3버튼(상단 고정) -->
       <button class="btn ok" id="btnShowX">X 후보 보기</button>
-      <button class="btn" id="btnAutoFix">자동 수정</button>
-      <button class="btn primary" id="btnApprove">전체 승인 저장</button>
+      <button class="btn" id="btnApplyAllX">X 후보 전체 ON</button>
+      <button class="btn" id="btnClearAllX">X 전체 OFF</button>
     </div>
 
     <div class="row" style="margin-top:10px;">
       <div class="kpis">
         <span class="kpi">DB: <b id="kpiRows">0</b> rows</span>
         <span class="kpi">AUTO X: <b id="kpiAutoX">0</b></span>
-        <span class="kpi">PERSIST: <b id="kpiPersist">0</b></span>
+        <span class="kpi">USER X: <b id="kpiUserX">0</b></span>
         <span class="kpi">Last: <b id="kpiLast">-</b></span>
         <span class="kpi">정렬: Pub Date ↑ (이 도구 전용)</span>
         <span class="kpi">저장: localStorage 자동</span>
@@ -224,7 +134,9 @@
   <div class="wrap">
     <div class="tableWrap">
       <table id="tbl">
-        <thead><tr id="hdr"></tr></thead>
+        <thead>
+          <tr id="hdr"></tr>
+        </thead>
         <tbody id="body"></tbody>
       </table>
     </div>
@@ -234,44 +146,34 @@
 
 <div class="footerBar">
   <div class="wrap">
-    <!-- ✅ 로그 기본 접힘 -->
-    <details id="logBox">
-      <summary>로그(하단 고정 · 기본 접힘)</summary>
+    <details id="logBox" open>
+      <summary>로그(하단 고정 · 기본 접힘 가능)</summary>
       <pre id="log"></pre>
     </details>
   </div>
 </div>
 
-<!-- ✅ X 리스트 모달 -->
 <div class="modalBack" id="modalBack">
   <div class="modal">
     <div class="row" style="margin-bottom:10px;">
       <h3 style="flex:1;">X 후보 리스트(도구가 자동 산출)</h3>
       <button class="btn" id="btnCloseModal">닫기</button>
     </div>
-
     <div class="hint" style="margin-bottom:10px;">
-      남는 X(고질)는 각 항목에서 버튼 3개 중 1개만 누르면 됨: <b>공란 유지</b> / <b>자동 변환</b> / <b>무시</b>
+      사용자는 “확인 → 전체 ON/전체 OFF”만 하면 됨. (개별 해제도 가능)
     </div>
-
-    <div class="row" style="margin-bottom:10px;">
-      <span class="pill">AUTO X: <b id="modalAutoX">0</b></span>
-      <span class="pill">PERSIST: <b id="modalPersist">0</b></span>
-      <button class="btn small" id="btnPersistKeepBlank">PERSIST 전체: 공란 유지</button>
-      <button class="btn small" id="btnPersistIgnore">PERSIST 전체: 무시</button>
-    </div>
-
     <div class="list" id="xList"></div>
   </div>
 </div>
 
 <script>
 /** ===========================
- *  FREEZE LOCK (고정)
+ *  LOCK_SCHEMA (FREEZE 상수)
  *  =========================== */
 const LOCK_STANDARD_COLS = [
   "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR(file|row|id)"
 ];
+
 const LOCK_COL_WIDTH = {
   "Publisher":"colPub",
   "ISBN":"colISBN",
@@ -282,22 +184,16 @@ const LOCK_COL_WIDTH = {
   "_ANCHOR(file|row|id)":"colAnchor"
 };
 
-/** ===========================
- *  X 자동 분류 기준(공란은 X 아님)
- *  - 단, Currency 공란은 X(필수)
- *  =========================== */
-const AUTO_X = {
-  PRICE_ZERO:  "Price = 0",
-  PRICE_BAD:   "Price 숫자 아님",
-  DATE_BAD:    "날짜 형식 깨짐",
-  ISBN_BAD:    "ISBN 13자리 아님",
-  CURR_EMPTY:  "Currency 공란(필수)",
-  PAGES_BAD:   "Pages 숫자 아님"
-};
+const LOCK_X_RULES = [
+  { key:"PRICE_ZERO",  desc:"Price = 0 또는 비어있음" },
+  { key:"DATE_BAD",    desc:"날짜 형식 깨짐/해석 불가" },
+  { key:"ISBN_BAD",    desc:"ISBN 13자리 불일치" },
+  { key:"CURR_EMPTY",  desc:"Currency 비어있음(필수)" },
+  { key:"PRICE_BAD",   desc:"Price 숫자 해석 불가" },
+  { key:"PAGES_BAD",   desc:"Pages 숫자 해석 불가(값이 있는데 숫자 아님)" }
+];
 
-/** ===========================
- *  Publisher 자동 인식 + 매핑(코드 상수)
- *  =========================== */
+// 원본 컬럼 목록(발행사별) + 매핑표(원본→표준) : 코드 상수로 고정
 const LOCK_PUBLISHER_MAP = [
   {
     publisher: "Elsevier",
@@ -347,16 +243,18 @@ const LOCK_PUBLISHER_MAP = [
 ];
 
 /** ===========================
- *  localStorage
+ *  상태 저장
  *  =========================== */
 const LS_KEY = "wic27_db_v3";
+const LS_X_USER = "wic27_x_user_v3";
 const LS_LOG = "wic27_log_v3";
-const LS_DECISIONS = "wic27_decisions_v3"; // persistent 처리(옵션)
 
-let DB = [];
+let DB = []; // rows
+let userX = loadJSON(LS_X_USER, {});
 let logLines = loadJSON(LS_LOG, []);
-// decisions: { anchorKey: { col: "KEEP_BLANK"|"CONVERT"|"IGNORE" } }
-let decisions = loadJSON(LS_DECISIONS, {});
+
+// ✅ 행 섞임 0% 핵심: rowId(=anchorKey) 중복 방지용 Set
+let ROWKEY_SET = new Set();
 
 function loadJSON(key, fallback){
   try{
@@ -365,26 +263,13 @@ function loadJSON(key, fallback){
     return JSON.parse(raw);
   }catch(e){ return fallback; }
 }
-function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
-
-/** ===========================
- *  로그
- *  =========================== */
-function log(event, payload){
-  const now = new Date();
-  const ts = now.toISOString().replace("T"," ").slice(0,19);
-  const line = `[${ts}] ${event} :: ${JSON.stringify(payload)}`;
-  logLines.push(line);
-  if(logLines.length>700) logLines = logLines.slice(-700);
-  saveJSON(LS_LOG, logLines);
-  renderLog();
+function saveJSON(key, val){
+  localStorage.setItem(key, JSON.stringify(val));
 }
-function renderLog(){ document.getElementById("log").textContent = logLines.join("\n"); }
 
 /** ===========================
  *  유틸
  *  =========================== */
-function normBlank(v){ return (v==null) ? "" : String(v).trim(); }
 function djb2(str){
   let h = 5381;
   for(let i=0;i<str.length;i++){
@@ -393,6 +278,7 @@ function djb2(str){
   }
   return ("00000000" + h.toString(16)).slice(-8);
 }
+
 function parseCSV(text){
   const rows = [];
   let i=0, cur="", inQ=false;
@@ -400,7 +286,8 @@ function parseCSV(text){
   function pushCell(){ row.push(cur); cur=""; }
   function pushRow(){
     if(row.length===1 && row[0].trim()===""){ row.length=0; return; }
-    rows.push(row.slice()); row.length=0;
+    rows.push(row.slice());
+    row.length=0;
   }
   while(i<text.length){
     const ch = text[i];
@@ -421,10 +308,19 @@ function parseCSV(text){
   pushCell(); pushRow();
   return rows;
 }
+
+/** ===========================
+ *  데이터 정규화
+ *  =========================== */
+function normBlank(v){
+  if(v==null) return "";
+  return String(v).trim();
+}
 function stripMoney(s){
   s = normBlank(s);
   if(!s) return "";
-  s = s.replace(/[,\s]/g,"").replace(/^\$/,"");
+  s = s.replace(/[,\s]/g,"");
+  s = s.replace(/^\$/,"");
   return s;
 }
 function toNumberOrBlank(s){
@@ -458,6 +354,7 @@ function normISBN(s){
   if(digits.length===10) return digits;
   return digits || s;
 }
+
 const MONTH = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
 function pad2(n){ return (n<10?("0"+n):String(n)); }
 function isValidDate(y,m,d){
@@ -495,9 +392,6 @@ function normPages(s){
   return "__BAD__";
 }
 
-/** ===========================
- *  Publisher / Mapping
- *  =========================== */
 function detectPublisher(fileName){
   for(const p of LOCK_PUBLISHER_MAP){
     if(p.matchFile(fileName)) return p.publisher;
@@ -511,214 +405,60 @@ function getMappingFor(fileName){
   const entry = LOCK_PUBLISHER_MAP.find(x => x.publisher===pub);
   return entry ? entry.mapping : null;
 }
-function getCell(headers, rawRow, colName){
-  const idx = headers.findIndex(h => h.trim() === colName.trim());
-  if(idx<0) return "";
-  return normBlank(rawRow[idx] ?? "");
-}
-function makeAnchor(fileName, rowIndex, rowObj){
-  // ✅ anchor는 file|row|id 고정
-  const stable = `${fileName}|${rowIndex}|${rowObj.Title||""}|${rowObj.ISBN||""}`;
-  const id = djb2(stable);
-  const anchorStr = `${fileName} | ${rowIndex} | ${id}`;
-  return { anchorStr, anchorKey:`${fileName}|${rowIndex}|${id}` };
+function cleanPublisherFromFile(_fileName, detected){
+  return detected; // "Elsevier" 같은 깨끗한 표기만 사용
 }
 
 /** ===========================
- *  중복 방지(핵심)
- *  - 1) 같은 file|row|id는 무조건 1개
- *  - 2) 같은 ISBN+Title+PubDate도 1개(재업로드 중복 방지)
- *  =========================== */
-function dedupeKey2(out){
-  const a = normBlank(out["ISBN"]);
-  const b = normBlank(out["Title"]);
-  const c = normBlank(out["Pub Date"]);
-  return `${a}|${b}|${c}`.toLowerCase();
-}
-function rebuildDedupeSets(){
-  const set1 = new Set();
-  const set2 = new Set();
-  for(const r of DB){
-    set1.add(r.__anchorKey);
-    set2.add(dedupeKey2(r));
-  }
-  return {set1,set2};
-}
-
-/** ===========================
- *  표준화(원본 우선 / 생성 금지)
- *  =========================== */
-function makeStandardRow({fileName,publisher,headers,rawRow,rowIndex,mapping}){
-  const out = {};
-  out["Publisher"] = publisher;
-
-  function mapStd(std){
-    const src = mapping ? mapping[std] : "";
-    if(!src) return "";
-    if(src === "__CONST_USD__") return "USD";
-    if(src === "__CONST_EUR__") return "EUR";
-    if(src === "__BLANK__") return "";
-    return getCell(headers, rawRow, src);
-  }
-
-  out["Title"] = mapStd("Title");
-  out["Sub Title"] = mapStd("Sub Title");
-  out["KOR_TITLE"] = mapStd("KOR_TITLE");
-  out["KOR_SUBTITLE"] = mapStd("KOR_SUBTITLE");
-
-  out["ISBN"] = normISBN(mapStd("ISBN"));
-
-  const priceNorm = toNumberOrBlank(mapStd("Price"));
-  out["Price"] = (priceNorm==="__BAD__") ? "__BAD__" : priceNorm;
-
-  out["Currency"] = normBlank(mapStd("Currency"));
-
-  out["Pub Date"] = normDate(mapStd("Pub Date"));
-
-  out["Pages"] = normPages(mapStd("Pages"));
-
-  const anc = makeAnchor(fileName, rowIndex, out);
-  out._ANCHOR = anc.anchorStr;
-  out.__anchorKey = anc.anchorKey;
-
-  return out;
-}
-
-/** ===========================
- *  AUTO X 계산 + PERSIST 판단
+ *  X 자동 후보 산출
  *  =========================== */
 function autoXForCell(row, col){
   const v = row[col];
-
-  // 공란은 X 아님(규칙), 단 Currency는 공란이면 X
   const blankOK = (v==="" || v==="(빈칸)");
   if(blankOK){
-    if(col==="Currency") return {on:true, reason:AUTO_X.CURR_EMPTY};
+    if(col==="Currency") return {on:true, reason:"CURR_EMPTY: Currency 비어있음(필수)"}; 
     return {on:false, reason:""};
   }
-
   if(col==="Price"){
     const n = Number(v);
-    if(!Number.isFinite(n)) return {on:true, reason:AUTO_X.PRICE_BAD};
-    if(n===0) return {on:true, reason:AUTO_X.PRICE_ZERO};
+    if(!Number.isFinite(n)) return {on:true, reason:"PRICE_BAD: Price 숫자 해석 불가"};
+    if(n===0) return {on:true, reason:"PRICE_ZERO: Price = 0"};
   }
   if(col==="Pub Date"){
-    if(v==="__BAD__") return {on:true, reason:AUTO_X.DATE_BAD};
+    if(v==="__BAD__") return {on:true, reason:"DATE_BAD: 날짜 형식 깨짐"};
   }
   if(col==="ISBN"){
-    const digits = String(v).replace(/[^0-9]/g,"");
-    if(digits.length!==13) return {on:true, reason:AUTO_X.ISBN_BAD};
+    const digits = v.replace(/[^0-9]/g,"");
+    if(!(digits.length===13)) return {on:true, reason:"ISBN_BAD: ISBN 13자리 아님"};
   }
   if(col==="Pages"){
-    if(v==="__BAD__") return {on:true, reason:AUTO_X.PAGES_BAD};
+    if(v==="__BAD__") return {on:true, reason:"PAGES_BAD: Pages 숫자 아님"};
   }
   if(col==="Currency"){
-    if(!v) return {on:true, reason:AUTO_X.CURR_EMPTY};
+    if(!v) return {on:true, reason:"CURR_EMPTY: Currency 비어있음(필수)"};
   }
   return {on:false, reason:""};
 }
-
-function getDecision(row, col){
-  const k = row.__anchorKey;
-  return (decisions[k] && decisions[k][col]) ? decisions[k][col] : "";
-}
-function setDecision(row, col, val){
-  const k = row.__anchorKey;
-  decisions[k] = decisions[k] || {};
-  decisions[k][col] = val;
-  saveJSON(LS_DECISIONS, decisions);
-}
-
-function isPersist(row, col){
-  // AUTO X가 켜져 있는데, 결정이 없으면 "고질"로 본다(사용자 1터치 옵션 필요)
-  const ax = autoXForCell(row, col);
-  if(!ax.on) return false;
-  const d = getDecision(row, col);
-  return d==="";
-}
-
-function countAutoX(){
-  let c=0;
-  for(const r of DB){
-    for(const col of LOCK_STANDARD_COLS){
-      if(col==="_ANCHOR(file|row|id)") continue;
-      if(autoXForCell(r,col).on) c++;
-    }
-  }
-  return c;
-}
-function countPersist(){
-  let c=0;
-  for(const r of DB){
-    for(const col of LOCK_STANDARD_COLS){
-      if(col==="_ANCHOR(file|row|id)") continue;
-      if(isPersist(r,col)) c++;
-    }
-  }
-  return c;
-}
+function anchorKey(row){ return row.__anchorKey; }
 
 /** ===========================
- *  AUTO FIX (생성 금지 범위 내에서만)
+ *  로그
  *  =========================== */
-function autoFixAll(){
-  let fixed = 0;
-  for(const r of DB){
-    // ISBN: 과학표기/하이픈 제거 정도(원본 범위)
-    const beforeISBN = r["ISBN"];
-    const afterISBN = normISBN(beforeISBN);
-    if(beforeISBN !== afterISBN){
-      r["ISBN"] = afterISBN; fixed++;
-    }
-
-    // Price: "$" 제거/숫자 파싱(원본 범위)
-    const beforeP = r["Price"];
-    if(beforeP!=="" && beforeP!=="__BAD__"){
-      const p = toNumberOrBlank(beforeP);
-      if(p !== "__BAD__" && p !== beforeP){
-        r["Price"] = p; fixed++;
-      }
-    }
-
-    // Pub Date: 가능한 형식만 ISO로(원본 범위)
-    const beforeD = r["Pub Date"];
-    if(beforeD && beforeD!=="__BAD__"){
-      const d = normDate(beforeD);
-      if(d !== "__BAD__" && d !== beforeD){
-        r["Pub Date"] = d; fixed++;
-      }
-    }
-
-    // Pages: 숫자만(원본 범위)
-    const beforePg = r["Pages"];
-    if(beforePg && beforePg!=="__BAD__"){
-      const pg = normPages(beforePg);
-      if(pg !== "__BAD__" && pg !== beforePg){
-        r["Pages"] = pg; fixed++;
-      }
-    }
-  }
-  sortDB();
-  saveJSON(LS_KEY, DB);
-  log("자동 수정", {fixed});
-  render();
+function log(event, payload){
+  const now = new Date();
+  const ts = now.toISOString().replace("T"," ").slice(0,19);
+  const line = `[${ts}] ${event} :: ${JSON.stringify(payload)}`;
+  logLines.push(line);
+  if(logLines.length>600) logLines = logLines.slice(-600);
+  saveJSON(LS_LOG, logLines);
+  renderLog();
+}
+function renderLog(){
+  document.getElementById("log").textContent = logLines.join("\n");
 }
 
 /** ===========================
- *  정렬
- *  =========================== */
-function sortDB(){
-  DB.sort((a,b)=>{
-    const da = (a["Pub Date"] && a["Pub Date"]!=="__BAD__") ? a["Pub Date"] : "9999-99-99";
-    const db = (b["Pub Date"] && b["Pub Date"]!=="__BAD__") ? b["Pub Date"] : "9999-99-99";
-    if(da<db) return -1;
-    if(da>db) return 1;
-    return a.__anchorKey < b.__anchorKey ? -1 : 1;
-  });
-}
-
-/** ===========================
- *  렌더(표 셀 클릭 제거: 값만 표시)
+ *  렌더
  *  =========================== */
 const hdrEl = document.getElementById("hdr");
 const bodyEl = document.getElementById("body");
@@ -744,10 +484,14 @@ function render(){
 
   document.getElementById("kpiRows").textContent = String(DB.length);
   document.getElementById("kpiAutoX").textContent = String(countAutoX());
-  document.getElementById("kpiPersist").textContent = String(countPersist());
+  document.getElementById("kpiUserX").textContent = String(countUserX());
+
+  const frag = document.createDocumentFragment();
 
   for(const row of DB){
     const tr = document.createElement("tr");
+    // ✅ 행 섞임 0% 증거: DOM에도 고정 키를 박아둠(디버그 용)
+    tr.dataset.rowid = row.__anchorKey;
 
     for(const col of LOCK_STANDARD_COLS){
       const td = document.createElement("td");
@@ -759,67 +503,107 @@ function render(){
         continue;
       }
 
-      const v = fmtCell(row[col]);
-      td.textContent = v;
+      const btn = document.createElement("div");
+      btn.className = "xbtn";
+      const st = getXState(row, col);
+      btn.textContent = "X";
+      btn.classList.add(st.on ? "on":"off");
+      btn.title = st.on ? (st.reason || "X") : "PASS";
+      btn.addEventListener("click", ()=>{ toggleUserX(row, col); });
 
-      // 시각적 표시(공란/오류)
-      if(v==="(빈칸)") td.style.color = "var(--muted)";
-      if(v==="(형식오류)") td.style.color = "var(--warn)";
+      const val = document.createElement("div");
+      val.textContent = fmtCell(row[col]);
+      if(row[col]==="__BAD__") val.style.color = "var(--warn)";
+      if(fmtCell(row[col])==="(빈칸)") val.style.color = "var(--muted)";
+
+      td.appendChild(btn);
+      td.appendChild(val);
 
       const cls = LOCK_COL_WIDTH[col] || "";
       if(cls) td.classList.add(cls);
 
       tr.appendChild(td);
     }
-    bodyEl.appendChild(tr);
+    frag.appendChild(tr);
   }
 
+  bodyEl.appendChild(frag);
   saveJSON(LS_KEY, DB);
-  renderLog();
+}
+
+function countAutoX(){
+  let c=0;
+  for(const r of DB){
+    for(const col of LOCK_STANDARD_COLS){
+      if(col==="_ANCHOR(file|row|id)") continue;
+      const ax = autoXForCell(r,col);
+      if(ax.on) c++;
+    }
+  }
+  return c;
+}
+function countUserX(){
+  let c=0;
+  for(const k in userX){
+    for(const col in userX[k]){
+      if(userX[k][col]) c++;
+    }
+  }
+  return c;
+}
+function getXState(row, col){
+  const k = anchorKey(row);
+  const ux = !!(userX[k] && userX[k][col]);
+  if(ux) return {on:true, auto:false, reason:"USER_X"};
+  const ax = autoXForCell(row,col);
+  return {on:ax.on, auto:true, reason:ax.reason};
+}
+function toggleUserX(row, col){
+  const k = anchorKey(row);
+  userX[k] = userX[k] || {};
+  const now = !userX[k][col];
+  userX[k][col] = now;
+  saveJSON(LS_X_USER, userX);
+  log("X 토글", { anchor: row.__anchor, col, on: now });
+  render();
 }
 
 /** ===========================
- *  X 리스트(항상 표시) + 옵션(3버튼)
+ *  X 리스트(자동) + 전체 버튼
  *  =========================== */
 function buildXList(){
   const items = [];
   for(const r of DB){
     for(const col of LOCK_STANDARD_COLS){
       if(col==="_ANCHOR(file|row|id)") continue;
-      const ax = autoXForCell(r,col);
-      if(ax.on){
+      const st = getXState(r,col);
+      if(st.auto && st.on){
         items.push({
-          row: r,
+          anchor: r.__anchor,
+          anchorStr: r._ANCHOR,
           col,
           value: fmtCell(r[col]),
-          reason: ax.reason,
-          persist: isPersist(r,col),
-          decision: getDecision(r,col)
+          reason: st.reason
         });
       }
     }
   }
   return items;
 }
-
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
 function renderXModal(){
   const listEl = document.getElementById("xList");
   listEl.innerHTML = "";
   const items = buildXList();
-
-  const autoX = items.length;
-  const persistX = items.filter(x=>x.persist).length;
-  document.getElementById("modalAutoX").textContent = String(autoX);
-  document.getElementById("modalPersist").textContent = String(persistX);
-
   if(items.length===0){
     const d=document.createElement("div");
     d.className="item";
-    d.textContent="X 후보가 없음(정상)";
+    d.textContent="X 후보가 없음";
     listEl.appendChild(d);
     return;
   }
-
   items.forEach((it, idx)=>{
     const box = document.createElement("div");
     box.className = "item";
@@ -831,102 +615,69 @@ function renderXModal(){
     meta.className = "itemMeta";
     meta.innerHTML = `
       <span class="pill"><b>#${idx+1}</b></span>
-      <span class="pill mono">${escapeHtml(it.row._ANCHOR)}</span>
-      <span class="pill"><b>${escapeHtml(it.col)}</b></span>
+      <span class="pill mono">${it.anchorStr}</span>
+      <span class="pill"><b>${it.col}</b></span>
       <span class="pill">${escapeHtml(it.value)}</span>
-      ${it.persist ? `<span class="pill" style="border-color:var(--warn); color:var(--warn);"><b>PERSIST</b></span>` : ``}
     `;
 
+    const act = document.createElement("button");
+    act.className = "btn small";
+    act.textContent = "이 항목만 USER_X로 고정";
+    act.addEventListener("click", ()=>{
+      const row = DB.find(r => r._ANCHOR === it.anchorStr);
+      if(row){
+        const k = anchorKey(row);
+        userX[k] = userX[k] || {};
+        userX[k][it.col] = true;
+        saveJSON(LS_X_USER, userX);
+        log("X 고정(USER_X)", {anchor: it.anchor, col: it.col, on:true});
+        render();
+        renderXModal();
+      }
+    });
+
     top.appendChild(meta);
-    box.appendChild(top);
+    top.appendChild(act);
 
     const reason = document.createElement("div");
     reason.className="reason";
     reason.textContent = it.reason;
+
+    box.appendChild(top);
     box.appendChild(reason);
-
-    // ✅ PERSIST 옵션(항상 버튼으로 노출)
-    const actions = document.createElement("div");
-    actions.className = "actions";
-
-    const b1 = document.createElement("button");
-    b1.className = "btn small";
-    b1.textContent = "공란 유지";
-    b1.addEventListener("click", ()=>{
-      setDecision(it.row, it.col, "KEEP_BLANK");
-      // 공란 유지 = 값이 오류여도 공란으로 둔다(생성 금지 준수)
-      if(it.col !== "Currency"){ it.row[it.col] = ""; }
-      log("PERSIST 선택", {anchor: it.row._ANCHOR, col: it.col, option:"KEEP_BLANK"});
-      render(); renderXModal();
-    });
-
-    const b2 = document.createElement("button");
-    b2.className = "btn small";
-    b2.textContent = "자동 변환";
-    b2.addEventListener("click", ()=>{
-      setDecision(it.row, it.col, "CONVERT");
-      // 자동 변환 = 가능한 범위만 변환, 안 되면 그대로
-      if(it.col==="ISBN") it.row["ISBN"] = normISBN(it.row["ISBN"]);
-      if(it.col==="Pub Date") it.row["Pub Date"] = normDate(it.row["Pub Date"]);
-      if(it.col==="Price"){
-        const p = toNumberOrBlank(it.row["Price"]);
-        it.row["Price"] = (p==="__BAD__") ? it.row["Price"] : p;
-      }
-      if(it.col==="Pages") it.row["Pages"] = normPages(it.row["Pages"]);
-      log("PERSIST 선택", {anchor: it.row._ANCHOR, col: it.col, option:"CONVERT"});
-      sortDB(); render(); renderXModal();
-    });
-
-    const b3 = document.createElement("button");
-    b3.className = "btn small";
-    b3.textContent = "무시";
-    b3.addEventListener("click", ()=>{
-      setDecision(it.row, it.col, "IGNORE");
-      log("PERSIST 선택", {anchor: it.row._ANCHOR, col: it.col, option:"IGNORE"});
-      render(); renderXModal();
-    });
-
-    actions.appendChild(b1);
-    actions.appendChild(b2);
-    actions.appendChild(b3);
-
-    box.appendChild(actions);
-
     listEl.appendChild(box);
   });
 }
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+function applyAllAutoXToUserX(){
+  const items = buildXList();
+  items.forEach(it=>{
+    const row = DB.find(r => r._ANCHOR === it.anchorStr);
+    if(!row) return;
+    const k = anchorKey(row);
+    userX[k] = userX[k] || {};
+    userX[k][it.col] = true;
+  });
+  saveJSON(LS_X_USER, userX);
+  log("X 후보 전체 ON", {count: items.length});
+  render();
+}
+function clearAllUserX(){
+  userX = {};
+  saveJSON(LS_X_USER, userX);
+  log("X 전체 OFF", {});
+  render();
 }
 
 /** ===========================
- *  승인 저장(조건: PERSIST 0)
- *  =========================== */
-function approveSave(){
-  const persist = countPersist();
-  if(persist>0){
-    log("승인 실패", {reason:"PERSIST 남음", persist});
-    alert("PERSIST(고질 X)가 남아 있어 저장 불가. X 후보 보기에서 옵션 1번 터치로 정리.");
-    return;
-  }
-  // ✅ 여기서 “최종 승인” 상태만 저장(외부 전송은 금지/불가)
-  log("전체 승인 저장", {rows: DB.length});
-  alert("저장 완료(로컬).");
-}
-
-/** ===========================
- *  업로드(추가) + 중복 차단
+ *  업로드(추가)
  *  =========================== */
 async function handleFiles(files){
   for(const f of files){
     await readAndAppendFile(f);
   }
   sortDB();
-  saveJSON(LS_KEY, DB);
   render();
 }
-
 function readFileAsText(file){
   return new Promise((res, rej)=>{
     const fr = new FileReader();
@@ -938,23 +689,27 @@ function readFileAsText(file){
 
 async function readAndAppendFile(file){
   const name = file.name;
-  const publisher = detectPublisher(name);
+  const publisher = cleanPublisherFromFile(name, detectPublisher(name));
   const mapping = getMappingFor(name);
 
   const text = await readFileAsText(file);
   const rows = parseCSV(text);
   if(rows.length<2){
-    log("업로드 실패", {file:name, reason:"no rows"});
+    log("업로드(추가) 실패", {file:name, reason:"no rows"});
     return;
   }
   const headers = rows[0].map(h=>normBlank(h));
-  log("업로드 시작", {file:name, publisher, headers});
-  log("매핑 확정", {file:name, mapping: mapping || {}});
+  log("업로드(추가) 시작", {file:name, publisher, headers});
 
-  const {set1,set2} = rebuildDedupeSets();
+  const mapLog = {};
+  if(mapping){
+    for(const std of Object.keys(mapping)){
+      mapLog[std] = mapping[std] || "";
+    }
+  }
+  log("매핑표(원본→표준) 확정", {file:name, mapping: mapLog});
+
   let appended = 0;
-  let skipped = 0;
-
   for(let i=1;i<rows.length;i++){
     const rawRow = rows[i];
     if(rawRow.every(c=>normBlank(c)==="")) continue;
@@ -964,34 +719,106 @@ async function readAndAppendFile(file){
       publisher,
       headers,
       rawRow,
-      rowIndex:i,
+      rowIndex:i, // ✅ 원본행번호 (CSV body의 i) = 고정 키의 일부
       mapping
     });
 
-    // ✅ 중복 차단 1: anchorKey
-    if(set1.has(rec.__anchorKey)){ skipped++; continue; }
-
-    // ✅ 중복 차단 2: ISBN+Title+PubDate
-    const k2 = dedupeKey2(rec);
-    if(set2.has(k2)){ skipped++; continue; }
+    // ✅ 행 섞임 0% 핵심 1줄: rowId 중복이면 추가 금지
+    if(ROWKEY_SET.has(rec.__anchorKey)) continue;
 
     DB.push(rec);
-    set1.add(rec.__anchorKey);
-    set2.add(k2);
+    ROWKEY_SET.add(rec.__anchorKey);
     appended++;
   }
 
-  log("업로드 완료", {file:name, appended, skipped, total:DB.length});
+  log("업로드(추가) 완료", {file:name, appended, total:DB.length});
   document.getElementById("kpiLast").textContent = name;
+}
+
+function getCell(headers, rawRow, colName){
+  const idx = headers.findIndex(h => h.trim() === colName.trim());
+  if(idx<0) return "";
+  return normBlank(rawRow[idx] ?? "");
+}
+
+// ✅ 행 섞임 0% 핵심: anchor.id는 file+rowIndex만으로 계산(Title/ISBN 영향 제거)
+function makeAnchor(fileName, rowIndex){
+  const stable = `${fileName}|${rowIndex}`;      // ← 이 1줄이 “절대 고정키”
+  const id = djb2(stable);
+  const anchor = { file:fileName, rowIndex: rowIndex, id };
+  const anchorStr = `${fileName} | ${rowIndex} | ${id}`;
+  const anchorKey = `${fileName}|${rowIndex}|${id}`; // ← 렌더/저장/토글 모두 이 키만 사용
+  return {anchor, anchorStr, anchorKey};
+}
+
+function makeStandardRow({fileName,publisher,headers,rawRow,rowIndex,mapping}){
+  const out = {};
+  out["Publisher"] = publisher;
+
+  function mapStd(std){
+    const src = mapping ? mapping[std] : "";
+    if(!src) return "";
+    if(src === "__CONST_USD__") return "USD";
+    if(src === "__CONST_EUR__") return "EUR";
+    if(src === "__BLANK__") return "";
+    return getCell(headers, rawRow, src);
+  }
+
+  out["Title"] = mapStd("Title");
+  out["Sub Title"] = mapStd("Sub Title");
+  out["KOR_TITLE"] = mapStd("KOR_TITLE");
+  out["KOR_SUBTITLE"] = mapStd("KOR_SUBTITLE");
+
+  out["ISBN"] = normISBN(mapStd("ISBN"));
+
+  const priceRaw = mapStd("Price");
+  const priceNorm = toNumberOrBlank(priceRaw);
+  out["Price"] = (priceNorm==="__BAD__") ? "__BAD__" : priceNorm;
+
+  out["Currency"] = normBlank(mapStd("Currency"));
+
+  out["Pub Date"] = normDate(mapStd("Pub Date"));
+
+  out["Pages"] = normPages(mapStd("Pages"));
+
+  const anc = makeAnchor(fileName, rowIndex);
+  out._ANCHOR = anc.anchorStr;
+  out.__anchor = anc.anchor;
+  out.__anchorKey = anc.anchorKey;
+
+  return out;
+}
+
+/** ===========================
+ *  정렬 (Pub Date ↑)
+ *  =========================== */
+function sortDB(){
+  DB.sort((a,b)=>{
+    const da = (a["Pub Date"] && a["Pub Date"]!=="__BAD__") ? a["Pub Date"] : "9999-99-99";
+    const db = (b["Pub Date"] && b["Pub Date"]!=="__BAD__") ? b["Pub Date"] : "9999-99-99";
+    if(da<db) return -1;
+    if(da>db) return 1;
+    return a.__anchorKey < b.__anchorKey ? -1 : 1;
+  });
 }
 
 /** ===========================
  *  초기 로드
  *  =========================== */
+function rebuildRowKeySet(){
+  ROWKEY_SET = new Set();
+  for(const r of DB){
+    if(r && r.__anchorKey) ROWKEY_SET.add(r.__anchorKey);
+  }
+}
 function loadDB(){
   const saved = loadJSON(LS_KEY, []);
-  if(Array.isArray(saved) && saved.length) DB = saved;
-  else DB = [];
+  if(Array.isArray(saved) && saved.length){
+    DB = saved;
+  }else{
+    DB = [];
+  }
+  rebuildRowKeySet();
 }
 loadDB();
 renderLog();
@@ -1009,17 +836,20 @@ document.getElementById("fileInput").addEventListener("change", async (e)=>{
 
 document.getElementById("btnResetDB").addEventListener("click", ()=>{
   DB = [];
-  decisions = {};
   saveJSON(LS_KEY, DB);
-  saveJSON(LS_DECISIONS, decisions);
+  userX = {};
+  saveJSON(LS_X_USER, userX);
   log("DB 초기화", {});
+  rebuildRowKeySet();
   render();
 });
+
 document.getElementById("btnClearLog").addEventListener("click", ()=>{
   logLines = [];
   saveJSON(LS_LOG, logLines);
   renderLog();
 });
+
 document.getElementById("btnResort").addEventListener("click", ()=>{
   sortDB();
   log("정렬 재적용", {by:"Pub Date ↑"});
@@ -1037,33 +867,11 @@ document.getElementById("modalBack").addEventListener("click", (e)=>{
   if(e.target.id==="modalBack") document.getElementById("modalBack").style.display="none";
 });
 
-document.getElementById("btnAutoFix").addEventListener("click", ()=>{
-  autoFixAll();
-  // 자동수정 직후 X 리스트도 바로 열어준다(사용자 피로 0)
-  renderXModal();
-  document.getElementById("modalBack").style.display="flex";
+document.getElementById("btnApplyAllX").addEventListener("click", ()=>{
+  applyAllAutoXToUserX();
 });
-
-document.getElementById("btnApprove").addEventListener("click", ()=>{
-  approveSave();
-});
-
-document.getElementById("btnPersistKeepBlank").addEventListener("click", ()=>{
-  const items = buildXList().filter(x=>x.persist);
-  for(const it of items){
-    setDecision(it.row, it.col, "KEEP_BLANK");
-    if(it.col !== "Currency"){ it.row[it.col] = ""; }
-  }
-  log("PERSIST 전체 처리", {option:"KEEP_BLANK", count: items.length});
-  render(); renderXModal();
-});
-document.getElementById("btnPersistIgnore").addEventListener("click", ()=>{
-  const items = buildXList().filter(x=>x.persist);
-  for(const it of items){
-    setDecision(it.row, it.col, "IGNORE");
-  }
-  log("PERSIST 전체 처리", {option:"IGNORE", count: items.length});
-  render(); renderXModal();
+document.getElementById("btnClearAllX").addEventListener("click", ()=>{
+  clearAllUserX();
 });
 </script>
 </body>
