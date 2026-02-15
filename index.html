@@ -3,231 +3,103 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X/WARN 자동 감지</title>
-
+  <title>27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X/WARN 자동감지</title>
   <style>
     :root{
-      /* ✅ 검은색 금지: 라이트 톤 고정 */
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --panel2:#f1f3f9;
-      --txt:#1f2937;
-      --muted:#64748b;
-      --line:#d7deea;
-
-      --ok:#16a34a;
-      --bad:#dc2626;
-      --warn:#d97706;
-
-      --btn:#eef2ff;
-      --btn2:#ffffff;
-
-      --stickyTop: 112px; /* JS가 실제 헤더 높이로 자동 교정 */
+      --bg:#0b0f14; --panel:#121924; --txt:#e9eef6; --muted:#9fb0c3; --line:#243044;
+      --ok:#2bd576; --bad:#ff4d4d; --warn:#ffcc00; --btn:#1b2636;
     }
-
     *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:var(--bg);
-      color:var(--txt);
-    }
-
-    header{
-      position:sticky; top:0; z-index:50;
-      background:rgba(246,247,251,.92);
-      backdrop-filter: blur(8px);
-      border-bottom:1px solid var(--line);
-    }
-
-    .wrap{ max-width:1280px; margin:0 auto; padding:12px; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--txt); }
+    header{ position:sticky; top:0; z-index:50; background:rgba(11,15,20,.96); border-bottom:1px solid var(--line); }
+    .wrap{ max-width:1200px; margin:0 auto; padding:12px; }
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .panel{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-    }
-    .title{ font-weight:800; font-size:14px; }
-    .hint{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.35; }
-
+    .panel{ background:rgba(18,25,36,.6); border:1px solid var(--line); border-radius:14px; padding:10px; }
     .btn{
-      background:var(--btn2);
-      color:var(--txt);
-      border:1px solid var(--line);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-size:13px;
-      box-shadow:0 1px 0 rgba(0,0,0,.03);
+      background:var(--btn); color:var(--txt); border:1px solid var(--line);
+      padding:10px 12px; border-radius:10px; cursor:pointer; font-size:13px;
     }
-    .btn:active{ transform:translateY(1px); }
-    .btn.primary{ border-color:#3b82f6; background:var(--btn); }
-    .btn.ok{ border-color:var(--ok); }
+    .btn.primary{ border-color:#2a79ff; }
     .btn.danger{ border-color:var(--bad); }
-    .btn.small{ padding:7px 10px; border-radius:10px; font-size:12px; }
-
+    .btn.ok{ border-color:var(--ok); }
+    .btn.warn{ border-color:var(--warn); }
+    .btn.small{ padding:6px 10px; border-radius:8px; font-size:12px; }
     input[type="file"]{ display:none; }
-
+    .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
     .kpis{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .kpi{
-      padding:6px 10px;
-      border-radius:999px;
-      background:var(--panel2);
-      border:1px solid var(--line);
-      font-size:12px;
-      color:var(--muted);
-    }
-    .kpi b{ color:var(--txt); }
+    .kpi{ padding:6px 10px; border-radius:999px; background:rgba(15,22,32,.8); border:1px solid var(--line); font-size:12px; color:var(--muted); }
     .right{ margin-left:auto; }
 
+    /* ✅ 핵심: 페이지가 아니라 "테이블 박스"만 스크롤 */
     .tableWrap{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:16px;
-      overflow:hidden;
+      border:1px solid var(--line); border-radius:14px; overflow:auto;
+      background:rgba(18,25,36,.45);
+      max-height:68vh; /* 여기서만 스크롤 발생 */
     }
     table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
-
     thead th{
-      position:sticky;
-      top:var(--stickyTop);
-      z-index:10;
-      background:var(--panel);
-      color:var(--muted);
-      border-bottom:1px solid var(--line);
-      padding:10px 8px;
-      font-size:12px;
-      text-align:left;
+      position:sticky; top:0; z-index:10; /* ✅ top:0 로 고정 */
+      background:rgba(15,22,32,.98); color:var(--muted);
+      border-bottom:1px solid var(--line); padding:10px 8px; font-size:12px; text-align:left;
       white-space:nowrap;
     }
-
     tbody td{
-      border-bottom:1px solid #eef2f7;
-      padding:10px 8px;
-      vertical-align:top;
-      font-size:13px;
-      word-break:break-word;
-      overflow-wrap:anywhere;
-      background:#fff;
+      padding:8px; vertical-align:top; font-size:13px;
+      word-break:break-word; overflow-wrap:anywhere;
+      /* ✅ 엑셀처럼 칸(그리드 라인) */
+      border-bottom:1px solid rgba(36,48,68,.65);
+      border-right:1px solid rgba(36,48,68,.45);
     }
-    tbody tr:hover td{ background:#fbfcff; }
+    thead th{ border-right:1px solid rgba(36,48,68,.45); }
+    tbody tr:hover td{ background:rgba(15,22,32,.55); }
 
+    .colTiny{ width:64px; }
     .colPub{ width:110px; }
-    .colISBN{ width:160px; }
-    .colPrice{ width:95px; }
+    .colISBN{ width:150px; }
+    .colPrice{ width:90px; }
     .colCur{ width:90px; }
-    .colDate{ width:115px; }
-    .colPages{ width:85px; }
-    .colAnchor{ width:260px; color:var(--muted); font-size:11px; }
+    .colDate{ width:110px; }
+    .colPages{ width:80px; }
+    .colAnchor{ width:240px; color:var(--muted); font-size:11px; }
 
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:var(--panel2);
-      font-size:12px;
-      color:var(--muted);
+    .xbtn{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:30px; height:24px; border-radius:8px;
+      border:1px solid var(--line); background:rgba(15,22,32,.8); cursor:pointer;
+      font-weight:800; user-select:none;
     }
+    .xbtn.on{ border-color:var(--bad); background:rgba(255,77,77,.12); color:var(--bad); }
+    .xbtn.off{ border-color:rgba(43,213,118,.4); background:rgba(43,213,118,.08); color:var(--ok); }
     .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-    .tagX{ color:var(--bad); font-weight:900; }
-    .tagW{ color:var(--warn); font-weight:900; }
-    .tagOK{ color:var(--ok); font-weight:900; }
-
-    /* ✅ 셀 클릭 금지: 표는 읽기 전용. (리스트에서만 선택/옵션) */
-    .cellVal{ line-height:1.35; }
-
-    /* 로그 하단 고정 + 기본 접힘 */
     .footerBar{
       position:fixed; left:0; right:0; bottom:0; z-index:60;
-      background:rgba(246,247,251,.92);
-      border-top:1px solid var(--line);
-      backdrop-filter: blur(8px);
+      background:rgba(11,15,20,.95); border-top:1px solid var(--line);
     }
-    details{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-    }
+    details{ background:rgba(18,25,36,.55); border:1px solid var(--line); border-radius:14px; padding:10px; }
     details summary{ cursor:pointer; color:var(--muted); font-size:13px; }
-    pre{
-      margin:8px 0 0;
-      max-height:220px;
-      overflow:auto;
-      background:#0b1220;
-      color:#e6edf7;
-      padding:10px;
-      border-radius:12px;
-      border:1px solid #15233e;
-      font-size:12px;
-    }
-    .spacer{ height:140px; }
+    pre{ margin:8px 0 0; max-height:220px; overflow:auto; background:rgba(15,22,32,.7); padding:10px; border-radius:12px; border:1px solid var(--line); font-size:12px; }
 
-    /* 모달 */
-    .modalBack{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.45);
-      display:none; align-items:center; justify-content:center;
-      z-index:80; padding:14px;
-    }
-    .modal{
-      width:min(1040px, 100%);
-      max-height:86vh;
-      overflow:auto;
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-    }
-    .modal h3{ margin:0; font-size:14px; }
-    .list{ display:flex; flex-direction:column; gap:10px; }
-    .item{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-      background:#fff;
-    }
+    .modalBack{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:80; padding:14px; }
+    .modal{ width:min(980px, 100%); max-height:86vh; overflow:auto; background:rgba(18,25,36,.98); border:1px solid var(--line); border-radius:16px; padding:12px; }
+    .modal h3{ margin:0 0 10px; font-size:14px; }
+    .list{ display:flex; flex-direction:column; gap:8px; }
+    .item{ border:1px solid var(--line); border-radius:12px; padding:10px; background:rgba(15,22,32,.7); }
     .itemTop{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
     .itemMeta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .reason{ color:var(--muted); font-size:12px; margin-top:6px; line-height:1.35; }
-    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
-    .box{
-      border:1px dashed var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:var(--panel2);
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.35;
-    }
-    .box b{ color:var(--txt); }
-    .actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
-    .chkRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .chk{ display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
-    .chk input{ width:16px; height:16px; }
-
-    /* 모바일 잠금 */
-    @media (max-width:720px){
-      .wrap{ padding:10px; }
-      .colAnchor{ width:220px; }
-      thead th{ top:var(--stickyTop); }
-    }
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:rgba(15,22,32,.7); font-size:12px; color:var(--muted); }
+    .reason{ color:var(--muted); font-size:12px; margin-top:6px; }
+    .optBar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+    .chk{ display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; }
   </style>
 </head>
-
 <body>
-<header id="topHeader">
+<header>
   <div class="wrap">
     <div class="row">
       <div class="panel" style="flex:1; min-width:260px;">
-        <div class="title">27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X/WARN 자동 감지</div>
-        <div class="hint">
-          ✅ 원본 우선(생성/추정 금지) · FREEZE(필드/순서/라벨/레이아웃 상수 잠금) · ANCHOR(file|row|id) 필수<br/>
-          ✅ 사용자는 <b>업로드 + (리스트에서) 전체 체크 + 자동수정 + 전체 승인</b>만 수행
-        </div>
+        <div style="font-weight:700; font-size:14px;">27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X/WARN 자동감지</div>
+        <div class="hint">FREEZE: 필드/순서/라벨 고정 · ANCHOR(file|row|id) 필수 · 원본에 없는 값 “생성 금지”(정책 변경 선택 시만 예외)</div>
       </div>
 
       <label class="btn primary" for="fileInput">업로드(추가)</label>
@@ -237,19 +109,20 @@
       <button class="btn" id="btnClearLog">로그 초기화</button>
 
       <button class="btn ok" id="btnShowX">X 리스트</button>
-      <button class="btn" id="btnShowW">WARN 리스트</button>
+      <button class="btn warn" id="btnShowW">WARN 리스트</button>
 
-      <button class="btn ok" id="btnAutoFix">자동 수정</button>
-      <button class="btn ok" id="btnApprove" disabled>전체 승인 저장</button>
+      <button class="btn" id="btnApplyAllX">X 전체 ON</button>
+      <button class="btn" id="btnClearAllX">X 전체 OFF</button>
     </div>
 
     <div class="row" style="margin-top:10px;">
       <div class="kpis">
         <span class="kpi">DB: <b id="kpiRows">0</b> rows</span>
-        <span class="kpi">X(미해결): <b id="kpiX">0</b></span>
-        <span class="kpi">WARN(미해결): <b id="kpiW">0</b></span>
+        <span class="kpi">AUTO X: <b id="kpiAutoX">0</b></span>
+        <span class="kpi">AUTO WARN: <b id="kpiAutoW">0</b></span>
+        <span class="kpi">USER X: <b id="kpiUserX">0</b></span>
         <span class="kpi">Last: <b id="kpiLast">-</b></span>
-        <span class="kpi">정렬: Pub Date ↑ (이 도구 전용)</span>
+        <span class="kpi">정렬: Pub Date ↑</span>
         <span class="kpi">저장: localStorage 자동</span>
       </div>
       <button class="btn small right" id="btnResort">정렬 재적용</button>
@@ -259,93 +132,63 @@
 
 <main>
   <div class="wrap">
-    <div class="tableWrap">
+    <div class="tableWrap" id="tableWrap">
       <table id="tbl">
         <thead><tr id="hdr"></tr></thead>
         <tbody id="body"></tbody>
       </table>
     </div>
-    <div class="spacer"></div>
   </div>
 </main>
 
 <div class="footerBar">
   <div class="wrap">
-    <details id="logBox">
-      <summary>로그(하단 고정 · 기본 접힘)</summary>
+    <details id="logBox" open>
+      <summary>로그(하단 고정 · 접힘 가능)</summary>
       <pre id="log"></pre>
     </details>
   </div>
 </div>
 
-<!-- X 모달 -->
-<div class="modalBack" id="modalBackX">
+<div class="modalBack" id="modalBack">
   <div class="modal">
     <div class="row" style="margin-bottom:10px;">
-      <h3 style="flex:1;">X 리스트(도구 자동 감지 · 저장 불가 원인)</h3>
-      <button class="btn" id="btnCloseX">닫기</button>
+      <h3 style="flex:1;" id="modalTitle">리스트</h3>
+      <button class="btn" id="btnCloseModal">닫기</button>
     </div>
 
-    <div class="hint" style="margin-bottom:10px;">
-      ✅ 전체/부분 체크 → 선택 항목에 옵션 적용 가능 · X(미해결)=0이 되면 <b>전체 승인 저장</b> 활성화
+    <!-- ✅ 부분/전체 체크 + 옵션 버튼 4종 -->
+    <div class="optBar">
+      <label class="chk"><input type="checkbox" id="chkAll"> 전체 선택</label>
+      <button class="btn small" id="optBlank">선택 X: 공란 유지</button>
+      <button class="btn small" id="optAuto">선택 X: 자동 변환</button>
+      <button class="btn small" id="optIgnore">선택 X: 무시(통과)</button>
+      <button class="btn small danger" id="optPolicy">선택 X: 정책 변경(도구 책임)</button>
     </div>
 
-    <div class="chkRow" style="margin-bottom:10px;">
-      <label class="chk"><input type="checkbox" id="xSelAll"> 전체 선택</label>
-      <button class="btn small" id="xMarkIgnore">선택 X: 무시(통과)</button>
-      <button class="btn small" id="xMarkKeepBlank">선택 X: 공란 유지</button>
-      <button class="btn small" id="xMarkConvert">선택 X: 자동 변환</button>
-      <button class="btn small" id="xMarkPolicy">선택 X: 정책 변경(도구 책임)</button>
-      <span class="pill"><span class="tagX">X</span> 는 “저장 막힘”</span>
+    <div class="hint" id="modalHint" style="margin-bottom:10px;">
+      체크 → 옵션 선택만 하면 끝. (결과는 즉시 화면에 반영)
     </div>
 
-    <div class="list" id="xList"></div>
-  </div>
-</div>
-
-<!-- WARN 모달 -->
-<div class="modalBack" id="modalBackW">
-  <div class="modal">
-    <div class="row" style="margin-bottom:10px;">
-      <h3 style="flex:1;">WARN 리스트(구조/주의 · 저장은 가능)</h3>
-      <button class="btn" id="btnCloseW">닫기</button>
-    </div>
-
-    <div class="hint" style="margin-bottom:10px;">
-      ✅ 사진 없이도 “필드 줄바꿈/구조 흔들림/한글 공란” 같은 애매한 항목을 여기에서 확인·체크 가능
-    </div>
-
-    <div class="chkRow" style="margin-bottom:10px;">
-      <label class="chk"><input type="checkbox" id="wSelAll"> 전체 선택</label>
-      <button class="btn small" id="wMarkDone">선택 WARN: 확인 완료</button>
-      <button class="btn small" id="wMarkPolicy">선택 WARN: 정책 변경(도구 책임)</button>
-      <span class="pill"><span class="tagW">WARN</span> 은 “주의/구조”</span>
-    </div>
-
-    <div class="list" id="wList"></div>
+    <div class="list" id="issueList"></div>
   </div>
 </div>
 
 <script>
 /** ===========================
- *  ✅ FREEZE LOCK: 항목 완전 잠금
+ *  ✅ 완전 잠금(LOCK 4종)
+ *  ① 원본컬럼 목록(발행사별) ② 표준컬럼 ③ 매핑표 ④ UI 상수
  *  =========================== */
 const LOCK_STANDARD_COLS = [
-  "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE",
-  "ISBN","Price","Currency","Pub Date","Pages","_ANCHOR(file|row|id)"
+  "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR(file|row|id)"
 ];
-
-const LOCK_COL_WIDTH = {
-  "Publisher":"colPub",
-  "ISBN":"colISBN",
-  "Price":"colPrice",
-  "Currency":"colCur",
-  "Pub Date":"colDate",
-  "Pages":"colPages",
-  "_ANCHOR(file|row|id)":"colAnchor"
+const LOCK_UI = {
+  TABLE_SCROLL_ONLY: true,
+  TABLE_MAX_H: "68vh",
+  GRID_LINES: true
 };
 
-/* ✅ 원본컬럼/매핑표 고정(발행사별) */
+// 원본 컬럼 + 매핑(고정)
 const LOCK_PUBLISHER_MAP = [
   {
     publisher: "Elsevier",
@@ -394,68 +237,131 @@ const LOCK_PUBLISHER_MAP = [
   }
 ];
 
-/** ===========================
- *  ✅ UI LOCK(레이아웃 상수)
- *  =========================== */
-const LOCK_UI = {
-  // “필드가 아래로 내려오는 느낌” = 행 높이 과도(주의)
-  WARN_ROW_HEIGHT_PX: 92,
-  // “아예 깨진 줄바꿈/개행 포함” = 구조 경고
-  WARN_HAS_NEWLINE: true
+// ✅ X/WARN 규칙(대화로 묻지 않고 화면에 리스트업)
+const LOCK_RULES = {
+  X_REQUIRED_COLS: ["Publisher","Title","ISBN","Price","Currency","Pub Date"], // ✅ 핵심 필수
+  X: {
+    PRICE_NONPOS: true,         // Price <= 0
+    PRICE_BAD: true,            // Price 숫자 불가
+    DATE_BLANK: true,           // Pub Date 공란도 X
+    DATE_BAD: true,             // Pub Date 형식오류
+    ISBN_13: true,              // ISBN 13자리 강제
+    ISBN_ALL_ZERO: true,        // 0000000000000 차단
+    CURR_EMPTY: true            // Currency 공란 X
+  },
+  WARN: {
+    KOR_BLANK: true,            // 한글타이틀/부제 공란 (애매: WARN)
+    CELL_WRAP_SHORTCOL: true,   // 짧은 필드가 줄바꿈되면 WARN(구조/가독성)
+    ROWS_SUSPICIOUS: true       // 행 수 부족 의심(중복/스킵) WARN
+  }
 };
 
 /** ===========================
- *  저장 키
+ *  ✅ 상태 저장(localStorage) + 버전키(교체 시 잔여키 충돌 방지)
  *  =========================== */
-const LS_DB = "wic27_db_v3";
-const LS_LOG = "wic27_log_v3";
-const LS_RESOLVED = "wic27_resolved_v3";  // issueId -> {status, action}
-const LS_POLICY = "wic27_policy_v3";      // “정책 변경” 기록(도구 책임)
+const LS_VER = "v3"; // 교체할 때 이 값이 바뀌면 옛 키는 자동 무시됨
+const LS_KEY   = "wic27_db_" + LS_VER;
+const LS_USERX = "wic27_userx_" + LS_VER;
+const LS_LOG   = "wic27_log_" + LS_VER;
+const LS_OPT   = "wic27_opt_" + LS_VER; // 항목별 옵션 저장(공란/자동/무시/정책)
 
 let DB = [];
+let userX = loadJSON(LS_USERX, {});
 let logLines = loadJSON(LS_LOG, []);
-let resolved = loadJSON(LS_RESOLVED, {});
-let policyLog = loadJSON(LS_POLICY, []);
+let optMap = loadJSON(LS_OPT, {}); // {issueId: "blank|auto|ignore|policy"}
 
-/** ===========================
- *  유틸
- *  =========================== */
 function loadJSON(key, fallback){
-  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  try{ const raw = localStorage.getItem(key); return raw? JSON.parse(raw): fallback; }
   catch(e){ return fallback; }
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 
-function djb2(str){
-  let h=5381;
-  for(let i=0;i<str.length;i++){ h=((h<<5)+h)+str.charCodeAt(i); h=h>>>0; }
-  return ("00000000"+h.toString(16)).slice(-8);
+/** ===========================
+ *  유틸
+ *  =========================== */
+function djb2(str){ let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h)+str.charCodeAt(i); h>>>=0; } return ("00000000"+h.toString(16)).slice(-8); }
+function normBlank(v){ if(v==null) return ""; return String(v).trim(); }
+function stripMoney(s){ s=normBlank(s); if(!s) return ""; s=s.replace(/[,\s]/g,"").replace(/^\$/,""); return s; }
+function toNumberOrBlank(s){ s=stripMoney(s); if(!s) return ""; const n=Number(s); return Number.isFinite(n)? String(n): "__BAD__"; }
+function sciToIntStr(s){
+  s=normBlank(s); if(!s) return "";
+  const m=s.match(/^([0-9]+(?:\.[0-9]+)?)E\+([0-9]+)$/i); if(!m) return s;
+  const base=m[1], exp=parseInt(m[2],10);
+  const parts=base.split("."), intPart=parts[0], fracPart=(parts[1]||"");
+  const digits=(intPart+fracPart).replace(/^0+/,"")||"0";
+  const zeros=exp-fracPart.length;
+  return zeros>=0 ? digits+"0".repeat(zeros) : s;
+}
+function normISBN(s){
+  s=normBlank(s); if(!s) return "";
+  if(/E\+/i.test(s)) s=sciToIntStr(s);
+  const digits=s.replace(/[^0-9]/g,"");
+  return digits || s;
+}
+const MONTH={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function pad2(n){ return n<10?("0"+n):String(n); }
+function isValidDate(y,m,d){ if(y<1900||y>2100) return false; if(m<1||m>12) return false; const dt=new Date(y,m-1,d); return dt.getFullYear()===y && (dt.getMonth()+1)===m && dt.getDate()===d; }
+function normDate(s){
+  s=normBlank(s);
+  if(!s) return ""; // 공란은 여기서 공란 유지(규칙에서 X로 잡을지 여부 판단)
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){ const y=+m[1], mo=+m[2], d=+m[3]; return isValidDate(y,mo,d)? `${y}-${pad2(mo)}-${pad2(d)}` : "__BAD__"; }
+  m=s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2}|\d{4})$/);
+  if(m){
+    const d=+m[1], mo=MONTH[m[2].toLowerCase()]; let y=+m[3];
+    if(!mo) return "__BAD__";
+    if(String(m[3]).length===2) y=2000+y;
+    return isValidDate(y,mo,d)? `${y}-${pad2(mo)}-${pad2(d)}` : "__BAD__";
+  }
+  return "__BAD__";
+}
+function normPages(s){
+  s=normBlank(s); if(!s) return "";
+  const t=s.replace(/[,\s]/g,"");
+  return /^\d+$/.test(t)? t : "__BAD__";
+}
+function fmtCell(v){ if(v==="") return "(빈칸)"; if(v==="__BAD__") return "(형식오류)"; return v; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+/** ===========================
+ *  발행사 감지/매핑
+ *  =========================== */
+function detectPublisher(fileName){
+  for(const p of LOCK_PUBLISHER_MAP){ if(p.matchFile(fileName)) return p.publisher; }
+  const m=fileName.match(/\(([^)]+)\)/); if(m) return m[1].trim();
+  return "Unknown";
+}
+function getMappingFor(fileName){
+  const pub=detectPublisher(fileName);
+  const entry=LOCK_PUBLISHER_MAP.find(x=>x.publisher===pub);
+  return entry? entry.mapping : null;
+}
+function getCell(headers, rawRow, colName){
+  const idx=headers.findIndex(h=>h.trim()===colName.trim());
+  if(idx<0) return "";
+  return normBlank(rawRow[idx] ?? "");
+}
+function makeAnchor(fileName, rowIndex, out){
+  const stable = `${fileName}|${rowIndex}|${out.Title||""}|${out.ISBN||""}`;
+  const id=djb2(stable);
+  return {
+    anchor:{file:fileName,rowIndex,id},
+    anchorStr:`${fileName} | ${rowIndex} | ${id}`,
+    anchorKey:`${fileName}|${rowIndex}|${id}`
+  };
 }
 
-function log(event, payload){
-  const ts = new Date().toISOString().replace("T"," ").slice(0,19);
-  const line = `[${ts}] ${event} :: ${JSON.stringify(payload)}`;
-  logLines.push(line);
-  if(logLines.length>800) logLines = logLines.slice(-800);
-  saveJSON(LS_LOG, logLines);
-  renderLog();
-}
-function renderLog(){ document.getElementById("log").textContent = logLines.join("\n"); }
-
-function normBlank(v){ return (v==null) ? "" : String(v).trim(); }
-
-/** 간단 CSV 파서 */
+/** ===========================
+ *  CSV 파서
+ *  =========================== */
 function parseCSV(text){
   const rows=[]; let i=0, cur="", inQ=false; const row=[];
-  const pushCell=()=>{ row.push(cur); cur=""; };
-  const pushRow=()=>{ if(row.length===1 && row[0].trim()===""){ row.length=0; return; } rows.push(row.slice()); row.length=0; };
+  function pushCell(){ row.push(cur); cur=""; }
+  function pushRow(){ if(row.length===1 && row[0].trim()===""){ row.length=0; return; } rows.push(row.slice()); row.length=0; }
   while(i<text.length){
     const ch=text[i];
     if(inQ){
-      if(ch==='"'){
-        if(text[i+1]==='"'){ cur+='"'; i+=2; continue; }
-        inQ=false; i++; continue;
-      }
+      if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i+=2; continue; } inQ=false; i++; continue; }
       cur+=ch; i++; continue;
     }else{
       if(ch==='"'){ inQ=true; i++; continue; }
@@ -465,281 +371,239 @@ function parseCSV(text){
       cur+=ch; i++; continue;
     }
   }
-  pushCell(); pushRow();
-  return rows;
-}
-
-function stripMoney(s){
-  s = normBlank(s);
-  if(!s) return "";
-  s = s.replace(/[,\s]/g,"").replace(/^\$/,"");
-  return s;
-}
-function toNumberOrBad(s){
-  s = stripMoney(s);
-  if(!s) return "";
-  const n = Number(s);
-  return Number.isFinite(n) ? String(n) : "__BAD__";
-}
-
-function sciToIntStr(s){
-  s = normBlank(s);
-  if(!s) return "";
-  const m = s.match(/^([0-9]+(?:\.[0-9]+)?)E\+([0-9]+)$/i);
-  if(!m) return s;
-  const base=m[1], exp=parseInt(m[2],10);
-  const parts=base.split(".");
-  const intPart=parts[0];
-  const fracPart=(parts[1]||"");
-  const digits=(intPart+fracPart).replace(/^0+/,"") || "0";
-  const zeros=exp - fracPart.length;
-  if(zeros>=0) return digits + "0".repeat(zeros);
-  return s;
-}
-function normISBN(s){
-  s=normBlank(s);
-  if(!s) return "";
-  if(/E\+/i.test(s)) s=sciToIntStr(s);
-  const digits=s.replace(/[^0-9]/g,"");
-  return digits || s;
-}
-
-const MONTH = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
-const pad2 = n => (n<10?("0"+n):String(n));
-function isValidDate(y,m,d){
-  if(y<1900||y>2100) return false;
-  if(m<1||m>12) return false;
-  const dt=new Date(y,m-1,d);
-  return dt.getFullYear()===y && (dt.getMonth()+1)===m && dt.getDate()===d;
-}
-function normDate(s){
-  s=normBlank(s);
-  if(!s) return "";
-  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    const y=+m[1], mo=+m[2], d=+m[3];
-    return isValidDate(y,mo,d) ? `${y}-${pad2(mo)}-${pad2(d)}` : "__BAD__";
-  }
-  m=s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2}|\d{4})$/);
-  if(m){
-    const d=+m[1]; const mo=MONTH[m[2].toLowerCase()];
-    let y=+m[3]; if(String(m[3]).length===2) y=2000+y;
-    return (mo && isValidDate(y,mo,d)) ? `${y}-${pad2(mo)}-${pad2(d)}` : "__BAD__";
-  }
-  return "__BAD__";
-}
-function normPages(s){
-  s=normBlank(s);
-  if(!s) return "";
-  const t=s.replace(/[,\s]/g,"");
-  return /^\d+$/.test(t) ? t : "__BAD__";
-}
-
-function detectPublisher(fileName){
-  for(const p of LOCK_PUBLISHER_MAP){ if(p.matchFile(fileName)) return p.publisher; }
-  const m=fileName.match(/\(([^)]+)\)/);
-  if(m) return m[1].trim();
-  return "Unknown";
-}
-function getMappingFor(fileName){
-  const pub=detectPublisher(fileName);
-  const entry=LOCK_PUBLISHER_MAP.find(x=>x.publisher===pub);
-  return entry ? entry.mapping : null;
-}
-
-function getCell(headers, rawRow, colName){
-  const idx=headers.findIndex(h=>h.trim()===colName.trim());
-  if(idx<0) return "";
-  return normBlank(rawRow[idx] ?? "");
-}
-
-function makeAnchor(fileName, rowIndex, rowObj){
-  const stable = `${fileName}|${rowIndex}|${rowObj.Title||""}|${rowObj.ISBN||""}`;
-  const id = djb2(stable);
-  const anchorStr = `${fileName} | ${rowIndex} | ${id}`;
-  return { id, anchorStr, anchorKey:`${fileName}|${rowIndex}|${id}` };
+  pushCell(); pushRow(); return rows;
 }
 
 /** ===========================
- *  표준 행 생성(생성/추정 금지)
+ *  ✅ 로그(항상 이유를 남김)
  *  =========================== */
-function makeStandardRow({fileName,headers,rawRow,rowIndex,mapping,publisher}){
-  const out = {};
-  out["Publisher"] = publisher;
+function log(event, payload){
+  const ts=new Date().toISOString().replace("T"," ").slice(0,19);
+  logLines.push(`[${ts}] ${event} :: ${JSON.stringify(payload)}`);
+  if(logLines.length>700) logLines=logLines.slice(-700);
+  saveJSON(LS_LOG, logLines);
+  document.getElementById("log").textContent = logLines.join("\n");
+}
+
+/** ===========================
+ *  데이터 생성(표준)
+ *  =========================== */
+function makeStandardRow({fileName,publisher,headers,rawRow,rowIndex,mapping}){
+  const out={};
+  out["Publisher"]=publisher;
 
   function mapStd(std){
-    const src = mapping ? mapping[std] : "";
+    const src=mapping? mapping[std] : "";
     if(!src) return "";
     if(src==="__CONST_USD__") return "USD";
     if(src==="__CONST_EUR__") return "EUR";
     return getCell(headers, rawRow, src);
   }
 
-  out["Title"] = mapStd("Title");
-  out["Sub Title"] = mapStd("Sub Title");
-  out["KOR_TITLE"] = mapStd("KOR_TITLE");
-  out["KOR_SUBTITLE"] = mapStd("KOR_SUBTITLE");
+  out["Title"]=mapStd("Title");
+  out["Sub Title"]=mapStd("Sub Title");
+  out["KOR_TITLE"]=mapStd("KOR_TITLE");
+  out["KOR_SUBTITLE"]=mapStd("KOR_SUBTITLE");
 
-  out["ISBN"] = normISBN(mapStd("ISBN"));
+  out["ISBN"]=normISBN(mapStd("ISBN"));
 
-  const priceNorm = toNumberOrBad(mapStd("Price"));
-  out["Price"] = (priceNorm==="__BAD__") ? "__BAD__" : priceNorm;
+  const priceNorm=toNumberOrBlank(mapStd("Price"));
+  out["Price"]= (priceNorm==="__BAD__") ? "__BAD__" : priceNorm;
 
-  out["Currency"] = normBlank(mapStd("Currency"));
+  out["Currency"]=normBlank(mapStd("Currency"));
 
-  out["Pub Date"] = normDate(mapStd("Pub Date"));
+  out["Pub Date"]=normDate(mapStd("Pub Date"));
 
-  out["Pages"] = normPages(mapStd("Pages"));
+  out["Pages"]=normPages(mapStd("Pages"));
 
-  const anc = makeAnchor(fileName, rowIndex, out);
-  out._ANCHOR = anc.anchorStr;
-  out.__anchorKey = anc.anchorKey;
-  out.__file = fileName;
-  out.__row = rowIndex;
+  const anc=makeAnchor(fileName,rowIndex,out);
+  out._ANCHOR=anc.anchorStr;
+  out.__anchor=anc.anchor;
+  out.__anchorKey=anc.anchorKey;
 
   return out;
 }
 
 /** ===========================
- *  X/WARN 감지 (핵심)
+ *  ✅ X/WARN 자동감지(대화 없이 화면에 show up)
  *  =========================== */
-function issueId(type, row, col, key){
-  return `${type}|${row.__anchorKey}|${col||""}|${key||""}`;
-}
-function isResolved(id){ return !!resolved[id]; }
-function markResolved(id, status, action, meta){
-  resolved[id] = { status, action, meta: meta||{}, at: Date.now() };
-  saveJSON(LS_RESOLVED, resolved);
-}
-function markPolicyChange(id, detail){
-  policyLog.push({ id, detail, at: Date.now() });
-  if(policyLog.length>400) policyLog = policyLog.slice(-400);
-  saveJSON(LS_POLICY, policyLog);
-}
+function issueId(it){ return `${it.kind}|${it.anchorKey}|${it.col}|${it.code}`; }
 
-function detectXIssues(row){
-  const out = [];
+function detectIssues(){
+  const xItems=[], wItems=[];
+  const shortCols = ["Publisher","ISBN","Price","Currency","Pub Date","Pages"];
 
-  // ISBN: 13자리 아니면 X
-  {
-    const digits = (row.ISBN||"").replace(/[^0-9]/g,"");
-    if(row.ISBN && digits.length!==13){
-      out.push({ type:"X", col:"ISBN", key:"ISBN_BAD", reason:"ISBN 13자리 아님", value: row.ISBN });
+  // 행 수 의심(스킵/중복) - 매우 단순 경고(업로드 파일 수 대비 DB 증가가 너무 적으면)
+  // (정밀은 파일별 rowIndex 분포로 더 확장 가능)
+  if(LOCK_RULES.WARN.ROWS_SUSPICIOUS){
+    // 예: DB가 너무 적으면 WARN(임계값은 필요시 조정)
+    if(DB.length>0 && DB.length < 10){
+      wItems.push({
+        kind:"WARN", code:"ROWS_LOW", col:"(DB)",
+        anchorKey:"db", anchorStr:"(DB)", anchor:{},
+        value:`rows=${DB.length}`, reason:"행 수가 적음(스킵/중복 가능). 업로드 CSV 행수와 비교 필요"
+      });
     }
   }
 
-  // 날짜: __BAD__면 X
-  if(row["Pub Date"]==="__BAD__"){
-    out.push({ type:"X", col:"Pub Date", key:"DATE_BAD", reason:"날짜 형식 해석 불가", value: row["Pub Date"] });
-  }
+  for(const r of DB){
+    for(const col of LOCK_STANDARD_COLS){
+      if(col==="_ANCHOR(file|row|id)") continue;
 
-  // Currency: 공란이면 X
-  if(!row["Currency"]){
-    out.push({ type:"X", col:"Currency", key:"CURR_EMPTY", reason:"Currency 공란(필수)", value: row["Currency"] });
-  }
+      const v = r[col];
 
-  // Price: __BAD__ 또는 0이면 X (공란은 허용하되, 가격이 있는 파일에서 공란이면 X로 보고 싶으면 아래 한 줄을 켜면 됨)
-  if(row["Price"]==="__BAD__"){
-    out.push({ type:"X", col:"Price", key:"PRICE_BAD", reason:"Price 숫자 해석 불가", value: row["Price"] });
-  }else{
-    const n = Number(row["Price"]);
-    if(Number.isFinite(n) && n===0){
-      out.push({ type:"X", col:"Price", key:"PRICE_ZERO", reason:"Price = 0", value: row["Price"] });
-    }
-  }
+      // ✅ X: 필수 공란/형식/0/ISBN000…
+      if(LOCK_RULES.X_REQUIRED_COLS.includes(col)){
+        if(normBlank(v)===""){
+          xItems.push({kind:"X", code:"REQ_BLANK", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:`필수값 공란: ${col}`});
+          continue;
+        }
+      }
 
-  // Pages: 값이 있는데 __BAD__면 X (공란은 허용)
-  if(row["Pages"]==="__BAD__"){
-    out.push({ type:"X", col:"Pages", key:"PAGES_BAD", reason:"Pages 숫자 해석 불가", value: row["Pages"] });
-  }
+      if(col==="Price"){
+        if(v==="__BAD__"){
+          xItems.push({kind:"X", code:"PRICE_BAD", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:"Price 숫자 해석 불가"});
+        }else if(normBlank(v)!==""){
+          const n=Number(v);
+          if(Number.isFinite(n) && n<=0){
+            xItems.push({kind:"X", code:"PRICE_NONPOS", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+              value:fmtCell(v), reason:"Price <= 0"});
+          }
+        }
+      }
 
-  return out;
-}
+      if(col==="Currency"){
+        if(normBlank(v)===""){
+          xItems.push({kind:"X", code:"CURR_EMPTY", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:"Currency 공란"});
+        }
+      }
 
-function detectWarnIssues(row){
-  const out = [];
+      if(col==="Pub Date"){
+        if(normBlank(v)===""){
+          xItems.push({kind:"X", code:"DATE_BLANK", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:"Pub Date 공란"});
+        }else if(v==="__BAD__"){
+          xItems.push({kind:"X", code:"DATE_BAD", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:"Pub Date 형식오류"});
+        }
+      }
 
-  // ✅ 한글 타이틀/부제 공란: X는 아니지만 반드시 WARN으로 보여줌
-  if(!row["KOR_TITLE"]){
-    out.push({ type:"W", col:"KOR_TITLE", key:"KOR_TITLE_EMPTY", reason:"KOR_TITLE 공란(주의)", value:"(빈칸)" });
-  }
-  if(!row["KOR_SUBTITLE"]){
-    out.push({ type:"W", col:"KOR_SUBTITLE", key:"KOR_SUBTITLE_EMPTY", reason:"KOR_SUBTITLE 공란(주의)", value:"(빈칸)" });
-  }
+      if(col==="ISBN"){
+        const digits = normBlank(v);
+        if(digits.length!==13){
+          xItems.push({kind:"X", code:"ISBN_LEN", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:"ISBN 13자리 아님"});
+        }else if(/^0{13}$/.test(digits)){
+          xItems.push({kind:"X", code:"ISBN_ALL_ZERO", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:"ISBN이 0000000000000 (무효)"});
+        }
+      }
 
-  // 구조 경고: 셀 값에 개행이 들어오면(표가 아래로 ‘흐트러져’ 보이는 원인)
-  if(LOCK_UI.WARN_HAS_NEWLINE){
-    for(const c of ["Title","Sub Title","KOR_TITLE","KOR_SUBTITLE"]){
-      const v = row[c] || "";
-      if(String(v).includes("\n")){
-        out.push({ type:"W", col:c, key:"HAS_NEWLINE", reason:`${c} 값에 개행 포함(구조 주의)`, value:"\\n 포함" });
+      if(col==="Pages" && v==="__BAD__"){
+        xItems.push({kind:"X", code:"PAGES_BAD", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+          value:fmtCell(v), reason:"Pages 숫자 아님"});
+      }
+
+      // ✅ WARN: 한글 필드 공란(요구사항), 짧은필드 줄바꿈(가독/구조)
+      if(LOCK_RULES.WARN.KOR_BLANK && (col==="KOR_TITLE" || col==="KOR_SUBTITLE")){
+        if(normBlank(v)===""){
+          wItems.push({kind:"WARN", code:"KOR_BLANK", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+            value:fmtCell(v), reason:`${col} 공란(한글 필드) - 안내서 품질 영향`});
+        }
       }
     }
   }
 
-  return out;
-}
-
-function allIssues(){
-  const X=[], W=[];
-  for(const r of DB){
-    for(const it of detectXIssues(r)) X.push({ ...it, row:r });
-    for(const it of detectWarnIssues(r)) W.push({ ...it, row:r });
+  // ✅ 구조(WARN): 짧은 필드가 줄바꿈되면(실제 렌더 후 체크)
+  if(LOCK_RULES.WARN.CELL_WRAP_SHORTCOL){
+    requestAnimationFrame(()=>{
+      const rows = document.querySelectorAll("#body tr");
+      rows.forEach((tr, rIdx)=>{
+        // 표준 컬럼 순서대로 td가 있음(ANCHOR 포함)
+        const tds = tr.querySelectorAll("td");
+        // 각 td 안에 값 div가 2번째 child
+        LOCK_STANDARD_COLS.forEach((col, cIdx)=>{
+          if(col==="_ANCHOR(file|row|id)") return;
+          if(!["Publisher","ISBN","Price","Currency","Pub Date","Pages"].includes(col)) return;
+          const td = tds[cIdx];
+          if(!td) return;
+          // 값 div는 td의 2번째 child
+          const valDiv = td.children[1];
+          if(!valDiv) return;
+          const h = valDiv.getBoundingClientRect().height;
+          if(h > 34){ // 줄바꿈 의심
+            const r = DB[rIdx];
+            if(!r) return;
+            const it = {kind:"WARN", code:"CELL_WRAP", col, anchorKey:r.__anchorKey, anchorStr:r._ANCHOR, anchor:r.__anchor,
+              value:fmtCell(r[col]), reason:`짧은 필드(${col})가 줄바꿈됨(가독/레이아웃)`};
+            // 중복 방지
+            const id = issueId(it);
+            if(!optMap["_seen_"+id]){
+              optMap["_seen_"+id]=true;
+              saveJSON(LS_OPT, optMap);
+              // 리스트는 다음 오픈 때 자동 반영되도록 로그만 남김
+              log("WARN 감지(CELL_WRAP)", {anchor:r._ANCHOR, col});
+            }
+          }
+        });
+      });
+    });
   }
-  return { X, W };
+
+  return {xItems, wItems};
 }
 
 /** ===========================
- *  자동 수정(도구 책임)
+ *  ✅ 사용자 X(셀 토글) + 리스트용(부분/전체/옵션)
  *  =========================== */
-function autoFixRow(row){
-  // ISBN: 과학표기/하이픈 제거는 이미 normISBN에서 처리됨(원본이 과학표기로 들어오면 재정규화)
-  row["ISBN"] = normISBN(row["ISBN"]);
-
-  // Price: "$175.00" 등 -> 숫자 문자열
-  const p = toNumberOrBad(row["Price"]);
-  row["Price"] = (p==="__BAD__") ? row["Price"] : p;
-
-  // Pub Date: 혹시 원문이 들어왔으면 재정규화(현재는 표준 저장이므로 유지)
-  if(row["Pub Date"] && row["Pub Date"]!=="__BAD__"){
-    // ok
-  }
-
-  // Pages
-  if(row["Pages"] && row["Pages"]!=="__BAD__"){
-    // ok
-  }
+function anchorKey(row){ return row.__anchorKey; }
+function getXState(row, col, detectedX){
+  const k=anchorKey(row);
+  const ux=!!(userX[k] && userX[k][col]);
+  if(ux) return {on:true, reason:"USER_X"};
+  // detectedX(자동) 기준
+  const hit = detectedX.find(it => it.anchorKey===k && it.col===col);
+  return hit ? {on:true, reason:hit.code} : {on:false, reason:""};
+}
+function toggleUserX(row, col){
+  const k=anchorKey(row);
+  userX[k]=userX[k]||{};
+  userX[k][col]=!userX[k][col];
+  saveJSON(LS_USERX, userX);
+  log("USER_X 토글", {anchor: row._ANCHOR, col, on:userX[k][col]});
+  render();
 }
 
 /** ===========================
  *  렌더
  *  =========================== */
-const hdrEl = document.getElementById("hdr");
-const bodyEl = document.getElementById("body");
+const hdrEl=document.getElementById("hdr");
+const bodyEl=document.getElementById("body");
 
 function renderHeader(){
   hdrEl.innerHTML="";
   for(const col of LOCK_STANDARD_COLS){
     const th=document.createElement("th");
-    th.textContent = col;
-    const cls=LOCK_COL_WIDTH[col]||"";
-    if(cls) th.classList.add(cls);
+    th.textContent=col;
+    if(col==="Publisher") th.classList.add("colPub");
+    if(col==="ISBN") th.classList.add("colISBN");
+    if(col==="Price") th.classList.add("colPrice");
+    if(col==="Currency") th.classList.add("colCur");
+    if(col==="Pub Date") th.classList.add("colDate");
+    if(col==="Pages") th.classList.add("colPages");
+    if(col==="_ANCHOR(file|row|id)") th.classList.add("colAnchor");
     hdrEl.appendChild(th);
   }
-}
-
-function fmtCell(v){
-  if(v==="" || v==null) return "(빈칸)";
-  if(v==="__BAD__") return "(형식오류)";
-  return String(v);
 }
 
 function sortDB(){
   DB.sort((a,b)=>{
     const da=(a["Pub Date"] && a["Pub Date"]!=="__BAD__") ? a["Pub Date"] : "9999-99-99";
     const db=(b["Pub Date"] && b["Pub Date"]!=="__BAD__") ? b["Pub Date"] : "9999-99-99";
-    if(da<db) return -1;
-    if(da>db) return 1;
+    if(da<db) return -1; if(da>db) return 1;
     return a.__anchorKey < b.__anchorKey ? -1 : 1;
   });
 }
@@ -748,130 +612,98 @@ function render(){
   renderHeader();
   bodyEl.innerHTML="";
 
-  const {X,W} = allIssues();
-  const unresolvedX = X.filter(it=>{
-    const id = issueId("X", it.row, it.col, it.key);
-    return !isResolved(id) || (resolved[id].status!=="IGNORE" && resolved[id].status!=="KEEP_BLANK" && resolved[id].status!=="CONVERT" && resolved[id].status!=="DONE");
-  });
-  const unresolvedW = W.filter(it=>{
-    const id = issueId("W", it.row, it.col, it.key);
-    return !isResolved(id);
-  });
+  const {xItems, wItems} = detectIssues();
 
+  // KPI
   document.getElementById("kpiRows").textContent = String(DB.length);
-  document.getElementById("kpiX").textContent = String(unresolvedX.length);
-  document.getElementById("kpiW").textContent = String(unresolvedW.length);
+  document.getElementById("kpiAutoX").textContent = String(xItems.length);
+  document.getElementById("kpiAutoW").textContent = String(wItems.length);
+  document.getElementById("kpiUserX").textContent = String(countUserX());
 
-  const approveBtn = document.getElementById("btnApprove");
-  approveBtn.disabled = unresolvedX.length !== 0;
-
-  for(const row of DB){
-    const tr=document.createElement("tr");
-
-    for(const col of LOCK_STANDARD_COLS){
-      const td=document.createElement("td");
-      const cls=LOCK_COL_WIDTH[col]||"";
-      if(cls) td.classList.add(cls);
-
-      if(col==="_ANCHOR(file|row|id)"){
-        td.classList.add("mono","colAnchor");
-        td.textContent = row._ANCHOR;
-        tr.appendChild(td);
-        continue;
-      }
-
-      const v = fmtCell(row[col]);
-      const d=document.createElement("div");
-      d.className="cellVal";
-      d.textContent = v;
-
-      if(v==="(빈칸)") d.style.color="var(--muted)";
-      if(v==="(형식오류)") d.style.color="var(--warn)";
-
-      td.appendChild(d);
-      tr.appendChild(td);
-    }
-
-    bodyEl.appendChild(tr);
+  // ✅ “X가 0개”면 이유를 로그에 반드시 남김
+  if(DB.length>0 && xItems.length===0){
+    log("AUTO_X=0", {reason:"규칙을 만족했거나(정상) / 또는 입력이 모두 공란(의심). X_REQUIRED_COLS/ISBN/DATE/PRICE 규칙 적용 상태 확인"});
   }
 
-  // 구조 WARN: 행 높이 과도 감지(렌더 후 측정)
-  requestAnimationFrame(()=>{
-    const trs = Array.from(bodyEl.querySelectorAll("tr"));
-    trs.forEach((tr, idx)=>{
-      const h = tr.getBoundingClientRect().height;
-      if(h > LOCK_UI.WARN_ROW_HEIGHT_PX){
-        const r = DB[idx];
-        const id = issueId("W", r, "_ROW", "ROW_TOO_TALL");
-        if(!isResolved(id)){
-          // 표시만(리스트에 뜨도록): resolved에 저장하지 않고 감지에서 추가하기 위해 임시 메모로 처리
-          // -> 여기서는 로그만 남기고, WARN 리스트 빌드 시 추가
-        }
+  DB.forEach((row)=>{
+    const tr=document.createElement("tr");
+    LOCK_STANDARD_COLS.forEach((col)=>{
+      const td=document.createElement("td");
+      if(col==="_ANCHOR(file|row|id)"){
+        td.classList.add("colAnchor","mono");
+        td.textContent=row._ANCHOR;
+        tr.appendChild(td);
+        return;
       }
+
+      const btn=document.createElement("div");
+      btn.className="xbtn";
+      const st=getXState(row,col,xItems);
+      btn.textContent="X";
+      btn.classList.add(st.on?"on":"off");
+      btn.title=st.on? (`X: ${st.reason}`) : "PASS";
+      btn.addEventListener("click", ()=>toggleUserX(row,col));
+
+      const val=document.createElement("div");
+      val.textContent=fmtCell(row[col]);
+      if(row[col]==="__BAD__") val.style.color="var(--warn)";
+      if(fmtCell(row[col])==="(빈칸)") val.style.color="var(--muted)";
+
+      td.appendChild(btn);
+      td.appendChild(val);
+
+      if(col==="Publisher") td.classList.add("colPub");
+      if(col==="ISBN") td.classList.add("colISBN");
+      if(col==="Price") td.classList.add("colPrice");
+      if(col==="Currency") td.classList.add("colCur");
+      if(col==="Pub Date") td.classList.add("colDate");
+      if(col==="Pages") td.classList.add("colPages");
+
+      tr.appendChild(td);
     });
+    bodyEl.appendChild(tr);
   });
 
-  saveJSON(LS_DB, DB);
+  saveJSON(LS_KEY, DB);
 }
 
 /** ===========================
- *  ✅ WARN(행 높이) 추가 감지
+ *  리스트 모달(X/WARN)
  *  =========================== */
-function detectRowHeightWarn(){
-  const warns=[];
-  const trs = Array.from(bodyEl.querySelectorAll("tr"));
-  trs.forEach((tr, idx)=>{
-    const h = tr.getBoundingClientRect().height;
-    if(h > LOCK_UI.WARN_ROW_HEIGHT_PX){
-      const r = DB[idx];
-      warns.push({ type:"W", col:"_ROW", key:"ROW_TOO_TALL", reason:`행 높이 과도(구조 주의, ${Math.round(h)}px)`, value:"", row:r });
-    }
-  });
-  return warns;
+let currentIssues = [];
+let currentKind = "X";
+
+function openList(kind){
+  const {xItems, wItems} = detectIssues();
+  currentKind = kind;
+  currentIssues = (kind==="X") ? xItems : wItems;
+
+  document.getElementById("modalTitle").textContent = (kind==="X") ? "X 리스트(자동 감지)" : "WARN 리스트(구조/애매 자동 감지)";
+  document.getElementById("modalHint").textContent =
+    (kind==="X") ? "X는 저장/통과에 영향. 체크 → 옵션으로 끝내기." : "WARN은 애매/구조. 체크 → 옵션으로 처리(기록/정책변경 가능).";
+
+  renderIssueList();
+  document.getElementById("modalBack").style.display="flex";
 }
 
-/** ===========================
- *  X/WARN 모달 렌더
- *  =========================== */
-function buildXItems(){
-  const {X}=allIssues();
-  return X.map(it=>{
-    const id = issueId("X", it.row, it.col, it.key);
-    return { ...it, id };
-  });
-}
-function buildWItems(){
-  const {W}=allIssues();
-  const extra = detectRowHeightWarn();
-  const all = W.concat(extra);
-  return all.map(it=>{
-    const id = issueId("W", it.row, it.col, it.key);
-    return { ...it, id };
-  });
-}
-
-function renderXModal(){
-  const listEl=document.getElementById("xList");
+function renderIssueList(){
+  const listEl=document.getElementById("issueList");
   listEl.innerHTML="";
-  const items = buildXItems().filter(it=>{
-    // IGNORE / KEEP_BLANK / CONVERT / DONE 처리는 “미해결”에서 제외할지 여부는 여기서 선택 가능
-    // 여기서는 전부 보여주되 상태를 표시
-    return true;
-  });
 
-  if(items.length===0){
+  document.getElementById("chkAll").checked=false;
+
+  if(currentIssues.length===0){
     const d=document.createElement("div");
     d.className="item";
-    d.textContent="X가 없음(정상)";
+    d.textContent = (currentKind==="X") ? "X가 없음(정상)" : "WARN이 없음(정상)";
     listEl.appendChild(d);
     return;
   }
 
-  items.forEach((it, idx)=>{
+  currentIssues.forEach((it, idx)=>{
     const box=document.createElement("div");
     box.className="item";
-
-    const st = resolved[it.id]?.status || "OPEN";
+    const id=issueId(it);
 
     const top=document.createElement("div");
     top.className="itemTop";
@@ -879,116 +711,78 @@ function renderXModal(){
     const meta=document.createElement("div");
     meta.className="itemMeta";
     meta.innerHTML = `
-      <label class="chk"><input type="checkbox" class="xSel" data-id="${it.id}"></label>
+      <label class="chk"><input type="checkbox" class="chkItem" data-id="${escapeHtml(id)}"></label>
       <span class="pill"><b>#${idx+1}</b></span>
-      <span class="pill"><span class="tagX">X</span></span>
-      <span class="pill mono">${it.row._ANCHOR}</span>
-      <span class="pill"><b>${it.col}</b></span>
-      <span class="pill">${escapeHtml(fmtCell(it.row[it.col]))}</span>
-      <span class="pill">상태: <b>${st}</b></span>
+      <span class="pill mono">${escapeHtml(it.anchorStr)}</span>
+      <span class="pill"><b>${escapeHtml(it.col)}</b></span>
+      <span class="pill">${escapeHtml(it.value)}</span>
+      <span class="pill mono">${escapeHtml(it.code)}</span>
     `;
+
+    const right=document.createElement("div");
+    right.className="itemMeta";
+    right.innerHTML = `<span class="pill">옵션: <b>${escapeHtml(optMap[id]||"-")}</b></span>`;
+
+    top.appendChild(meta);
+    top.appendChild(right);
 
     const reason=document.createElement("div");
     reason.className="reason";
     reason.textContent = it.reason;
-
-    const preview=document.createElement("div");
-    preview.className="grid2";
-    preview.innerHTML = `
-      <div class="box"><b>현재</b><br/>${escapeHtml(fmtCell(it.row[it.col]))}</div>
-      <div class="box"><b>자동수정(예상)</b><br/>${escapeHtml(predictedFix(it))}</div>
-    `;
 
     box.appendChild(top);
-    box.appendChild(meta);
     box.appendChild(reason);
-    box.appendChild(preview);
     listEl.appendChild(box);
   });
 }
 
-function renderWModal(){
-  const listEl=document.getElementById("wList");
-  listEl.innerHTML="";
-  const items = buildWItems();
-
-  if(items.length===0){
-    const d=document.createElement("div");
-    d.className="item";
-    d.textContent="WARN가 없음(정상)";
-    listEl.appendChild(d);
-    return;
-  }
-
-  items.forEach((it, idx)=>{
-    const box=document.createElement("div");
-    box.className="item";
-
-    const st = resolved[it.id]?.status || "OPEN";
-
-    const meta=document.createElement("div");
-    meta.className="itemMeta";
-    meta.innerHTML = `
-      <label class="chk"><input type="checkbox" class="wSel" data-id="${it.id}"></label>
-      <span class="pill"><b>#${idx+1}</b></span>
-      <span class="pill"><span class="tagW">WARN</span></span>
-      <span class="pill mono">${it.row._ANCHOR}</span>
-      <span class="pill"><b>${it.col}</b></span>
-      <span class="pill">상태: <b>${st}</b></span>
-    `;
-
-    const reason=document.createElement("div");
-    reason.className="reason";
-    reason.textContent = it.reason;
-
-    const preview=document.createElement("div");
-    preview.className="grid2";
-    preview.innerHTML = `
-      <div class="box"><b>현재</b><br/>${escapeHtml(it.col==="_ROW" ? "(행 높이)" : fmtCell(it.row[it.col]))}</div>
-      <div class="box"><b>대응</b><br/>리스트에서 “정책 변경/확인 완료”로 처리</div>
-    `;
-
-    box.appendChild(meta);
-    box.appendChild(reason);
-    box.appendChild(preview);
-    listEl.appendChild(box);
-  });
+function selectedIssueIds(){
+  return Array.from(document.querySelectorAll(".chkItem"))
+    .filter(x=>x.checked)
+    .map(x=>x.getAttribute("data-id"));
 }
 
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-}
-
-function predictedFix(it){
-  // “미리보기”: 실제 자동수정이 어떻게 바뀌는지 예측 표시
-  const col = it.col;
-  const v = it.row[col];
-
-  if(col==="ISBN"){
-    const nx = normISBN(v);
-    return nx ? nx : "(빈칸)";
-  }
-  if(col==="Price"){
-    const nx = toNumberOrBad(v);
-    return nx==="" ? "(빈칸)" : (nx==="__BAD__" ? "(수정불가)" : nx);
-  }
-  if(col==="Pub Date"){
-    // 현재는 표준저장이라 __BAD__면 고칠 원문이 없을 수 있음(원본 생성 금지)
-    return "(원본 형식 확인 필요)";
-  }
-  if(col==="Currency"){
-    return "(원본/매핑 확인 필요)";
-  }
-  if(col==="Pages"){
-    return "(원본 형식 확인 필요)";
-  }
-  return "(해당없음)";
+function applyOption(option){
+  const ids=selectedIssueIds();
+  if(ids.length===0) return;
+  ids.forEach(id=>{ optMap[id]=option; });
+  saveJSON(LS_OPT, optMap);
+  log("옵션 적용", {option, count: ids.length, kind: currentKind});
+  renderIssueList();
 }
 
 /** ===========================
- *  업로드(추가) + 중복 방지(행 섞임 방지 핵심)
+ *  USER X 전체 ON/OFF
  *  =========================== */
-async function readFileAsText(file){
+function countUserX(){
+  let c=0;
+  for(const k in userX){ for(const col in userX[k]) if(userX[k][col]) c++; }
+  return c;
+}
+function applyAllAutoXToUserX(){
+  const {xItems}=detectIssues();
+  xItems.forEach(it=>{
+    const row = DB.find(r=>r.__anchorKey===it.anchorKey);
+    if(!row) return;
+    const k=anchorKey(row);
+    userX[k]=userX[k]||{};
+    userX[k][it.col]=true;
+  });
+  saveJSON(LS_USERX, userX);
+  log("AUTO_X 전체를 USER_X로 고정", {count:xItems.length});
+  render();
+}
+function clearAllUserX(){
+  userX={};
+  saveJSON(LS_USERX, userX);
+  log("USER_X 전체 OFF", {});
+  render();
+}
+
+/** ===========================
+ *  업로드
+ *  =========================== */
+function readFileAsText(file){
   return new Promise((res, rej)=>{
     const fr=new FileReader();
     fr.onload=()=>res(fr.result);
@@ -996,306 +790,94 @@ async function readFileAsText(file){
     fr.readAsText(file);
   });
 }
-
 async function readAndAppendFile(file){
   const name=file.name;
   const publisher=detectPublisher(name);
   const mapping=getMappingFor(name);
 
-  const text = await readFileAsText(file);
-  const rows = parseCSV(text);
+  const text=await readFileAsText(file);
+  const rows=parseCSV(text);
+  if(rows.length<2){ log("업로드 실패", {file:name, reason:"no rows"}); return; }
 
-  if(rows.length<2){
-    log("업로드(추가) 실패", {file:name, reason:"no rows"});
-    return;
-  }
+  const headers=rows[0].map(h=>normBlank(h));
+  log("업로드 시작", {file:name, publisher, headers});
 
-  const headers = rows[0].map(h=>normBlank(h));
-  log("업로드(추가) 시작", {file:name, publisher, headers});
-  log("매핑표(원본→표준) 확정", {file:name, mapping: mapping || "(없음)"});
-
-  let appended=0, skippedDup=0;
-  const existingKeys = new Set(DB.map(r=>r.__anchorKey));
-
+  let appended=0;
   for(let i=1;i<rows.length;i++){
     const rawRow=rows[i];
     if(rawRow.every(c=>normBlank(c)==="")) continue;
-
-    const rec = makeStandardRow({
-      fileName:name,
-      headers,
-      rawRow,
-      rowIndex:i,
-      mapping,
-      publisher
-    });
-
-    // ✅ 중복 방지(한두 줄 핵심): anchorKey가 이미 있으면 스킵
-    if(existingKeys.has(rec.__anchorKey)){
-      skippedDup++;
-      continue;
-    }
-
-    existingKeys.add(rec.__anchorKey);
-    DB.push(rec);
-    appended++;
+    const rec=makeStandardRow({fileName:name,publisher,headers,rawRow,rowIndex:i,mapping});
+    DB.push(rec); appended++;
   }
-
-  sortDB();
-  saveJSON(LS_DB, DB);
-
-  log("업로드(추가) 완료", {file:name, appended, skippedDup, total:DB.length});
+  log("업로드 완료", {file:name, appended});
   document.getElementById("kpiLast").textContent = name;
 }
 
 async function handleFiles(files){
-  for(const f of files) await readAndAppendFile(f);
-  render();
-}
-
-/** ===========================
- *  승인 저장(사용자 노동 최소)
- *  =========================== */
-async function approveSave(){
-  // X가 0일 때만 활성화
-  const {X} = allIssues();
-  const unresolved = X.filter(it=>{
-    const id = issueId("X", it.row, it.col, it.key);
-    const st = resolved[id]?.status || "OPEN";
-    // OPEN은 미해결
-    return st==="OPEN";
-  });
-  if(unresolved.length>0){
-    log("승인 저장 실패", {reason:"X remains", count: unresolved.length});
-    alert("X(미해결)가 남아있어 저장이 막혀있습니다. X 리스트에서 처리하세요.");
-    return;
-  }
-
-  // 출력: 표준 CSV를 클립보드로 복사(추가 클릭 최소)
-  const csv = exportStandardCSV();
-  try{
-    await navigator.clipboard.writeText(csv);
-    log("전체 승인 저장", {rows: DB.length, out:"clipboard csv"});
-    alert("표준 CSV가 클립보드에 복사되었습니다.\n(이 도구는 localStorage에도 자동 저장됩니다.)");
-  }catch(e){
-    log("전체 승인 저장", {rows: DB.length, out:"download fallback"});
-    downloadText("wic27_standard.csv", csv);
-    alert("클립보드 권한이 없어 파일 다운로드로 저장했습니다.");
-  }
-}
-
-function exportStandardCSV(){
-  const cols = LOCK_STANDARD_COLS.filter(c=>c!=="_ANCHOR(file|row|id)");
-  const esc = (v)=>{
-    v = (v==null) ? "" : String(v);
-    if(v.includes('"')) v = v.replace(/"/g,'""');
-    if(/[",\n\r]/.test(v)) return `"${v}"`;
-    return v;
-  };
-  const lines=[];
-  lines.push(cols.join(","));
-  for(const r of DB){
-    const line = cols.map(c=>esc(r[c]==="__BAD__" ? "" : (r[c]||""))).join(",");
-    lines.push(line);
-  }
-  return lines.join("\n");
-}
-function downloadText(filename, text){
-  const blob=new Blob([text], {type:"text/csv;charset=utf-8"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download=filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/** ===========================
- *  리스트 선택/옵션 적용
- *  =========================== */
-function selectedIds(selector){
-  return Array.from(document.querySelectorAll(selector))
-    .filter(x=>x.checked)
-    .map(x=>x.getAttribute("data-id"));
-}
-function applyToSelected(ids, status, actionLabel){
-  ids.forEach(id=>{
-    markResolved(id, status, actionLabel, {});
-  });
-  log("리스트 처리", {status, action: actionLabel, count: ids.length});
-  render();
-}
-
-function applyPolicyChange(ids, note){
-  ids.forEach(id=>{
-    markResolved(id, "POLICY", "정책 변경", {});
-    markPolicyChange(id, note||"정책 변경 요청");
-  });
-  log("정책 변경", {count: ids.length, note: note||""});
-  render();
-}
-
-function tryConvertById(ids){
-  // 선택된 X에 대해 “가능한 것만” 자동 변환 + 처리 표시
-  const xItems = buildXItems();
-  const map = new Map(xItems.map(it=>[it.id, it]));
-  ids.forEach(id=>{
-    const it = map.get(id);
-    if(!it) return;
-    const row = it.row;
-
-    // 변환 시도(원본 생성/추정은 하지 않음)
-    if(it.col==="ISBN"){
-      row["ISBN"]=normISBN(row["ISBN"]);
-    }else if(it.col==="Price"){
-      const nx=toNumberOrBad(row["Price"]);
-      if(nx!=="" && nx!=="__BAD__") row["Price"]=nx;
-    }else if(it.col==="Pages"){
-      const nx=normPages(row["Pages"]);
-      if(nx!=="" && nx!=="__BAD__") row["Pages"]=nx;
-    }
-    // Pub Date / Currency는 원본/매핑 문제가 많아 “정책 변경”으로 보내는 것을 기본 권장
-
-    markResolved(id, "CONVERT", "자동 변환", {});
-  });
-  saveJSON(LS_DB, DB);
-  log("선택 X 자동 변환", {count: ids.length});
+  for(const f of files){ await readAndAppendFile(f); }
+  sortDB();
   render();
 }
 
 /** ===========================
  *  초기 로드
  *  =========================== */
-function loadDB(){
-  const saved = loadJSON(LS_DB, []);
-  DB = Array.isArray(saved) ? saved : [];
-}
-
-loadDB();
-renderLog();
-render();
-
-/** ===========================
- *  ✅ stickyTop 자동 계산(필드가 스크롤에 같이 올라가는 문제 해결)
- *  =========================== */
-function fixStickyTop(){
-  const header = document.getElementById("topHeader");
-  const h = Math.ceil(header.getBoundingClientRect().height);
-  document.documentElement.style.setProperty("--stickyTop", `${h}px`);
-}
-window.addEventListener("resize", fixStickyTop);
-setTimeout(fixStickyTop, 50);
-setTimeout(fixStickyTop, 250);
+(function init(){
+  const saved=loadJSON(LS_KEY, []);
+  DB=Array.isArray(saved)? saved: [];
+  document.getElementById("log").textContent = logLines.join("\n");
+  render();
+})();
 
 /** ===========================
  *  이벤트
  *  =========================== */
 document.getElementById("fileInput").addEventListener("change", async (e)=>{
-  const files = Array.from(e.target.files || []);
+  const files=Array.from(e.target.files||[]);
   if(!files.length) return;
   await handleFiles(files);
   e.target.value="";
-  fixStickyTop();
 });
 
 document.getElementById("btnResetDB").addEventListener("click", ()=>{
-  DB=[];
-  resolved={};
-  policyLog=[];
-  saveJSON(LS_DB, DB);
-  saveJSON(LS_RESOLVED, resolved);
-  saveJSON(LS_POLICY, policyLog);
-  log("DB 초기화", {});
+  DB=[]; userX={}; optMap={};
+  saveJSON(LS_KEY, DB);
+  saveJSON(LS_USERX, userX);
+  saveJSON(LS_OPT, optMap);
+  log("DB/USERX/OPT 초기화", {});
   render();
 });
-
 document.getElementById("btnClearLog").addEventListener("click", ()=>{
-  logLines=[];
-  saveJSON(LS_LOG, logLines);
-  renderLog();
+  logLines=[]; saveJSON(LS_LOG, logLines);
+  document.getElementById("log").textContent="";
 });
 
 document.getElementById("btnResort").addEventListener("click", ()=>{
-  sortDB();
-  log("정렬 재적용", {by:"Pub Date ↑"});
-  render();
+  sortDB(); log("정렬 재적용", {by:"Pub Date ↑"}); render();
 });
 
-document.getElementById("btnAutoFix").addEventListener("click", ()=>{
-  DB.forEach(r=>autoFixRow(r));
-  saveJSON(LS_DB, DB);
-  log("자동 수정 실행", {rows: DB.length});
-  render();
+document.getElementById("btnShowX").addEventListener("click", ()=>openList("X"));
+document.getElementById("btnShowW").addEventListener("click", ()=>openList("WARN"));
+
+document.getElementById("btnApplyAllX").addEventListener("click", ()=>applyAllAutoXToUserX());
+document.getElementById("btnClearAllX").addEventListener("click", ()=>clearAllUserX());
+
+document.getElementById("btnCloseModal").addEventListener("click", ()=>{
+  document.getElementById("modalBack").style.display="none";
+});
+document.getElementById("modalBack").addEventListener("click", (e)=>{
+  if(e.target.id==="modalBack") document.getElementById("modalBack").style.display="none";
 });
 
-document.getElementById("btnApprove").addEventListener("click", approveSave);
-
-/* X 모달 */
-document.getElementById("btnShowX").addEventListener("click", ()=>{
-  renderXModal();
-  document.getElementById("modalBackX").style.display="flex";
-});
-document.getElementById("btnCloseX").addEventListener("click", ()=>{
-  document.getElementById("modalBackX").style.display="none";
-});
-document.getElementById("modalBackX").addEventListener("click", (e)=>{
-  if(e.target.id==="modalBackX") document.getElementById("modalBackX").style.display="none";
-});
-
-/* WARN 모달 */
-document.getElementById("btnShowW").addEventListener("click", ()=>{
-  renderWModal();
-  document.getElementById("modalBackW").style.display="flex";
-});
-document.getElementById("btnCloseW").addEventListener("click", ()=>{
-  document.getElementById("modalBackW").style.display="none";
-});
-document.getElementById("modalBackW").addEventListener("click", (e)=>{
-  if(e.target.id==="modalBackW") document.getElementById("modalBackW").style.display="none";
-});
-
-/* X 선택 */
-document.getElementById("xSelAll").addEventListener("change", (e)=>{
+document.getElementById("chkAll").addEventListener("change", (e)=>{
   const on=e.target.checked;
-  document.querySelectorAll(".xSel").forEach(ch=>ch.checked=on);
-});
-document.getElementById("xMarkIgnore").addEventListener("click", ()=>{
-  const ids = selectedIds(".xSel");
-  applyToSelected(ids, "IGNORE", "무시하고 통과");
-  renderXModal();
-});
-document.getElementById("xMarkKeepBlank").addEventListener("click", ()=>{
-  const ids = selectedIds(".xSel");
-  applyToSelected(ids, "KEEP_BLANK", "공란 유지");
-  renderXModal();
-});
-document.getElementById("xMarkConvert").addEventListener("click", ()=>{
-  const ids = selectedIds(".xSel");
-  tryConvertById(ids);
-  renderXModal();
-});
-document.getElementById("xMarkPolicy").addEventListener("click", ()=>{
-  const ids = selectedIds(".xSel");
-  applyPolicyChange(ids, "X 해결을 위해 규칙/매핑 정책 변경");
-  renderXModal();
+  document.querySelectorAll(".chkItem").forEach(x=>x.checked=on);
 });
 
-/* WARN 선택 */
-document.getElementById("wSelAll").addEventListener("change", (e)=>{
-  const on=e.target.checked;
-  document.querySelectorAll(".wSel").forEach(ch=>ch.checked=on);
-});
-document.getElementById("wMarkDone").addEventListener("click", ()=>{
-  const ids = selectedIds(".wSel");
-  applyToSelected(ids, "DONE", "확인 완료");
-  renderWModal();
-});
-document.getElementById("wMarkPolicy").addEventListener("click", ()=>{
-  const ids = selectedIds(".wSel");
-  applyPolicyChange(ids, "WARN 해결을 위해 UI/레이아웃 정책 변경");
-  renderWModal();
-});
+document.getElementById("optBlank").addEventListener("click", ()=>applyOption("blank"));
+document.getElementById("optAuto").addEventListener("click", ()=>applyOption("auto"));
+document.getElementById("optIgnore").addEventListener("click", ()=>applyOption("ignore"));
+document.getElementById("optPolicy").addEventListener("click", ()=>applyOption("policy"));
 </script>
 </body>
 </html>
