@@ -3,169 +3,264 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X 자동검증 (v4)</title>
+  <title>27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X/경고 자동 리스트 · 카드뷰(워드 형식)</title>
   <style>
     :root{
+      /* ✅ WHITE ONLY */
       --bg:#ffffff;
-      --panel:#f7f7f9;
-      --panel2:#ffffff;
-      --txt:#111111;
-      --muted:#555555;
-      --line:#d9d9de;
-      --ok:#1a7f37;
-      --bad:#d1242f;
-      --warn:#b54708;
+      --panel:#ffffff;
+      --panel2:#f7f8fa;
+      --txt:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --line2:#d1d5db;
+      --ok:#16a34a;
+      --bad:#dc2626;
+      --warn:#d97706;
       --btn:#ffffff;
-      --btnLine:#c9c9d3;
-      --shadow:0 1px 6px rgba(0,0,0,.06);
+      --btn2:#f3f4f6;
+      --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 30px rgba(0,0,0,.06);
+      --radius:14px;
+      --radius2:10px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
     *{ box-sizing:border-box; }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--txt); }
-    header{ position:sticky; top:0; z-index:80; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); backdrop-filter:saturate(120%) blur(6px); }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg); color:var(--txt);
+    }
+
+    /* ====== TOP BAR (LOCKED) ====== */
+    header{
+      position:sticky; top:0; z-index:100;
+      background:rgba(255,255,255,.94);
+      backdrop-filter:saturate(140%) blur(8px);
+      border-bottom:1px solid var(--line);
+    }
     .wrap{ max-width:1200px; margin:0 auto; padding:12px; }
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .titleBox{ flex:1; min-width:260px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:var(--shadow); }
-    .titleBox .t{ font-weight:800; font-size:14px; }
-    .titleBox .s{ margin-top:4px; font-size:12px; color:var(--muted); line-height:1.35; }
-    .btn{
-      background:var(--btn); color:var(--txt); border:1px solid var(--btnLine);
-      padding:10px 12px; border-radius:12px; cursor:pointer; font-size:13px;
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:10px 12px;
       box-shadow:var(--shadow);
     }
+    .title{ font-weight:800; font-size:14px; }
+    .sub{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35; }
+    .btn{
+      background:var(--btn);
+      color:var(--txt);
+      border:1px solid var(--line2);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:13px;
+      box-shadow:0 1px 1px rgba(0,0,0,.04);
+    }
+    .btn:hover{ background:var(--btn2); }
     .btn:active{ transform:translateY(1px); }
-    .btn.primary{ border-color:#2a79ff; }
+    .btn.primary{ border-color:#2563eb; }
     .btn.danger{ border-color:var(--bad); }
     .btn.ok{ border-color:var(--ok); }
-    .btn.small{ padding:6px 10px; border-radius:10px; font-size:12px; }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .btn.small{ padding:7px 10px; border-radius:10px; font-size:12px; }
     input[type="file"]{ display:none; }
 
-    .kpis{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .kpi{ padding:6px 10px; border-radius:999px; background:#fff; border:1px solid var(--line); font-size:12px; color:var(--muted); box-shadow:var(--shadow); }
+    .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
+    .kpi{
+      padding:6px 10px; border-radius:999px;
+      background:var(--panel2);
+      border:1px solid var(--line);
+      font-size:12px; color:var(--muted);
+    }
     .kpi b{ color:var(--txt); }
 
-    .tabs{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .tab{
-      padding:8px 10px; border-radius:999px; border:1px solid var(--line);
-      background:#fff; font-size:12px; cursor:pointer; box-shadow:var(--shadow);
-    }
-    .tab.on{ border-color:#2a79ff; }
+    main .wrap{ padding-top:10px; padding-bottom:120px; }
 
-    main .wrap{ padding-top:10px; }
-    .tableWrap{
-      border:1px solid var(--line); border-radius:14px; overflow:hidden;
-      background:#fff; box-shadow:var(--shadow);
+    /* ====== VIEW TOGGLE ====== */
+    .toggle{
+      display:flex; gap:6px; flex-wrap:wrap; align-items:center;
+      margin-left:auto;
     }
-    table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
+    .seg{
+      display:inline-flex; border:1px solid var(--line2); border-radius:999px; overflow:hidden;
+      background:#fff;
+    }
+    .seg button{
+      border:0; background:transparent; padding:7px 10px; cursor:pointer; font-size:12px; color:var(--muted);
+    }
+    .seg button.on{ background:var(--panel2); color:var(--txt); font-weight:700; }
+
+    /* ====== TABLE (EXCEL-LIKE) ====== */
+    .tableWrap{
+      border:1px solid var(--line2);
+      border-radius:var(--radius);
+      overflow:auto;
+      background:#fff;
+      box-shadow:var(--shadow);
+      max-height:62vh;
+    }
+    table{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:980px; }
     thead th{
-      position:sticky; top:120px; z-index:20;
-      background:#fff; color:var(--muted);
-      border-bottom:1px solid var(--line);
-      padding:10px 8px; font-size:12px; text-align:left;
+      position:sticky; top:0; z-index:5;
+      background:#fff;
+      border-bottom:2px solid var(--line2);
+      padding:10px 8px;
+      font-size:12px;
+      text-align:left;
+      color:var(--muted);
       white-space:nowrap;
     }
     tbody td{
-      border-bottom:1px solid var(--line);
-      padding:8px; vertical-align:top; font-size:13px;
-      word-break:break-word; overflow-wrap:anywhere;
+      border-top:1px solid var(--line);
+      border-right:1px solid var(--line);
+      padding:8px;
+      vertical-align:top;
+      font-size:13px;
+      word-break:break-word;
+      overflow-wrap:anywhere;
       background:#fff;
     }
-    tbody tr:nth-child(even) td{ background:#fcfcfd; }
-    tbody tr:hover td{ background:#f3f7ff; }
+    tbody tr td:first-child{ border-left:1px solid var(--line); }
+    tbody tr:hover td{ background:var(--panel2); }
 
-    .gridCell{
-      display:flex; gap:8px; align-items:flex-start;
-    }
-    .xbtn{
-      flex:0 0 auto;
-      display:inline-flex; align-items:center; justify-content:center;
-      width:30px; height:26px; border-radius:10px;
-      border:1px solid var(--line); background:#fff; cursor:pointer;
-      font-weight:900; user-select:none;
-    }
-    .xbtn.on{ border-color:var(--bad); color:var(--bad); background:#fff5f5; }
-    .xbtn.off{ border-color:rgba(26,127,55,.35); color:var(--ok); background:#f3fff6; }
-
-    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:4px 8px; border-radius:999px; border:1px solid var(--line);
-      background:#fff; font-size:12px; color:var(--muted);
-    }
-    .badgeBad{ color:var(--bad); font-weight:800; }
-    .badgeWarn{ color:var(--warn); font-weight:800; }
-    .badgeOk{ color:var(--ok); font-weight:800; }
-
-    .colPub{ width:100px; }
-    .colTitle{ width:240px; }
-    .colSub{ width:210px; }
-    .colKor{ width:170px; }
-    .colISBN{ width:140px; }
+    .colPub{ width:90px; }
+    .colTitle{ width:280px; }
+    .colSub{ width:240px; }
+    .colKor{ width:180px; }
+    .colISBN{ width:150px; }
     .colPrice{ width:90px; }
-    .colCur{ width:80px; }
+    .colCur{ width:90px; }
     .colDate{ width:110px; }
     .colPages{ width:80px; }
-    .colAnchor{ width:220px; }
+    .colAnchor{ width:260px; color:var(--muted); font-size:11px; font-family:var(--mono); }
 
-    details{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px; box-shadow:var(--shadow); }
-    details summary{ cursor:pointer; color:var(--muted); font-size:13px; }
-    pre{ margin:8px 0 0; max-height:220px; overflow:auto; background:#fbfbfd; padding:10px; border-radius:12px; border:1px solid var(--line); font-size:12px; }
-
-    .footerBar{
-      position:fixed; left:0; right:0; bottom:0; z-index:90;
-      background:rgba(255,255,255,.96); border-top:1px solid var(--line);
-      backdrop-filter:saturate(120%) blur(6px);
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px; border-radius:999px;
+      border:1px solid var(--line2); background:var(--panel2);
+      font-size:12px; color:var(--muted);
     }
-    .footerInner{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
-    .footerLeft{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 
+    /* ====== CARD VIEW (WORD COPY) ====== */
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+    }
+    @media (max-width:900px){ .cards{ grid-template-columns:1fr; } }
+    .card{
+      border:1px solid var(--line2);
+      border-radius:var(--radius);
+      background:#fff;
+      box-shadow:var(--shadow);
+      padding:12px;
+    }
+    .card .catRow{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+    .card .cat{ font-weight:900; }
+    .card .kw{ font-size:12px; color:var(--muted); }
+    .card .t1{ font-weight:900; font-size:14px; line-height:1.25; }
+    .card .t2{ margin-top:2px; font-weight:800; font-size:13px; color:var(--muted); }
+    .divider{ margin:10px 0; height:1px; background:var(--line); }
+    .meta{
+      font-size:12px; color:var(--muted); line-height:1.45;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    .meta b{ color:var(--txt); font-weight:800; }
+
+    /* ====== BOTTOM LOG ====== */
+    .footerBar{
+      position:fixed; left:0; right:0; bottom:0; z-index:120;
+      background:rgba(255,255,255,.96);
+      backdrop-filter:saturate(140%) blur(8px);
+      border-top:1px solid var(--line);
+    }
+    details{
+      background:#fff; border:1px solid var(--line2);
+      border-radius:var(--radius);
+      padding:10px; box-shadow:var(--shadow);
+    }
+    details summary{ cursor:pointer; color:var(--muted); font-size:13px; }
+    pre{
+      margin:8px 0 0;
+      max-height:200px;
+      overflow:auto;
+      background:var(--panel2);
+      padding:10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      font-size:12px;
+      font-family:var(--mono);
+      white-space:pre-wrap;
+    }
+
+    /* ====== MODAL ====== */
     .modalBack{
-      position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:120;
-      padding:14px;
+      position:fixed; inset:0;
+      background:rgba(17,24,39,.35);
+      display:none; align-items:center; justify-content:center;
+      z-index:200; padding:14px;
     }
     .modal{
-      width:min(1020px, 100%); max-height:86vh; overflow:auto;
-      background:#fff; border:1px solid var(--line); border-radius:16px; padding:12px;
-      box-shadow:0 10px 30px rgba(0,0,0,.15);
+      width:min(980px, 100%);
+      max-height:86vh; overflow:auto;
+      background:#fff;
+      border:1px solid var(--line2);
+      border-radius:16px;
+      padding:12px;
+      box-shadow:var(--shadow);
     }
-    .modal h3{ margin:0; font-size:14px; }
-    .hint{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.35; }
+    .modal h3{ margin:0 0 10px; font-size:14px; color:var(--txt); }
+    .hint{ font-size:12px; color:var(--muted); line-height:1.35; }
     .list{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-    .item{ border:1px solid var(--line); border-radius:14px; padding:10px; background:#fff; }
+    .item{
+      border:1px solid var(--line2);
+      border-radius:12px;
+      padding:10px;
+      background:#fff;
+    }
     .itemTop{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
     .itemMeta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .reason{ color:var(--muted); font-size:12px; margin-top:6px; }
-    .actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .reason{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35; }
+    .mono{ font-family:var(--mono); }
+    .chk{ display:flex; align-items:center; gap:8px; }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+    .sep{ height:1px; background:var(--line); margin:10px 0; }
 
-    /* 모바일: 가로 스크롤 제거(카드 모드) */
-    .cards{ display:none; }
-    @media (max-width: 900px){
-      thead th{ top:172px; }
-      .tableWrap{ overflow:visible; }
-      table{ display:none; }
-      .cards{ display:block; }
-      .card{
-        border:1px solid var(--line); border-radius:14px; background:#fff; box-shadow:var(--shadow);
-        padding:10px; margin-bottom:10px;
-      }
-      .cardTop{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
-      .kv{ margin-top:8px; display:grid; grid-template-columns: 100px 1fr; gap:6px 10px; }
-      .k{ color:var(--muted); font-size:12px; }
-      .v{ font-size:13px; word-break:break-word; }
+    /* PERSISTENT OPTIONS */
+    .optRow{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .optBtn{
+      border:1px solid var(--line2);
+      background:var(--panel2);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      cursor:pointer;
+      color:var(--txt);
     }
-    .spacer{ height:140px; }
+    .optBtn.on{
+      border-color:#2563eb;
+      background:#e8efff;
+      font-weight:800;
+    }
+    .badgeX{ color:var(--bad); font-weight:900; }
+    .badgeW{ color:var(--warn); font-weight:900; }
+
+    /* small helper */
+    .right{ margin-left:auto; }
   </style>
 </head>
 <body>
-
-<header>
+<header id="topHeader">
   <div class="wrap">
     <div class="row">
-      <div class="titleBox">
-        <div class="t">27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X 자동검증 (v4)</div>
-        <div class="s">
+      <div class="panel" style="flex:1; min-width:260px;">
+        <div class="title">27번 도구 – CSV 업로드 · 표준 컬럼 매핑 · X/경고 자동 리스트 · 카드뷰(워드 형식)</div>
+        <div class="sub">
           ① 원본컬럼(발행사별) ② 표준컬럼(LOCK_STANDARD_COLS) ③ 매핑표(원본→표준) ④ UI 레이아웃(LOCK_UI) = <b>상수로 완전 잠금</b><br/>
-          사용자는 <b>업로드 → 리스트 확인 → 복사</b>만 수행. 사진/로그 수동 입력 최소화.
+          사용자는 <b>업로드 → X/경고 리스트 열기 → 체크 → 복사</b>만 수행. (텍스트 입력/사진 최소화)
         </div>
       </div>
 
@@ -175,212 +270,221 @@
       <button class="btn danger" id="btnResetDB">DB 초기화</button>
       <button class="btn" id="btnClearLog">로그 초기화</button>
 
-      <button class="btn ok" id="btnAutoFix">자동 수정</button>
+      <button class="btn ok" id="btnRecalc">오류 재계산</button>
       <button class="btn" id="btnShowX">X 리스트</button>
       <button class="btn" id="btnShowW">경고 리스트</button>
+
+      <div class="toggle">
+        <div class="seg" title="표/카드 전환">
+          <button id="viewTable" class="on" type="button">표</button>
+          <button id="viewCards" type="button">카드뷰</button>
+        </div>
+      </div>
     </div>
 
     <div class="row" style="margin-top:10px;">
       <div class="kpis">
         <span class="kpi">DB: <b id="kpiRows">0</b> rows</span>
-        <span class="kpi">X(열림): <b id="kpiXOpen">0</b></span>
-        <span class="kpi">경고: <b id="kpiWarn">0</b></span>
+        <span class="kpi">X: <b id="kpiX">0</b></span>
+        <span class="kpi">경고: <b id="kpiW">0</b></span>
         <span class="kpi">Last: <b id="kpiLast">-</b></span>
         <span class="kpi">정렬: Pub Date ↑ (이 도구 전용)</span>
-        <span class="kpi"><span class="badgeOk">행 섞임 방지</span> rowId=file|row|hash</span>
+        <span class="kpi">행 섞임 방지: <b>rowId=file|row|hash</b> (표에 표시)</span>
+        <span class="kpi">환율: <b>1 EUR = 1500 KRW</b> (고정)</span>
       </div>
-
-      <div class="tabs" style="margin-left:auto;">
-        <span class="tab on" id="tabTable">표</span>
-        <span class="tab" id="tabLog">로그</span>
-      </div>
-
-      <button class="btn small" id="btnResort">정렬 재적용</button>
-      <button class="btn small" id="btnRecalc">오류 재계산</button>
+      <button class="btn small right" id="btnResort">정렬 재적용</button>
     </div>
   </div>
 </header>
 
 <main>
-  <div class="wrap" id="viewTable">
-    <div class="tableWrap" id="tableWrap">
+  <div class="wrap">
+    <!-- TABLE VIEW -->
+    <div id="tableView" class="tableWrap">
       <table>
         <thead><tr id="hdr"></tr></thead>
         <tbody id="body"></tbody>
       </table>
+    </div>
 
+    <!-- CARD VIEW -->
+    <div id="cardView" style="display:none; margin-top:12px;">
+      <div class="row" style="margin-bottom:8px;">
+        <span class="pill"><b>카드뷰</b></span>
+        <span class="pill">카테고리/키워드 자동 분류(잠금 상수)</span>
+        <button class="btn small right" id="btnCopyAllCards">카드 전체(워드 형식) 복사</button>
+      </div>
       <div class="cards" id="cards"></div>
     </div>
-    <div class="spacer"></div>
-  </div>
-
-  <div class="wrap" id="viewLog" style="display:none;">
-    <details id="logBox" open>
-      <summary>로그(복사 후 대화창 붙여넣기 가능)</summary>
-      <div class="row" style="margin-top:8px;">
-        <button class="btn small" id="btnCopyLog">로그 복사</button>
-      </div>
-      <pre id="log"></pre>
-    </details>
-    <div class="spacer"></div>
   </div>
 </main>
 
 <div class="footerBar">
   <div class="wrap">
-    <div class="footerInner">
-      <div class="footerLeft">
-        <span class="pill"><b>X</b>는 “데이터 오류/필수 누락” (예: KOR 공란 포함)</span>
-        <span class="pill"><b>경고</b>는 “UI/애매/주의”</span>
-      </div>
-      <div class="row" style="margin:0;">
-        <button class="btn" id="btnCopyX">X 리스트 복사</button>
-        <button class="btn" id="btnCopyW">경고 리스트 복사</button>
-      </div>
-    </div>
+    <details id="logBox">
+      <summary>로그(하단 고정 · 접기/펼치기)</summary>
+      <pre id="log"></pre>
+    </details>
   </div>
 </div>
 
-<!-- X MODAL -->
-<div class="modalBack" id="modalXBack">
+<!-- MODAL: X / WARNING -->
+<div class="modalBack" id="modalBack">
   <div class="modal">
     <div class="row" style="margin-bottom:8px;">
-      <h3 style="flex:1;">X 리스트 (도구 자동 산출)</h3>
-      <button class="btn" id="btnCloseX">닫기</button>
+      <h3 id="modalTitle" style="flex:1;">-</h3>
+      <button class="btn" id="btnCloseModal">닫기</button>
     </div>
-    <div class="row">
-      <button class="btn small" id="btnResolveAllX">X 전체 “공란 유지로 해결”</button>
-      <button class="btn small" id="btnClearResolvedX">X 해결표시 초기화</button>
-      <button class="btn small" id="btnCopyXIn">X 리스트 복사</button>
-    </div>
-    <div class="hint">
-      X는 “문제 목록”이고, 해결은 <b>옵션 버튼</b>으로만 처리한다. (사용자 텍스트 입력 유도 금지)<br/>
-      예) KOR 공란 → “공란 유지(해결)”로 처리 가능(값 생성 없이, 작업 종료 가능).
-    </div>
-    <div class="list" id="xList"></div>
-  </div>
-</div>
 
-<!-- WARN MODAL -->
-<div class="modalBack" id="modalWBack">
-  <div class="modal">
-    <div class="row" style="margin-bottom:8px;">
-      <h3 style="flex:1;">경고 리스트</h3>
-      <button class="btn" id="btnCloseW">닫기</button>
+    <div class="hint" id="modalHint"></div>
+
+    <div class="sep"></div>
+
+    <div class="row" style="align-items:center;">
+      <label class="chk">
+        <input type="checkbox" id="chkAll" />
+        <span><b>전체 선택</b></span>
+      </label>
+
+      <span class="pill">선택: <b id="selCount">0</b></span>
+
+      <div class="actions right">
+        <button class="btn small" id="btnCopySelected">선택 복사</button>
+        <button class="btn small" id="btnCopyAll">전체 복사</button>
+      </div>
     </div>
-    <div class="row">
-      <button class="btn small" id="btnCopyWIn">경고 리스트 복사</button>
-    </div>
-    <div class="hint">
-      경고는 UI/애매/주의 사항이다. (X로 올릴지 말지는 도구가 규칙으로 결정한다)
-    </div>
-    <div class="list" id="wList"></div>
+
+    <div class="list" id="listEl"></div>
   </div>
 </div>
 
 <script>
-/* ===========================
- *  0) 완전 잠금 상수(5가지 축)
- *  =========================== */
+/* =========================================================
+  ✅ LOCK (한 지점에서 5가지 고정: ①원본컬럼 ②표준컬럼 ③매핑 ④UI ⑤rowId)
+========================================================= */
+
+/** ② 표준컬럼 (LOCK_STANDARD_COLS) */
 const LOCK_STANDARD_COLS = [
-  "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR(file|row|id)"
+  "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE",
+  "ISBN","Price","Currency","Pub Date","Pages","_ANCHOR(file|row|id)"
 ];
+
+/** ④ UI 레이아웃 상수(LOCK_UI) */
 const LOCK_UI = Object.freeze({
-  theme: "LIGHT_ONLY",
-  headerSticky: true,
-  footerFixed: true,
-  noBlackColors: true,
-  preferNoHScroll: true,
-});
-const LOCK_X_RULES = Object.freeze({
-  // 사용자 기준: KOR 공란은 X
-  KOR_BLANK_IS_X: true,
-  CURRENCY_REQUIRED: true,
-  PRICE_REQUIRED: true,
-  ISBN_13_REQUIRED: true,
-});
-const LOCK_PUBLISHERS = Object.freeze({
-  Elsevier: {
-    match: (name)=> /\(elsevier\)/i.test(name) || /elsevier/i.test(name),
-    mapping: {
-      "Title":"Title",
-      "Sub Title":"",
-      "KOR_TITLE":"",
-      "KOR_SUBTITLE":"",
-      "ISBN":"ISBN",
-      "Price":"List Price (USD)",
-      "Currency":"__CONST_USD__",
-      "Pub Date":"Pub date",
-      "Pages":"No of Pages"
-    },
-    rawHeadersAnyOf: [
-      ["ISBN","Title","List Price (USD)","Pub date","No of Pages"]
-    ]
-  },
-  Springer: {
-    match: (name)=> /^springer-/i.test(name) || /springer/i.test(name),
-    mapping: {
-      "Title":"Title",
-      "Sub Title":"Sub Title",
-      "KOR_TITLE":"",
-      "KOR_SUBTITLE":"",
-      "ISBN":"ISBN",
-      "Price":"Price EUR",
-      "Currency":"__CONST_EUR__",
-      "Pub Date":"Actual Publishing Date",
-      "Pages":"No of Arabic Pages"
-    },
-    rawHeadersAnyOf: [
-      ["ISBN","Title","Sub Title","No of Arabic Pages","Price EUR","Actual Publishing Date"]
-    ]
-  },
-  Wiley: {
-    match: (name)=> /wiley/i.test(name),
-    mapping: {
-      "Title":"Title",
-      "Sub Title":"",
-      "KOR_TITLE":"",
-      "KOR_SUBTITLE":"",
-      "ISBN":"ISBN13",
-      "Price":"US$",
-      "Currency":"__CONST_USD__",
-      "Pub Date":"Pub Date",
-      "Pages":"Pages"
-    },
-    rawHeadersAnyOf: [
-      ["Title","Pub Date","Pages","ISBN13","US$"],
-      ["ISBN13","Title","Pub Date","US$"]
-    ]
-  }
+  THEME: "WHITE_ONLY",
+  TABLE_MIN_WIDTH: 980,
+  CARD_WORD_FORMAT_FREEZE: [
+`도서 제목
+(한글 제목)
+
+------------------------------------------------------------
+발행사: / Pages: / ISBN: / 정가:
+발행: / 공급가:
+------------------------------------------------------------
+● 자세한 내용의 링크 :`
+  ].join("\n")
 });
 
-/* ===========================
- *  1) 저장 키
- *  =========================== */
+/** ① 원본컬럼(발행사별) + ③ 매핑표(원본→표준) (LOCK) */
+const LOCK_PUBLISHER_MAP = [
+  {
+    publisher: "Elsevier",
+    matchFile: (name)=> /\(elsevier\)/i.test(name) || /elsevier/i.test(name),
+    rawHeaders: ["ISBN","Title","List Price (USD)","Pub date","No of Pages"],
+    mapping: {
+      "Title": "Title",
+      "Sub Title": "",
+      "KOR_TITLE": "",
+      "KOR_SUBTITLE": "",
+      "ISBN": "ISBN",
+      "Price": "List Price (USD)",
+      "Currency": "__CONST_USD__",
+      "Pub Date": "Pub date",
+      "Pages": "No of Pages"
+    }
+  },
+  {
+    publisher: "Springer",
+    matchFile: (name)=> /^springer-/i.test(name) || /springer/i.test(name),
+    rawHeaders: ["ISBN","Title","Sub Title","No of Arabic Pages","Price EUR","Actual Publishing Date"],
+    mapping: {
+      "Title": "Title",
+      "Sub Title": "Sub Title",
+      "KOR_TITLE": "",
+      "KOR_SUBTITLE": "",
+      "ISBN": "ISBN",
+      "Price": "Price EUR",
+      "Currency": "__CONST_EUR__",
+      "Pub Date": "Actual Publishing Date",
+      "Pages": "No of Arabic Pages"
+    }
+  },
+  {
+    publisher: "Wiley",
+    matchFile: (name)=> /wiley/i.test(name),
+    rawHeadersA: ["Title","Pub Date","Pages","ISBN13","US$"],
+    rawHeadersB: ["ISBN13","Title","Pub Date","US$"],
+    mapping: {
+      "Title": "Title",
+      "Sub Title": "",
+      "KOR_TITLE": "",
+      "KOR_SUBTITLE": "",
+      "ISBN": "ISBN13",
+      "Price": "US$",
+      "Currency": "__CONST_USD__",
+      "Pub Date": "Pub Date",
+      "Pages": "Pages"
+    }
+  }
+];
+
+/** ⑤ 행 섞임 방지 rowId=file|row|hash : anchorKey 고정 */
+function djb2(str){
+  let h = 5381;
+  for(let i=0;i<str.length;i++){
+    h = ((h<<5)+h) + str.charCodeAt(i);
+    h = h >>> 0;
+  }
+  return ("00000000" + h.toString(16)).slice(-8);
+}
+
+/* =========================================================
+  ✅ 정책(LOCK) : 사용자 기준 반영
+========================================================= */
+
+/** KOR 공란 = X (사용자 기준) : 기본 잠금 */
+const POLICY = {
+  KOR_BLANK_IS_X: true,
+  FX_EUR_TO_KRW: 1500, // 환율 고정
+  // 정책 변경(4번째 버튼)으로만 바뀜(사용자 텍스트 입력 금지)
+};
+
+/* =========================================================
+  ✅ 저장(localStorage)
+========================================================= */
 const LS_DB   = "wic27_db_v4";
 const LS_LOG  = "wic27_log_v4";
-const LS_RES  = "wic27_resolutions_v4"; // issueKey -> resolution
+const LS_RES  = "wic27_resolution_v4"; // persistent options result
+const LS_VIEW = "wic27_view_v4";
 
 let DB = loadJSON(LS_DB, []);
 let logLines = loadJSON(LS_LOG, []);
-let resolutions = loadJSON(LS_RES, {}); // { issueKey: "KEEP_BLANK" | "AUTO_CONVERT" | "IGNORE" }
+let RES = loadJSON(LS_RES, {}); // { itemId: {choice:"KEEP_BLANK|AUTO_CONVERT|IGNORE|POLICY_CHANGE"} }
 
-/* ===========================
- *  2) 유틸
- *  =========================== */
 function loadJSON(key, fallback){
-  try{ const raw = localStorage.getItem(key); if(!raw) return fallback; return JSON.parse(raw); }
-  catch(e){ return fallback; }
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return fallback;
+    return JSON.parse(raw);
+  }catch(e){ return fallback; }
 }
-function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
-
-function djb2(str){
-  let h = 5381;
-  for(let i=0;i<str.length;i++){ h = ((h<<5)+h) + str.charCodeAt(i); h = h >>> 0; }
-  return ("00000000" + h.toString(16)).slice(-8);
+function saveJSON(key, val){
+  localStorage.setItem(key, JSON.stringify(val));
 }
-function normBlank(v){ return (v==null) ? "" : String(v).trim(); }
 
+/* =========================================================
+  ✅ CSV Parser
+========================================================= */
 function parseCSV(text){
   const rows = [];
   let i=0, cur="", inQ=false;
@@ -409,7 +513,14 @@ function parseCSV(text){
   pushCell(); pushRow();
   return rows;
 }
+function normBlank(v){
+  if(v==null) return "";
+  return String(v).trim();
+}
 
+/* =========================================================
+  ✅ Normalizers
+========================================================= */
 function stripMoney(s){
   s = normBlank(s);
   if(!s) return "";
@@ -417,7 +528,7 @@ function stripMoney(s){
   s = s.replace(/^\$/,"");
   return s;
 }
-function toNumberOrBad(s){
+function toNumberOrBlank(s){
   s = stripMoney(s);
   if(!s) return "";
   const n = Number(s);
@@ -444,6 +555,8 @@ function normISBN(s){
   if(!s) return "";
   if(/E\+/i.test(s)) s = sciToIntStr(s);
   const digits = s.replace(/[^0-9]/g,"");
+  if(digits.length===13) return digits;
+  if(digits.length===10) return digits;
   return digits || s;
 }
 const MONTH = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
@@ -483,15 +596,12 @@ function normPages(s){
   return "__BAD__";
 }
 
-function fmtCell(v){
-  if(v==="") return "(빈칸)";
-  if(v==="__BAD__") return "(형식오류)";
-  return v;
-}
-
+/* =========================================================
+  ✅ Publisher detect + mapping
+========================================================= */
 function detectPublisher(fileName){
-  for(const key of Object.keys(LOCK_PUBLISHERS)){
-    if(LOCK_PUBLISHERS[key].match(fileName)) return key;
+  for(const p of LOCK_PUBLISHER_MAP){
+    if(p.matchFile(fileName)) return p.publisher;
   }
   const m = fileName.match(/\(([^)]+)\)/);
   if(m) return m[1].trim();
@@ -499,7 +609,8 @@ function detectPublisher(fileName){
 }
 function getMappingFor(fileName){
   const pub = detectPublisher(fileName);
-  return (LOCK_PUBLISHERS[pub] && LOCK_PUBLISHERS[pub].mapping) ? LOCK_PUBLISHERS[pub].mapping : null;
+  const entry = LOCK_PUBLISHER_MAP.find(x => x.publisher===pub);
+  return entry ? entry.mapping : null;
 }
 function getCell(headers, rawRow, colName){
   const idx = headers.findIndex(h => h.trim() === colName.trim());
@@ -507,32 +618,16 @@ function getCell(headers, rawRow, colName){
   return normBlank(rawRow[idx] ?? "");
 }
 
-function makeAnchor(fileName, rowIndex, outRow){
-  const stable = `${fileName}|${rowIndex}|${outRow.Title||""}|${outRow.ISBN||""}`;
+/* =========================================================
+  ✅ Anchor (rowId) + Standard row
+========================================================= */
+function makeAnchor(fileName, rowIndex, rowObj){
+  const stable = `${fileName}|${rowIndex}|${rowObj.Title||""}|${rowObj.ISBN||""}`;
   const id = djb2(stable);
-  const anchorStr = `${fileName} | ${rowIndex} | ${id}`;
-  return { file:fileName, rowIndex, id, anchorStr, anchorKey:`${fileName}|${rowIndex}|${id}` };
+  const rowId = `${fileName} | ${rowIndex} | ${id}`; // 화면 증거
+  const anchorKey = `${fileName}|${rowIndex}|${id}`;
+  return { rowId, anchorKey, file:fileName, rowIndex, id };
 }
-
-/* ===========================
- *  3) 로그
- *  =========================== */
-function log(event, payload){
-  const now = new Date();
-  const ts = now.toISOString().replace("T"," ").slice(0,19);
-  const line = `[${ts}] ${event} :: ${JSON.stringify(payload)}`;
-  logLines.push(line);
-  if(logLines.length>900) logLines = logLines.slice(-900);
-  saveJSON(LS_LOG, logLines);
-  renderLog();
-}
-function renderLog(){
-  document.getElementById("log").textContent = logLines.join("\n");
-}
-
-/* ===========================
- *  4) 표준화 row 생성
- *  =========================== */
 function makeStandardRow({fileName,publisher,headers,rawRow,rowIndex,mapping}){
   const out = {};
   out["Publisher"] = publisher;
@@ -542,7 +637,6 @@ function makeStandardRow({fileName,publisher,headers,rawRow,rowIndex,mapping}){
     if(!src) return "";
     if(src === "__CONST_USD__") return "USD";
     if(src === "__CONST_EUR__") return "EUR";
-    if(src === "__BLANK__") return "";
     return getCell(headers, rawRow, src);
   }
 
@@ -550,26 +644,340 @@ function makeStandardRow({fileName,publisher,headers,rawRow,rowIndex,mapping}){
   out["Sub Title"] = mapStd("Sub Title");
   out["KOR_TITLE"] = mapStd("KOR_TITLE");
   out["KOR_SUBTITLE"] = mapStd("KOR_SUBTITLE");
-
   out["ISBN"] = normISBN(mapStd("ISBN"));
-  const priceNorm = toNumberOrBad(mapStd("Price"));
+
+  const priceNorm = toNumberOrBlank(mapStd("Price"));
   out["Price"] = (priceNorm==="__BAD__") ? "__BAD__" : priceNorm;
 
   out["Currency"] = normBlank(mapStd("Currency"));
   out["Pub Date"] = normDate(mapStd("Pub Date"));
   out["Pages"] = normPages(mapStd("Pages"));
 
-  const anc = makeAnchor(fileName, rowIndex, out);
-  out["_ANCHOR(file|row|id)"] = anc.anchorStr;
-  out.__anchor = {file:anc.file, rowIndex:anc.rowIndex, id:anc.id};
+  const anc = makeAnchor(fileName, rowIndex, {Title:out["Title"], ISBN:out["ISBN"]});
+  out["_ANCHOR(file|row|id)"] = anc.rowId;
   out.__anchorKey = anc.anchorKey;
-
+  out.__file = anc.file;
+  out.__row = anc.rowIndex;
+  out.__id = anc.id;
   return out;
 }
 
-/* ===========================
- *  5) 정렬
- *  =========================== */
+/* =========================================================
+  ✅ Category/Keyword (LOCK) : Title/Sub Title 기반 자동 분류
+  - 여기서 “대화기록 기반 키워드”는 이후 확장 포인트
+  - 지금은 카드뷰/형식 출력이 먼저 작동하도록 최소 세트만 넣음
+========================================================= */
+const LOCK_CATEGORIES = [
+  { cat:"미분류", keywords: [] },
+  // ✅ 예시(추후 대화기록 키워드로 확장 가능): cat/keywords는 상수로만 늘림
+  { cat:"AI/데이터", keywords:["machine learning","deep learning","artificial intelligence","data science","neural","transformer"] },
+  { cat:"전기/배터리", keywords:["battery","bms","power","electric","energy storage"] },
+  { cat:"의학/헬스", keywords:["medical","healthcare","disease","clinical","inflammatory bowel"] },
+  { cat:"법/사회", keywords:["citizenship","racism","trauma","catholic","abuse crisis"] },
+];
+function pickCategory(row){
+  const text = (row["Title"]+" "+row["Sub Title"]).toLowerCase();
+  for(const c of LOCK_CATEGORIES){
+    if(!c.keywords.length) continue;
+    for(const k of c.keywords){
+      if(text.includes(k.toLowerCase())) return {cat:c.cat, kw:k};
+    }
+  }
+  return {cat:"미분류", kw:""};
+}
+
+/* =========================================================
+  ✅ X / WARNING 계산
+========================================================= */
+function fmtCell(v){
+  if(v==="") return "(빈칸)";
+  if(v==="__BAD__") return "(형식오류)";
+  return v;
+}
+function itemId(kind, ruleKey, rowId, col){
+  return `${kind}|${ruleKey}|${rowId}|${col||""}`;
+}
+function isResolved(item){
+  const r = RES[item.itemId];
+  if(!r) return false;
+  // KEEP_BLANK or IGNORE = 해결로 처리(사용자 선택으로 끝내기)
+  return (r.choice === "KEEP_BLANK" || r.choice === "IGNORE" || r.choice === "POLICY_CHANGE");
+}
+function calcXandWarnings(){
+  const X = [];
+  const W = [];
+
+  // 1) DATA 규칙
+  for(const r of DB){
+    const rowId = r["_ANCHOR(file|row|id)"];
+
+    // ISBN 13
+    const isbnDigits = (r["ISBN"]||"").replace(/[^0-9]/g,"");
+    if(isbnDigits && isbnDigits.length !== 13){
+      X.push({
+        kind:"X", area:"DATA", rule:"ISBN_BAD",
+        msg:"ISBN 13자리 불일치",
+        rowId, col:"ISBN",
+        how:"HOW=공란 유지(불가) / 자동 변환(불가) / 무시(권장X)",
+      });
+    }
+
+    // Price
+    if(r["Price"]==="__BAD__"){
+      X.push({
+        kind:"X", area:"DATA", rule:"PRICE_BAD",
+        msg:"Price 숫자 해석 불가",
+        rowId, col:"Price",
+        how:"HOW=공란 유지(권장X) / 자동 변환(불가) / 무시(권장X)",
+      });
+    }else{
+      const n = Number(r["Price"]);
+      if(Number.isFinite(n) && n===0){
+        X.push({
+          kind:"X", area:"DATA", rule:"PRICE_ZERO",
+          msg:"Price = 0",
+          rowId, col:"Price",
+          how:"HOW=공란 유지(권장X) / 자동 변환(불가) / 무시(권장X)",
+        });
+      }
+    }
+
+    // Currency blank
+    if(!r["Currency"]){
+      X.push({
+        kind:"X", area:"DATA", rule:"CURR_EMPTY",
+        msg:"Currency 비어있음(필수)",
+        rowId, col:"Currency",
+        how:"HOW=공란 유지(권장X) / 자동 변환(불가) / 무시(권장X)",
+      });
+    }
+
+    // Pub Date bad
+    if(r["Pub Date"]==="__BAD__"){
+      X.push({
+        kind:"X", area:"DATA", rule:"DATE_BAD",
+        msg:"날짜 형식 깨짐/해석 불가",
+        rowId, col:"Pub Date",
+        how:"HOW=공란 유지(권장X) / 자동 변환(불가) / 무시(권장X)",
+      });
+    }
+
+    // Pages bad (값이 있는데 숫자 아님)
+    if(r["Pages"]==="__BAD__"){
+      X.push({
+        kind:"X", area:"DATA", rule:"PAGES_BAD",
+        msg:"Pages 숫자 해석 불가",
+        rowId, col:"Pages",
+        how:"HOW=공란 유지(해결) / 자동 변환(불가) / 무시(권장X)",
+      });
+    }
+
+    // ✅ 사용자 기준: KOR 공란 = X
+    if(POLICY.KOR_BLANK_IS_X){
+      if(!r["KOR_TITLE"]){
+        X.push({
+          kind:"X", area:"DATA", rule:"KOR_TITLE_BLANK",
+          msg:"KOR_TITLE이 비어있음(사용자 기준 X)",
+          rowId, col:"KOR_TITLE",
+          how:"HOW=공란 유지(해결) / 자동 변환(불가) / 무시(권장X)",
+        });
+      }
+      if(!r["KOR_SUBTITLE"]){
+        X.push({
+          kind:"X", area:"DATA", rule:"KOR_SUBTITLE_BLANK",
+          msg:"KOR_SUBTITLE이 비어있음(사용자 기준 X)",
+          rowId, col:"KOR_SUBTITLE",
+          how:"HOW=공란 유지(해결) / 자동 변환(불가) / 무시(권장X)",
+        });
+      }
+    }else{
+      // 정책이 바뀌면 경고로 이동
+      if(!r["KOR_TITLE"]){
+        W.push({
+          kind:"W", area:"DATA", rule:"KOR_TITLE_BLANK",
+          msg:"KOR_TITLE 공란(정책상 경고)",
+          rowId, col:"KOR_TITLE",
+          how:"HOW=공란 유지(OK)",
+        });
+      }
+      if(!r["KOR_SUBTITLE"]){
+        W.push({
+          kind:"W", area:"DATA", rule:"KOR_SUBTITLE_BLANK",
+          msg:"KOR_SUBTITLE 공란(정책상 경고)",
+          rowId, col:"KOR_SUBTITLE",
+          how:"HOW=공란 유지(OK)",
+        });
+      }
+    }
+  }
+
+  // 2) UI 규칙 (브라우저 화면 기준 감지)
+  // - 가로 스크롤: 표 컨테이너가 스크롤을 강제로 만들면 경고
+  // - 헤더 고정 실패(치명적이면 X로 올릴 수 있지만, 여기선 경고로 먼저)
+  const tw = document.getElementById("tableView");
+  if(tw){
+    const hasH = (tw.scrollWidth - tw.clientWidth) > 6;
+    if(hasH){
+      W.push({
+        kind:"W", area:"UI", rule:"UI_HSCROLL",
+        msg:"가로 스크롤이 발생함(피로 유발)",
+        rowId:"UI", col:"",
+        how:"HOW=모바일은 카드뷰(가로 스크롤 없음). 데스크톱은 열 폭/Title 폭을 더 줄이거나 표 최소폭을 조정.",
+      });
+    }
+  }
+
+  // 3) itemId + RES 반영(해결 여부)
+  const mapWithId = (arr, kind)=> arr.map(it=>{
+    it.itemId = itemId(kind, it.rule, it.rowId, it.col);
+    it.resolved = isResolved(it);
+    it.res = it.resolved ? "Y" : "N";
+    return it;
+  });
+
+  return {
+    X: mapWithId(X,"X"),
+    W: mapWithId(W,"W"),
+  };
+}
+
+/* =========================================================
+  ✅ LOG
+========================================================= */
+function log(event, payload){
+  const now = new Date();
+  const ts = now.toISOString().replace("T"," ").slice(0,19);
+  const line = `[${ts}] ${event} :: ${JSON.stringify(payload)}`;
+  logLines.push(line);
+  if(logLines.length>600) logLines = logLines.slice(-600);
+  saveJSON(LS_LOG, logLines);
+  renderLog();
+}
+function renderLog(){
+  document.getElementById("log").textContent = logLines.join("\n");
+}
+
+/* =========================================================
+  ✅ RENDER: header/table/cards/kpi
+========================================================= */
+const hdrEl = document.getElementById("hdr");
+const bodyEl = document.getElementById("body");
+const cardsEl = document.getElementById("cards");
+
+function renderHeader(){
+  hdrEl.innerHTML = "";
+  const widths = {
+    "Publisher":"colPub",
+    "Title":"colTitle",
+    "Sub Title":"colSub",
+    "KOR_TITLE":"colKor",
+    "KOR_SUBTITLE":"colKor",
+    "ISBN":"colISBN",
+    "Price":"colPrice",
+    "Currency":"colCur",
+    "Pub Date":"colDate",
+    "Pages":"colPages",
+    "_ANCHOR(file|row|id)":"colAnchor"
+  };
+  for(const col of LOCK_STANDARD_COLS){
+    const th = document.createElement("th");
+    th.textContent = col;
+    if(widths[col]) th.classList.add(widths[col]);
+    hdrEl.appendChild(th);
+  }
+}
+function renderTable(){
+  renderHeader();
+  bodyEl.innerHTML = "";
+
+  for(const row of DB){
+    const tr = document.createElement("tr");
+    for(const col of LOCK_STANDARD_COLS){
+      const td = document.createElement("td");
+      if(col === "_ANCHOR(file|row|id)"){
+        td.classList.add("colAnchor");
+        td.textContent = row["_ANCHOR(file|row|id)"];
+        tr.appendChild(td);
+        continue;
+      }
+      const v = row[col] ?? "";
+      td.textContent = fmtCell(v);
+      if(v==="__BAD__") td.style.color = "var(--warn)";
+      if(v==="") td.style.color = "var(--muted)";
+      tr.appendChild(td);
+    }
+    bodyEl.appendChild(tr);
+  }
+}
+function supplyPriceKRW(row){
+  // 공급가: 통화가 EUR이면 1500 적용, USD면 1500 적용 안함(그냥 USD 값 표시)
+  const price = row["Price"];
+  if(price==="" || price==="__BAD__") return "";
+  const n = Number(price);
+  if(!Number.isFinite(n)) return "";
+  if(row["Currency"]==="EUR") return String(Math.round(n * POLICY.FX_EUR_TO_KRW));
+  return ""; // USD는 공급가 계산 안함(요청에 맞춰 단순화)
+}
+function wordCardText(row){
+  // ✅ 출력 형식 FREEZE (사용자 제공)
+  const title = row["Title"] || "";
+  const korTitle = row["KOR_TITLE"] || "";
+  const pub = row["Publisher"] || "";
+  const pages = (row["Pages"] && row["Pages"]!=="__BAD__") ? row["Pages"] : "";
+  const isbn = row["ISBN"] || "";
+  const price = (row["Price"] && row["Price"]!=="__BAD__") ? row["Price"] : "";
+  const cur = row["Currency"] || "";
+  const pubDate = (row["Pub Date"] && row["Pub Date"]!=="__BAD__") ? row["Pub Date"] : "";
+  const supply = supplyPriceKRW(row);
+
+  // "정가:"는 원문 값 그대로(통화 표시 포함)
+  const listPrice = price ? `${price} ${cur}`.trim() : "";
+
+  // "공급가:"는 EUR만 계산(요청 고정값), 없으면 빈칸
+  const supplyLine = supply ? `${supply} KRW` : "";
+
+  // 링크는 “가능하면 표시, 불가면 표시하지 말라” → 현재는 수집 안 함(빈칸 유지)
+  const link = "";
+
+  return [
+    `${title}`,
+    `(${korTitle})`,
+    ``,
+    `------------------------------------------------------------`,
+    `발행사: ${pub} / Pages: ${pages} / ISBN: ${isbn} / 정가: ${listPrice}`,
+    `발행: ${pubDate} / 공급가: ${supplyLine}`,
+    `------------------------------------------------------------`,
+    `● 자세한 내용의 링크 : ${link}`
+  ].join("\n");
+}
+function renderCards(){
+  cardsEl.innerHTML = "";
+  for(const row of DB){
+    const picked = pickCategory(row);
+    const card = document.createElement("div");
+    card.className = "card";
+    const wtxt = wordCardText(row);
+
+    card.innerHTML = `
+      <div class="catRow">
+        <span class="pill"><span class="cat">${picked.cat}</span></span>
+        <span class="pill"><span class="kw">${picked.kw ? ("키워드: "+picked.kw) : "키워드: -"} </span></span>
+        <span class="pill mono">rowId: ${escapeHtml(row["_ANCHOR(file|row|id)"])}</span>
+        <button class="btn small right" type="button">이 카드 복사</button>
+      </div>
+      <div class="t1">${escapeHtml(row["Title"] || "(제목 없음)")}</div>
+      <div class="t2">(${escapeHtml(row["KOR_TITLE"] || "")})</div>
+      <div class="divider"></div>
+      <div class="meta"><pre style="margin:0; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px; white-space:pre-wrap; font-family:var(--mono); font-size:12px;">${escapeHtml(wtxt)}</pre></div>
+    `;
+    const btn = card.querySelector("button");
+    btn.addEventListener("click", ()=> copyText(wtxt));
+    cardsEl.appendChild(card);
+  }
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
 function sortDB(){
   DB.sort((a,b)=>{
     const da = (a["Pub Date"] && a["Pub Date"]!=="__BAD__") ? a["Pub Date"] : "9999-99-99";
@@ -579,561 +987,40 @@ function sortDB(){
     return a.__anchorKey < b.__anchorKey ? -1 : 1;
   });
 }
-
-/* ===========================
- *  6) 이슈 엔진 (X + 경고)
- *  =========================== */
-function issueKey(type, row, col, code){
-  const a = row ? row[" _ANCHOR(file|row|id)"] : "";
-  return `${type}|${row ? row.__anchorKey : "UI"}|${col || ""}|${code}`;
-}
-function getResolution(key){ return resolutions[key] || ""; }
-function setResolution(key, val){ resolutions[key]=val; saveJSON(LS_RES, resolutions); }
-
-function computeXandWarnings(){
-  const X = [];
-  const W = [];
-
-  // UI 경고(가로 스크롤, 헤더 sticky)
-  try{
-    const wrap = document.getElementById("tableWrap");
-    const hScroll = wrap.scrollWidth > wrap.clientWidth + 2;
-    if(hScroll){
-      W.push({
-        no:0, type:"UI", code:"UI_HSCROLL",
-        msg:"가로 스크롤이 발생함(피로 유발).",
-        how:"HOW=모바일은 카드뷰(가로 스크롤 없음). 데스크톱은 열 폭을 더 줄이거나 Title 폭을 조정."
-      });
-    }
-    const th = document.querySelector("thead th");
-    if(th){
-      const pos = getComputedStyle(th).position;
-      if(pos !== "sticky"){
-        W.push({
-          no:0, type:"UI", code:"UI_HEADER_NOT_STICKY",
-          msg:"헤더 sticky가 적용되지 않음(스크롤 시 필드가 사라짐).",
-          how:"HOW=브라우저 캐시 강제 새로고침(Ctrl+F5) 후 재확인."
-        });
-      }
-    }
-  }catch(e){}
-
-  // 데이터 X 규칙
-  for(const row of DB){
-    const rowId = row["_ANCHOR(file|row|id)"] || row[" _ANCHOR(file|row|id)"] || row["__ANCHOR"] || row.__anchorKey;
-
-    // Title 필수
-    if(!normBlank(row["Title"])){
-      X.push(makeIssue("X","DATA","TITLE_BLANK","Title이 비어있음(필수).", row, "Title",
-        `rowId=${rowId}`, "HOW=원본에 Title이 없는 경우만 공란 유지(해결)로 처리"));
-    }
-
-    // KOR 공란 = X (사용자 기준)
-    if(LOCK_X_RULES.KOR_BLANK_IS_X){
-      if(!normBlank(row["KOR_TITLE"])){
-        X.push(makeIssue("X","DATA","KOR_TITLE_BLANK","KOR_TITLE이 비어있음(사용자 기준 X).", row, "KOR_TITLE",
-          `rowId=${rowId}`, "HOW=공란 유지(해결) / 자동 변환(불가) / 무시(권장X)"));
-      }
-      if(!normBlank(row["KOR_SUBTITLE"])){
-        X.push(makeIssue("X","DATA","KOR_SUBTITLE_BLANK","KOR_SUBTITLE이 비어있음(사용자 기준 X).", row, "KOR_SUBTITLE",
-          `rowId=${rowId}`, "HOW=공란 유지(해결) / 자동 변환(불가) / 무시(권장X)"));
-      }
-    }else{
-      // 공란 허용이면 경고로만
-      if(!normBlank(row["KOR_TITLE"])){
-        W.push(makeIssue("W","DATA","KOR_TITLE_BLANK","한글 타이틀이 비어있음(공란 허용이지만 확인 필요).", row, "KOR_TITLE",
-          `rowId=${rowId}`, "HOW=(빈칸) 유지 / 번역은 다른 프로세스"));
-      }
-      if(!normBlank(row["KOR_SUBTITLE"])){
-        W.push(makeIssue("W","DATA","KOR_SUBTITLE_BLANK","한글 부제가 비어있음(공란 허용이지만 확인 필요).", row, "KOR_SUBTITLE",
-          `rowId=${rowId}`, "HOW=(빈칸) 유지 / 번역은 다른 프로세스"));
-      }
-    }
-
-    // ISBN 13자리
-    if(LOCK_X_RULES.ISBN_13_REQUIRED){
-      const digits = normBlank(row["ISBN"]).replace(/[^0-9]/g,"");
-      if(digits && digits.length !== 13){
-        X.push(makeIssue("X","DATA","ISBN_BAD","ISBN이 13자리가 아님.", row, "ISBN",
-          `rowId=${rowId}`, "HOW=자동 수정(과학표기/하이픈 제거) 후 재검증"));
-      }
-      if(!digits){
-        X.push(makeIssue("X","DATA","ISBN_BLANK","ISBN이 비어있음(필수).", row, "ISBN",
-          `rowId=${rowId}`, "HOW=원본에 ISBN이 없으면 공란 유지(해결)로 처리"));
-      }
-    }
-
-    // Price 필수
-    if(LOCK_X_RULES.PRICE_REQUIRED){
-      const pr = normBlank(row["Price"]);
-      if(!pr){
-        X.push(makeIssue("X","DATA","PRICE_BLANK","Price가 비어있음(필수).", row, "Price",
-          `rowId=${rowId}`, "HOW=원본에 없으면 공란 유지(해결) / 있으면 자동 수정"));
-      }else if(pr==="__BAD__"){
-        X.push(makeIssue("X","DATA","PRICE_BAD","Price 숫자 해석 불가.", row, "Price",
-          `rowId=${rowId}`, "HOW=자동 수정(통화기호/쉼표 제거)"));
-      }else{
-        const n = Number(pr);
-        if(Number.isFinite(n) && n===0){
-          X.push(makeIssue("X","DATA","PRICE_ZERO","Price=0 (X).", row, "Price",
-            `rowId=${rowId}`, "HOW=원본값 확인 필요"));
-        }
-      }
-    }
-
-    // Currency 필수
-    if(LOCK_X_RULES.CURRENCY_REQUIRED){
-      const cu = normBlank(row["Currency"]);
-      if(!cu){
-        X.push(makeIssue("X","DATA","CURR_EMPTY","Currency가 비어있음(필수).", row, "Currency",
-          `rowId=${rowId}`, "HOW=발행사 상수(USD/EUR) 자동 입력 또는 원본 확인"));
-      }
-    }
-
-    // Pub Date 형식
-    const d = normBlank(row["Pub Date"]);
-    if(d==="__BAD__"){
-      X.push(makeIssue("X","DATA","DATE_BAD","Pub Date 형식 오류.", row, "Pub Date",
-        `rowId=${rowId}`, "HOW=자동 수정(01-Feb-27 → 2027-02-01 등)"));
-    }
-    // Pages 숫자
-    const pg = normBlank(row["Pages"]);
-    if(pg==="__BAD__"){
-      X.push(makeIssue("X","DATA","PAGES_BAD","Pages 숫자 해석 불가.", row, "Pages",
-        `rowId=${rowId}`, "HOW=자동 수정(쉼표 제거/숫자만)"));
-    }
-  }
-
-  // 해결(Resolution) 반영: 해결된 X는 “열림”에서 제외
-  const XOpen = X.filter(it => !isResolved(it));
-  return { X, XOpen, W };
-}
-
-function makeIssue(kind, type, code, msg, row, col, meta, how){
-  const rowId = row ? (row["_ANCHOR(file|row|id)"] || row.__anchorKey) : "";
-  const key = `${kind}|${row ? row.__anchorKey : "UI"}|${col||""}|${code}`;
-  return { kind, type, code, msg, rowId, col: col||"", meta, how, key };
-}
-function isResolved(issue){
-  const r = getResolution(issue.key);
-  return r === "KEEP_BLANK" || r === "AUTO_CONVERT" || r === "IGNORE";
-}
-
-/* ===========================
- *  7) 자동 수정(안전한 변환만)
- *  =========================== */
-function autoFix(){
-  // 생성 금지: 원본이 있는 값만 정규화, 발행사 통화 상수는 허용
-  let changed = 0;
-  for(const row of DB){
-    // ISBN
-    const isbn = normBlank(row["ISBN"]);
-    if(isbn){
-      const n = normISBN(isbn);
-      if(n !== isbn){ row["ISBN"]=n; changed++; }
-    }
-    // Price
-    const pr = normBlank(row["Price"]);
-    if(pr){
-      const n = toNumberOrBad(pr);
-      if(n !== pr){ row["Price"] = (n==="__BAD__") ? "__BAD__" : n; changed++; }
-    }
-    // Date
-    const pd = normBlank(row["Pub Date"]);
-    if(pd){
-      const n = normDate(pd);
-      if(n !== pd){ row["Pub Date"]=n; changed++; }
-    }
-    // Pages
-    const pg = normBlank(row["Pages"]);
-    if(pg){
-      const n = normPages(pg);
-      if(n !== pg){ row["Pages"]=n; changed++; }
-    }
-    // Currency: 비어있으면 발행사 기준으로 채움(파일 기반 상수)
-    const cu = normBlank(row["Currency"]);
-    if(!cu){
-      const pub = normBlank(row["Publisher"]);
-      if(pub==="Elsevier" || pub==="Wiley"){ row["Currency"]="USD"; changed++; }
-      if(pub==="Springer"){ row["Currency"]="EUR"; changed++; }
-    }
-  }
-  saveJSON(LS_DB, DB);
-  log("자동 수정", {changed});
-  sortDB();
-  renderAll();
-}
-
-/* ===========================
- *  8) 렌더
- *  =========================== */
-const hdrEl = document.getElementById("hdr");
-const bodyEl = document.getElementById("body");
-const cardsEl = document.getElementById("cards");
-
-function renderHeader(){
-  hdrEl.innerHTML = "";
-  for(const col of LOCK_STANDARD_COLS){
-    const th = document.createElement("th");
-    th.textContent = col;
-    th.className = colClass(col);
-    hdrEl.appendChild(th);
-  }
-}
-function colClass(col){
-  if(col==="Publisher") return "colPub";
-  if(col==="Title") return "colTitle";
-  if(col==="Sub Title") return "colSub";
-  if(col==="KOR_TITLE" || col==="KOR_SUBTITLE") return "colKor";
-  if(col==="ISBN") return "colISBN";
-  if(col==="Price") return "colPrice";
-  if(col==="Currency") return "colCur";
-  if(col==="Pub Date") return "colDate";
-  if(col==="Pages") return "colPages";
-  if(col==="_ANCHOR(file|row|id)") return "colAnchor";
-  return "";
-}
-
-function renderTable(){
-  renderHeader();
-  bodyEl.innerHTML = "";
-  for(const row of DB){
-    const tr = document.createElement("tr");
-    for(const col of LOCK_STANDARD_COLS){
-      const td = document.createElement("td");
-      td.className = colClass(col);
-
-      const val = (row[col] !== undefined) ? row[col] : "";
-      const v = fmtCell(val);
-
-      const box = document.createElement("div");
-      box.className = "gridCell";
-
-      // 셀별 “문제 보기” 버튼(질문하지 말고, 이슈 리스트로 가게)
-      const st = cellStatus(row, col);
-      const btn = document.createElement("div");
-      btn.className = "xbtn " + (st.hasIssue ? "on":"off");
-      btn.textContent = st.hasIssue ? "!" : "✓";
-      btn.title = st.title;
-
-      btn.addEventListener("click", ()=>{
-        if(st.hasIssue){
-          // 해당 셀 이슈만 모달에서 필터링
-          showXModal({anchorKey: row.__anchorKey, col});
-        }else{
-          showWModal({anchorKey: row.__anchorKey, col});
-        }
-      });
-
-      const text = document.createElement("div");
-      text.textContent = v;
-      if(v==="(형식오류)") text.style.color = "var(--warn)";
-      if(v==="(빈칸)") text.style.color = "var(--muted)";
-      if(col==="_ANCHOR(file|row|id)") text.classList.add("mono");
-
-      // Anchor는 오른쪽 끝(이미 컬럼 마지막)
-      box.appendChild(btn);
-      box.appendChild(text);
-      td.appendChild(box);
-      tr.appendChild(td);
-    }
-    bodyEl.appendChild(tr);
-  }
-}
-
-function renderCards(){
-  cardsEl.innerHTML = "";
-  for(const row of DB){
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const top = document.createElement("div");
-    top.className = "cardTop";
-
-    const left = document.createElement("div");
-    left.innerHTML = `
-      <span class="pill"><b>${escapeHtml(row["Publisher"]||"")}</b></span>
-      <span class="pill mono">${escapeHtml(row["_ANCHOR(file|row|id)"]||row.__anchorKey||"")}</span>
-    `;
-
-    const right = document.createElement("div");
-    const st = rowStatus(row);
-    right.innerHTML = `
-      <span class="pill"><span class="${st.xOpen>0?'badgeBad':'badgeOk'}">X ${st.xOpen}</span></span>
-      <span class="pill"><span class="${st.warn>0?'badgeWarn':'badgeOk'}">W ${st.warn}</span></span>
-    `;
-
-    top.appendChild(left);
-    top.appendChild(right);
-
-    const kv = document.createElement("div");
-    kv.className = "kv";
-    for(const col of LOCK_STANDARD_COLS){
-      if(col==="_ANCHOR(file|row|id)") continue;
-      const k = document.createElement("div");
-      k.className = "k";
-      k.textContent = col;
-      const v = document.createElement("div");
-      v.className = "v";
-      v.textContent = fmtCell((row[col]!==undefined)?row[col]:"");
-      if(v.textContent==="(형식오류)") v.style.color="var(--warn)";
-      if(v.textContent==="(빈칸)") v.style.color="var(--muted)";
-      kv.appendChild(k); kv.appendChild(v);
-    }
-
-    card.appendChild(top);
-    card.appendChild(kv);
-    cardsEl.appendChild(card);
-  }
-}
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-}
-
-function rowStatus(row){
-  const all = computeXandWarnings();
-  const xOpen = all.XOpen.filter(it=>it.key.includes(`|${row.__anchorKey}|`)).length;
-  const warn = all.W.filter(it=>it.rowId===row["_ANCHOR(file|row|id)"]).length;
-  return {xOpen, warn};
-}
-
-function cellStatus(row, col){
-  const all = computeXandWarnings();
-  const xCell = all.XOpen.find(it => it.key.includes(`|${row.__anchorKey}|${col}|`));
-  if(xCell){
-    return {hasIssue:true, title:`X: ${xCell.code}`};
-  }
-  const wCell = all.W.find(it => it.rowId===row["_ANCHOR(file|row|id)"] && it.col===col);
-  if(wCell){
-    return {hasIssue:false, title:`W: ${wCell.code}`};
-  }
-  return {hasIssue:false, title:"PASS"};
-}
-
-function renderKpis(){
-  const all = computeXandWarnings();
-  document.getElementById("kpiRows").textContent = String(DB.length);
-  document.getElementById("kpiXOpen").textContent = String(all.XOpen.length);
-  document.getElementById("kpiWarn").textContent = String(all.W.length);
-  saveJSON(LS_DB, DB);
-}
 function renderAll(){
+  sortDB();
   renderTable();
   renderCards();
-  renderKpis();
-  renderLog();
+
+  const calc = calcXandWarnings();
+  const xOpen = calc.X.filter(x=>!x.resolved).length;
+  const wOpen = calc.W.filter(w=>!w.resolved).length;
+
+  document.getElementById("kpiRows").textContent = String(DB.length);
+  document.getElementById("kpiX").textContent = String(xOpen);
+  document.getElementById("kpiW").textContent = String(wOpen);
+
+  saveJSON(LS_DB, DB);
 }
 
-function copyTextToClipboard(text){
-  navigator.clipboard?.writeText(text).then(()=>{
-    log("복사", {len:text.length});
-  }).catch(()=>{
-    // fallback
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    ta.remove();
-    log("복사(fallback)", {len:text.length});
-  });
-}
-
-/* ===========================
- *  9) 리스트 모달 렌더 + 옵션(3버튼 + 정책변경)
- *  =========================== */
-function showXModal(filter){
-  renderXModal(filter);
-  document.getElementById("modalXBack").style.display="flex";
-}
-function showWModal(filter){
-  renderWModal(filter);
-  document.getElementById("modalWBack").style.display="flex";
-}
-
-function renderXModal(filter){
-  const listEl = document.getElementById("xList");
-  listEl.innerHTML = "";
-  const all = computeXandWarnings();
-  let items = all.X.map((it, idx)=>({ ...it, no: idx+1 }));
-  if(filter && filter.anchorKey){
-    items = items.filter(it => it.key.includes(`|${filter.anchorKey}|`));
+/* =========================================================
+  ✅ Clipboard (copy buttons)
+========================================================= */
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    log("복사 완료", {chars: text.length});
+  }catch(e){
+    // fallback: prompt
+    window.prompt("복사해서 붙여넣기(Ctrl+C)", text);
+    log("복사 fallback", {chars: text.length});
   }
-  if(filter && filter.col){
-    items = items.filter(it => it.col === filter.col);
-  }
-
-  // “하나도 안 뜬다” 방지: X가 0이면 이유를 UI 경고로 안내
-  if(items.length===0){
-    const box = document.createElement("div");
-    box.className="item";
-    box.innerHTML = `<div class="itemTop">
-      <div class="itemMeta"><span class="pill"><b>X가 없음</b></span></div>
-    </div>
-    <div class="reason">현재 규칙상 X로 분류된 항목이 없다. (KOR 공란을 X로 보는 규칙은 이미 적용됨)</div>`;
-    listEl.appendChild(box);
-    return;
-  }
-
-  items.forEach((it)=>{
-    const resolved = isResolved(it);
-    const box = document.createElement("div");
-    box.className = "item";
-
-    const top = document.createElement("div");
-    top.className = "itemTop";
-
-    const meta = document.createElement("div");
-    meta.className = "itemMeta";
-    meta.innerHTML = `
-      <span class="pill"><b>#${it.no}</b></span>
-      <span class="pill"><span class="badgeBad">X</span></span>
-      <span class="pill"><b>${escapeHtml(it.code)}</b></span>
-      <span class="pill mono">${escapeHtml(it.rowId||"UI")}</span>
-      ${it.col ? `<span class="pill"><b>${escapeHtml(it.col)}</b></span>` : ``}
-      ${resolved ? `<span class="pill"><span class="badgeOk">해결됨</span></span>` : `<span class="pill"><span class="badgeBad">열림</span></span>`}
-    `;
-
-    const actions = document.createElement("div");
-    actions.className = "actions";
-
-    const b1 = document.createElement("button");
-    b1.className = "btn small";
-    b1.textContent = "공란 유지(해결)";
-    b1.onclick = ()=>{
-      setResolution(it.key, "KEEP_BLANK");
-      log("X 해결", {code:it.code, rowId:it.rowId, col:it.col, by:"KEEP_BLANK"});
-      renderAll(); renderXModal(filter);
-    };
-
-    const b2 = document.createElement("button");
-    b2.className = "btn small";
-    b2.textContent = "자동 변환(해결)";
-    b2.onclick = ()=>{
-      // 변환은 자동수정 버튼과 동일하게 적용
-      autoFix();
-      setResolution(it.key, "AUTO_CONVERT");
-      log("X 해결", {code:it.code, rowId:it.rowId, col:it.col, by:"AUTO_CONVERT"});
-      renderAll(); renderXModal(filter);
-    };
-
-    const b3 = document.createElement("button");
-    b3.className = "btn small";
-    b3.textContent = "무시(통과)";
-    b3.onclick = ()=>{
-      setResolution(it.key, "IGNORE");
-      log("X 통과", {code:it.code, rowId:it.rowId, col:it.col, by:"IGNORE"});
-      renderAll(); renderXModal(filter);
-    };
-
-    const b4 = document.createElement("button");
-    b4.className = "btn small";
-    b4.textContent = "정책 변경(규칙 수정)";
-    b4.onclick = ()=>{
-      // 사용자를 입력으로 유도하지 않고, “기본 정책 프리셋”을 적용
-      // (현재는 KOR 공란을 X로 보는 정책을 고정 유지)
-      log("정책 변경", {preset:"NO_INPUT_PRESET", note:"사용자 입력 유도 없음"});
-      alert("정책 변경은 ‘프리셋 적용’만 지원(사용자 입력 유도 없음). 현재 KOR 공란=X 정책 유지.");
-    };
-
-    actions.appendChild(b1);
-    actions.appendChild(b2);
-    actions.appendChild(b3);
-    actions.appendChild(b4);
-
-    top.appendChild(meta);
-    top.appendChild(actions);
-
-    const reason = document.createElement("div");
-    reason.className = "reason";
-    reason.innerHTML = `
-      ${escapeHtml(it.msg)}<br/>
-      <span class="mono">${escapeHtml(it.meta||"")}</span><br/>
-      ${escapeHtml(it.how||"")}
-    `;
-
-    box.appendChild(top);
-    box.appendChild(reason);
-    listEl.appendChild(box);
-  });
 }
 
-function renderWModal(filter){
-  const listEl = document.getElementById("wList");
-  listEl.innerHTML = "";
-  const all = computeXandWarnings();
-  let items = all.W.map((it, idx)=>({ ...it, no: idx+1 }));
-  if(filter && filter.anchorKey){
-    items = items.filter(it => (it.key||"").includes(`|${filter.anchorKey}|`));
-  }
-  if(filter && filter.col){
-    items = items.filter(it => it.col === filter.col);
-  }
-
-  if(items.length===0){
-    const box = document.createElement("div");
-    box.className="item";
-    box.innerHTML = `<div class="itemTop">
-      <div class="itemMeta"><span class="pill"><b>경고가 없음</b></span></div>
-    </div>`;
-    listEl.appendChild(box);
-    return;
-  }
-
-  items.forEach((it)=>{
-    const box = document.createElement("div");
-    box.className = "item";
-
-    const top = document.createElement("div");
-    top.className = "itemTop";
-
-    const meta = document.createElement("div");
-    meta.className = "itemMeta";
-    meta.innerHTML = `
-      <span class="pill"><b>#${it.no}</b></span>
-      <span class="pill"><span class="badgeWarn">W</span></span>
-      <span class="pill"><b>${escapeHtml(it.code)}</b></span>
-      ${it.rowId ? `<span class="pill mono">${escapeHtml(it.rowId)}</span>` : `<span class="pill mono">UI</span>`}
-      ${it.col ? `<span class="pill"><b>${escapeHtml(it.col)}</b></span>` : ``}
-    `;
-
-    top.appendChild(meta);
-
-    const reason = document.createElement("div");
-    reason.className = "reason";
-    reason.innerHTML = `
-      ${escapeHtml(it.msg)}<br/>
-      ${escapeHtml(it.how||"")}
-    `;
-
-    box.appendChild(top);
-    box.appendChild(reason);
-    listEl.appendChild(box);
-  });
-}
-
-function buildXText(){
-  const all = computeXandWarnings();
-  const items = all.X.map((it, idx)=>({ ...it, no: idx+1, resolved:isResolved(it) }));
-  if(items.length===0) return "X=0";
-  return items.map(it=>{
-    return `#${it.no}\t${it.type}\t${it.code}\t${it.msg}\trowId=${it.rowId}\tcol=${it.col}\tRES=${it.resolved?"Y":"N"}\tHOW=${it.how}`;
-  }).join("\n");
-}
-function buildWText(){
-  const all = computeXandWarnings();
-  const items = all.W.map((it, idx)=>({ ...it, no: idx+1 }));
-  if(items.length===0) return "W=0";
-  return items.map(it=>{
-    return `#${it.no}\t${it.type}\t${it.code}\t${it.msg}\t${it.rowId?("rowId="+it.rowId):"UI"}\tcol=${it.col||""}\tHOW=${it.how||""}`;
-  }).join("\n");
-}
-
-/* ===========================
- *  10) 업로드
- *  =========================== */
-async function readFileAsText(file){
+/* =========================================================
+  ✅ File upload
+========================================================= */
+function readFileAsText(file){
   return new Promise((res, rej)=>{
     const fr = new FileReader();
     fr.onload = ()=> res(fr.result);
@@ -1141,7 +1028,6 @@ async function readFileAsText(file){
     fr.readAsText(file);
   });
 }
-
 async function readAndAppendFile(file){
   const name = file.name;
   const publisher = detectPublisher(name);
@@ -1149,7 +1035,7 @@ async function readAndAppendFile(file){
 
   const text = await readFileAsText(file);
   const rows = parseCSV(text);
-  if(rows.length < 2){
+  if(rows.length<2){
     log("업로드 실패", {file:name, reason:"no rows"});
     return;
   }
@@ -1157,37 +1043,244 @@ async function readAndAppendFile(file){
   log("업로드 시작", {file:name, publisher, headers});
   log("매핑 확정", {file:name, mapping});
 
-  let appended=0;
+  let appended = 0;
   for(let i=1;i<rows.length;i++){
     const rawRow = rows[i];
     if(rawRow.every(c=>normBlank(c)==="")) continue;
     const rec = makeStandardRow({
-      fileName:name,
-      publisher,
-      headers,
-      rawRow,
-      rowIndex:i,
-      mapping
+      fileName:name, publisher, headers, rawRow,
+      rowIndex:i, mapping
     });
     DB.push(rec);
     appended++;
   }
-  document.getElementById("kpiLast").textContent = name;
   log("업로드 완료", {file:name, appended, total:DB.length});
+  document.getElementById("kpiLast").textContent = name;
 }
-
 async function handleFiles(files){
   for(const f of files){
     await readAndAppendFile(f);
   }
-  sortDB();
-  saveJSON(LS_DB, DB);
   renderAll();
 }
 
-/* ===========================
- *  11) 탭/이벤트
- *  =========================== */
+/* =========================================================
+  ✅ Modal: X / Warning list (전체/부분 체크 + 복사)
+========================================================= */
+let modalMode = "X"; // "X" or "W"
+let modalItems = [];
+let selected = {}; // itemId -> true
+
+function openModal(mode){
+  modalMode = mode;
+  const calc = calcXandWarnings();
+  modalItems = (mode==="X") ? calc.X : calc.W;
+
+  // ✅ 기본: 해결 안 된 것만 먼저 보이게(피로 최소)
+  modalItems = modalItems.filter(it => !it.resolved);
+
+  // reset selections
+  selected = {};
+  document.getElementById("chkAll").checked = false;
+  document.getElementById("selCount").textContent = "0";
+
+  document.getElementById("modalTitle").textContent = (mode==="X") ? "X 리스트 (오류 – 해결 필요)" : "경고 리스트 (애매/구조/UI)";
+  document.getElementById("modalHint").innerHTML =
+    (mode==="X")
+      ? `체크 → 복사만 하면 됨. 각 항목은 <b>옵션 4종</b>(공란유지/자동변환/무시/정책변경)으로 끝내기 가능.`
+      : `체크 → 복사만 하면 됨. UI/구조/애매 항목은 경고로 분리.`;
+
+  renderModalList();
+  document.getElementById("modalBack").style.display="flex";
+}
+
+function lineForItem(it, idx){
+  const tag = (it.kind==="X") ? "X" : "W";
+  const badge = (it.kind==="X") ? "DATA" : it.area;
+  const res = it.res || "N";
+  // 요청 형식과 동일하게: #n AREA RULE MSG rowId=... col=... RES=N HOW=...
+  return `#${idx+1}\t${badge}\t${it.rule}\t${it.msg}.\trowId=${it.rowId}\tcol=${it.col}\tRES=${res}\t${it.how}`;
+}
+
+function renderModalList(){
+  const listEl = document.getElementById("listEl");
+  listEl.innerHTML = "";
+
+  if(modalItems.length===0){
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML = `<b>표시할 항목이 없음</b><div class="reason">현재 해결되지 않은 ${(modalMode==="X")?"X":"경고"}가 없습니다.</div>`;
+    listEl.appendChild(d);
+    return;
+  }
+
+  modalItems.forEach((it, idx)=>{
+    const box = document.createElement("div");
+    box.className = "item";
+
+    const top = document.createElement("div");
+    top.className = "itemTop";
+
+    const meta = document.createElement("div");
+    meta.className = "itemMeta";
+
+    const flag = document.createElement("span");
+    flag.className = "pill";
+    flag.innerHTML = (modalMode==="X")
+      ? `<span class="badgeX">X</span>`
+      : `<span class="badgeW">경고</span>`;
+
+    const p1 = document.createElement("span");
+    p1.className = "pill";
+    p1.innerHTML = `<b>${it.area}</b>`;
+
+    const p2 = document.createElement("span");
+    p2.className = "pill";
+    p2.innerHTML = `<b>${it.rule}</b>`;
+
+    const p3 = document.createElement("span");
+    p3.className = "pill mono";
+    p3.textContent = it.rowId;
+
+    const p4 = document.createElement("span");
+    p4.className = "pill";
+    p4.innerHTML = `<b>${it.col || "UI"}</b>`;
+
+    meta.appendChild(flag);
+    meta.appendChild(p1);
+    meta.appendChild(p2);
+    meta.appendChild(p3);
+    meta.appendChild(p4);
+
+    const chk = document.createElement("label");
+    chk.className = "chk";
+    chk.innerHTML = `<input type="checkbox" /> <span>선택</span>`;
+    const cb = chk.querySelector("input");
+    cb.addEventListener("change", ()=>{
+      if(cb.checked) selected[it.itemId]=true;
+      else delete selected[it.itemId];
+      updateSelCount();
+      syncAllCheckbox();
+    });
+
+    top.appendChild(meta);
+    top.appendChild(chk);
+
+    const reason = document.createElement("div");
+    reason.className="reason";
+    reason.textContent = it.msg + " / " + it.how;
+
+    box.appendChild(top);
+    box.appendChild(reason);
+
+    // ✅ X면 옵션 4종(고질 오류 끝내기)
+    if(modalMode==="X"){
+      const optRow = document.createElement("div");
+      optRow.className = "optRow";
+
+      const mkBtn = (key, label)=>{
+        const b = document.createElement("button");
+        b.type="button";
+        b.className = "optBtn";
+        b.textContent = label;
+        const cur = RES[it.itemId]?.choice || "";
+        if(cur===key) b.classList.add("on");
+        b.addEventListener("click", ()=>{
+          // AUTO_CONVERT는 금지(데이터 생성 금지) → 선택해도 해결 처리 안 함
+          if(key==="AUTO_CONVERT"){
+            RES[it.itemId] = {choice:key};
+            saveJSON(LS_RES, RES);
+            log("옵션 선택", {itemId:it.itemId, choice:key, note:"자동 변환은 데이터 생성 금지로 불가(해결 처리 안 함)"});
+            renderAll();
+            renderModalList(); // 상태 갱신
+            return;
+          }
+
+          // POLICY_CHANGE: KOR 정책을 바꾼다는 4번째 버튼(텍스트 입력 유도 금지)
+          if(key==="POLICY_CHANGE"){
+            // 이 버튼은 KOR 공란을 X→경고로 "정책 변경"하는 용도(도구 책임)
+            // 사용자 입력은 버튼 클릭만
+            POLICY.KOR_BLANK_IS_X = false;
+            RES[it.itemId] = {choice:key};
+            saveJSON(LS_RES, RES);
+            log("정책 변경", {KOR_BLANK_IS_X: POLICY.KOR_BLANK_IS_X});
+            renderAll();
+            // 모달도 다시 열 상태 유지
+            openModal("X");
+            return;
+          }
+
+          RES[it.itemId] = {choice:key};
+          saveJSON(LS_RES, RES);
+          log("옵션 선택", {itemId:it.itemId, choice:key});
+          renderAll();
+          // 모달 리스트 갱신(해결된 건 사라짐)
+          openModal("X");
+        });
+        return b;
+      };
+
+      optRow.appendChild(mkBtn("KEEP_BLANK","공란 유지(해결)"));
+      optRow.appendChild(mkBtn("AUTO_CONVERT","자동 변환(불가)"));
+      optRow.appendChild(mkBtn("IGNORE","무시하고 통과"));
+      optRow.appendChild(mkBtn("POLICY_CHANGE","정책 변경"));
+
+      box.appendChild(optRow);
+
+      // ✅ “수정 결과 화면” = 카드 형식 미리보기(고정 형식)
+      const preview = document.createElement("div");
+      preview.className = "reason";
+      const row = DB.find(r => r["_ANCHOR(file|row|id)"]===it.rowId);
+      if(row){
+        preview.innerHTML = `<div style="margin-top:8px;"><b>형식 미리보기(워드 붙여넣기용)</b></div>
+<pre style="margin:8px 0 0; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px; font-family:var(--mono); font-size:12px; white-space:pre-wrap;">${escapeHtml(wordCardText(row))}</pre>`;
+      }
+      box.appendChild(preview);
+    }
+
+    listEl.appendChild(box);
+  });
+
+  updateSelCount();
+}
+
+function updateSelCount(){
+  const n = Object.keys(selected).length;
+  document.getElementById("selCount").textContent = String(n);
+}
+function syncAllCheckbox(){
+  const listEl = document.getElementById("listEl");
+  const cbs = Array.from(listEl.querySelectorAll('input[type="checkbox"]'));
+  if(cbs.length===0){ document.getElementById("chkAll").checked=false; return; }
+  const checked = cbs.filter(x=>x.checked).length;
+  document.getElementById("chkAll").checked = (checked===cbs.length);
+}
+
+function copySelected(){
+  const lines = [];
+  const ids = new Set(Object.keys(selected));
+  let idx=0;
+  for(const it of modalItems){
+    if(ids.has(it.itemId)){
+      idx++;
+      lines.push(lineForItem(it, idx));
+    }
+  }
+  copyText(lines.join("\n"));
+}
+function copyAll(){
+  const lines = [];
+  let idx=0;
+  for(const it of modalItems){
+    idx++;
+    lines.push(lineForItem(it, idx));
+  }
+  copyText(lines.join("\n"));
+}
+
+/* =========================================================
+  ✅ EVENTS
+========================================================= */
 document.getElementById("fileInput").addEventListener("change", async (e)=>{
   const files = Array.from(e.target.files || []);
   if(!files.length) return;
@@ -1197,9 +1290,9 @@ document.getElementById("fileInput").addEventListener("change", async (e)=>{
 
 document.getElementById("btnResetDB").addEventListener("click", ()=>{
   DB = [];
-  resolutions = {};
+  RES = {};
   saveJSON(LS_DB, DB);
-  saveJSON(LS_RES, resolutions);
+  saveJSON(LS_RES, RES);
   log("DB 초기화", {});
   renderAll();
 });
@@ -1215,75 +1308,72 @@ document.getElementById("btnResort").addEventListener("click", ()=>{
   log("정렬 재적용", {by:"Pub Date ↑"});
   renderAll();
 });
+
 document.getElementById("btnRecalc").addEventListener("click", ()=>{
   log("오류 재계산", {});
   renderAll();
 });
 
-document.getElementById("btnAutoFix").addEventListener("click", ()=>{
-  autoFix();
+document.getElementById("btnShowX").addEventListener("click", ()=> openModal("X"));
+document.getElementById("btnShowW").addEventListener("click", ()=> openModal("W"));
+
+document.getElementById("btnCloseModal").addEventListener("click", ()=>{
+  document.getElementById("modalBack").style.display="none";
+});
+document.getElementById("modalBack").addEventListener("click", (e)=>{
+  if(e.target.id==="modalBack") document.getElementById("modalBack").style.display="none";
 });
 
-document.getElementById("btnShowX").addEventListener("click", ()=>{
-  showXModal(null);
-});
-document.getElementById("btnShowW").addEventListener("click", ()=>{
-  showWModal(null);
-});
-
-document.getElementById("btnCloseX").addEventListener("click", ()=>{
-  document.getElementById("modalXBack").style.display="none";
-});
-document.getElementById("btnCloseW").addEventListener("click", ()=>{
-  document.getElementById("modalWBack").style.display="none";
-});
-document.getElementById("modalXBack").addEventListener("click", (e)=>{
-  if(e.target.id==="modalXBack") document.getElementById("modalXBack").style.display="none";
-});
-document.getElementById("modalWBack").addEventListener("click", (e)=>{
-  if(e.target.id==="modalWBack") document.getElementById("modalWBack").style.display="none";
-});
-
-document.getElementById("btnResolveAllX").addEventListener("click", ()=>{
-  const all = computeXandWarnings();
-  all.X.forEach(it=>{
-    // 기본 프리셋: 텍스트 입력 유도 없이 “공란 유지(해결)”로 처리
-    if(!isResolved(it)) setResolution(it.key, "KEEP_BLANK");
+document.getElementById("chkAll").addEventListener("change", (e)=>{
+  const on = e.target.checked;
+  const listEl = document.getElementById("listEl");
+  const cbs = Array.from(listEl.querySelectorAll('input[type="checkbox"]'));
+  cbs.forEach(cb=>{
+    cb.checked = on;
+    // selected 동기화
+    const itemBox = cb.closest(".item");
+    // itemBox 순서로 modalItems idx 매칭
   });
-  log("X 전체 공란유지(해결)", {count: all.X.length});
-  renderAll(); renderXModal(null);
-});
-document.getElementById("btnClearResolvedX").addEventListener("click", ()=>{
-  resolutions = {};
-  saveJSON(LS_RES, resolutions);
-  log("X 해결표시 초기화", {});
-  renderAll(); renderXModal(null);
+
+  // selected 재구성
+  selected = {};
+  if(on){
+    for(const it of modalItems) selected[it.itemId]=true;
+  }
+  updateSelCount();
 });
 
-document.getElementById("btnCopyX").addEventListener("click", ()=> copyTextToClipboard(buildXText()));
-document.getElementById("btnCopyW").addEventListener("click", ()=> copyTextToClipboard(buildWText()));
-document.getElementById("btnCopyXIn").addEventListener("click", ()=> copyTextToClipboard(buildXText()));
-document.getElementById("btnCopyWIn").addEventListener("click", ()=> copyTextToClipboard(buildWText()));
-document.getElementById("btnCopyLog").addEventListener("click", ()=> copyTextToClipboard(logLines.join("\n")));
+document.getElementById("btnCopySelected").addEventListener("click", copySelected);
+document.getElementById("btnCopyAll").addEventListener("click", copyAll);
 
-document.getElementById("tabTable").addEventListener("click", ()=>{
-  document.getElementById("tabTable").classList.add("on");
-  document.getElementById("tabLog").classList.remove("on");
-  document.getElementById("viewTable").style.display="";
-  document.getElementById("viewLog").style.display="none";
-});
-document.getElementById("tabLog").addEventListener("click", ()=>{
-  document.getElementById("tabLog").classList.add("on");
-  document.getElementById("tabTable").classList.remove("on");
-  document.getElementById("viewLog").style.display="";
-  document.getElementById("viewTable").style.display="none";
+document.getElementById("btnCopyAllCards").addEventListener("click", ()=>{
+  const texts = DB.map(r=>wordCardText(r)).join("\n\n");
+  copyText(texts);
 });
 
-/* ===========================
- *  12) 초기 표시
- *  =========================== */
-renderAll();
+/* view toggle */
+function setView(mode){
+  const tv = document.getElementById("tableView");
+  const cv = document.getElementById("cardView");
+  const bt = document.getElementById("viewTable");
+  const bc = document.getElementById("viewCards");
+  if(mode==="table"){
+    tv.style.display="block"; cv.style.display="none";
+    bt.classList.add("on"); bc.classList.remove("on");
+  }else{
+    tv.style.display="none"; cv.style.display="block";
+    bc.classList.add("on"); bt.classList.remove("on");
+  }
+  saveJSON(LS_VIEW, {mode});
+}
+document.getElementById("viewTable").addEventListener("click", ()=> setView("table"));
+document.getElementById("viewCards").addEventListener("click", ()=> setView("cards"));
+
+/* initial boot */
 renderLog();
+renderAll();
+const savedView = loadJSON(LS_VIEW, {mode:"table"});
+setView(savedView.mode || "table");
 </script>
 </body>
 </html>
