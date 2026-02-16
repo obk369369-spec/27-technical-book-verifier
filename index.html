@@ -2,107 +2,147 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<title>27번 공학도서 안내 도구 – 안정화 v4 FIX</title>
+<title>27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰(최소안정)</title>
 <style>
-body { font-family: Arial; background:#ffffff; margin:0; padding:10px; }
-button { margin:2px; }
-table { border-collapse:collapse; width:100%; font-size:13px; }
-th, td { border:1px solid #ccc; padding:4px; white-space:nowrap; }
-th { background:#f5f5f5; position:sticky; top:0; }
-.card { border:1px solid #ddd; padding:8px; margin:6px 0; }
-.copybtn { float:right; }
+body{font-family:Arial, sans-serif;background:#fff;margin:10px}
+button{margin:2px 4px;padding:6px 10px}
+.panel{border:1px solid #ccc;padding:8px;margin-top:6px}
+.hidden{display:none}
+.card{border:1px solid #ddd;padding:8px;margin:6px 0}
+pre{white-space:pre-wrap;word-break:break-all}
 </style>
 </head>
-
 <body>
 
 <h3>27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰</h3>
 
-<button onclick="copyX()">X 리스트</button>
-<button onclick="copyWarn()">경고 리스트</button>
-<button onclick="policyToggle()">POLICY</button>
+<input type="file" id="file" />
+<button onclick="resetDB()">DB 초기화</button>
 
-<div id="status"></div>
+<div class="panel">
+<button onclick="showX()">X 리스트</button>
+<button onclick="showWarn()">경고 리스트</button>
+<button onclick="autoFix()">자동 수정</button>
+</div>
+
+<div class="panel">
+DB:<span id="dbCnt">0</span> |
+X:<span id="xCnt">0</span> |
+WARN:<span id="wCnt">0</span>
+</div>
+
+<div id="listPanel" class="panel hidden">
+<button onclick="copyList()">전체 복사</button>
+<pre id="listText"></pre>
+</div>
+
 <div id="cards"></div>
 
 <script>
-// ================== LOCK STANDARD ==================
-const LOCK_STANDARD_COLS = [
-"Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE",
-"ISBN","Price","Currency","Pub Date","Pages"
-];
+let DB=[];
+let X=[];
+let WARN=[];
 
-const LOCK_POLICY = {
-KOR_EMPTY_IS_X: true,
-PRICE_EMPTY_IS_X: true
-};
-
-// ================== SAMPLE DATA ==================
-let DB = [
-{Publisher:"Wiley",Title:"Freedom Teaching",KOR_TITLE:"",KOR_SUBTITLE:"",
-ISBN:"9781120000000",Price:"27.95",Currency:"USD","Pub Date":"2024-01-02",Pages:""},
-];
-
-// ================== HASH ==================
-function hash(s){let h=0;for(let i=0;i<s.length;i++)h=((h<<5)-h)+s.charCodeAt(i);return Math.abs(h);}
-function rowId(r,i){return r.Publisher+"|"+i+"|"+hash(r.Title);}
-
-// ================== VALIDATION ==================
-let XLIST=[], WARNLIST=[];
-
-function validate(){
-XLIST=[]; WARNLIST=[];
-DB.forEach((r,i)=>{
-if(LOCK_POLICY.KOR_EMPTY_IS_X && !r.KOR_TITLE)
-XLIST.push("KOR_TITLE_BLANK "+rowId(r,i));
-if(LOCK_POLICY.KOR_EMPTY_IS_X && !r.KOR_SUBTITLE)
-XLIST.push("KOR_SUBTITLE_BLANK "+rowId(r,i));
-if(LOCK_POLICY.PRICE_EMPTY_IS_X && !r.Price)
-XLIST.push("PRICE_EMPTY "+rowId(r,i));
-});
+// --- 유틸 ---
+function hash(str){
+  let h=0; for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
+  return Math.abs(h);
+}
+function makeRowId(file,row,obj){
+  return file+"|"+row+"|"+hash(JSON.stringify(obj));
 }
 
-// ================== CARD VIEW ==================
-function draw(){
-validate();
-let c=document.getElementById("cards"); c.innerHTML="";
-DB.sort((a,b)=>b["Pub Date"].localeCompare(a["Pub Date"]));
+// --- CSV 간단 파서 ---
+function parseCSV(text){
+  return text.split(/\r?\n/).filter(l=>l.trim()).map(l=>{
+    const a=l.split(",");
+    return {
+      Title:a[0]||"",
+      KOR_TITLE:a[1]||"",
+      ISBN:a[2]||"",
+      Price:a[3]||"",
+      PubDate:a[4]||""
+    };
+  });
+}
 
-DB.forEach((r,i)=>{
-let d=document.createElement("div"); d.className="card";
-d.innerHTML=`
-<button class="copybtn" onclick="copyCard(${i})">복사</button>
-<b>${r.Title}</b><br>
-(${r.KOR_TITLE||"빈칸"})<br><hr>
-발행사:${r.Publisher} / Pages:${r.Pages||"빈칸"} / ISBN:${r.ISBN}<br>
-정가:${r.Price||"빈칸"} ${r.Currency}<br>
-발행:${r["Pub Date"]}<br>
-ROWID:${rowId(r,i)}
-`;
-c.appendChild(d);
+// --- 업로드 ---
+document.getElementById('file').addEventListener('change', e=>{
+  const f=e.target.files[0];
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const rows=parseCSV(ev.target.result);
+    rows.forEach((o,i)=>{
+      o._ROWID=makeRowId(f.name,i,o);
+      DB.push(o);
+    });
+    recalc();
+    renderCards();
+  };
+  r.readAsText(f);
 });
 
-document.getElementById("status").innerText=
-"DB:"+DB.length+" | X:"+XLIST.length+" | WARN:"+WARNLIST.length;
+// --- 계산 ---
+function recalc(){
+  X=[]; WARN=[];
+  DB.forEach(r=>{
+    if(!r.KOR_TITLE) X.push("KOR_TITLE_BLANK :: "+r._ROWID);
+    if(!r.Price) WARN.push("PRICE_EMPTY :: "+r._ROWID);
+  });
+  document.getElementById('dbCnt').innerText=DB.length;
+  document.getElementById('xCnt').innerText=X.length;
+  document.getElementById('wCnt').innerText=WARN.length;
 }
 
-// ================== COPY ==================
-function copyCard(i){
-let r=DB[i];
-navigator.clipboard.writeText(r.Title+" "+r.ISBN);
+// --- 리스트 출력 ---
+function showX(){
+  const p=document.getElementById('listPanel');
+  p.classList.remove('hidden');
+  document.getElementById('listText').innerText=X.join("\n")||"(없음)";
 }
-function copyX(){ navigator.clipboard.writeText(XLIST.join("\n")); }
-function copyWarn(){ navigator.clipboard.writeText(WARNLIST.join("\n")); }
-
-// ================== POLICY ==================
-function policyToggle(){
-LOCK_POLICY.KOR_EMPTY_IS_X=!LOCK_POLICY.KOR_EMPTY_IS_X;
-draw();
+function showWarn(){
+  const p=document.getElementById('listPanel');
+  p.classList.remove('hidden');
+  document.getElementById('listText').innerText=WARN.join("\n")||"(없음)";
+}
+function copyList(){
+  const t=document.getElementById('listText').innerText;
+  navigator.clipboard.writeText(t);
 }
 
-// ================== INIT ==================
-draw();
+// --- 자동 수정(최소) ---
+function autoFix(){
+  DB.forEach(r=>{
+    if(!r.KOR_TITLE) r.KOR_TITLE="(빈칸)";
+  });
+  recalc();
+  renderCards();
+}
 
+// --- 카드 ---
+function renderCards(){
+  const d=document.getElementById('cards');
+  d.innerHTML="";
+  DB.forEach(r=>{
+    const c=document.createElement('div');
+    c.className="card";
+    c.innerHTML=
+      "<b>"+r.Title+"</b><br>"+
+      r.KOR_TITLE+"<br>"+
+      "ISBN:"+r.ISBN+" / Price:"+r.Price+"<br>"+
+      "ROWID:"+r._ROWID;
+    d.appendChild(c);
+  });
+}
+
+// --- 초기화 ---
+function resetDB(){
+  DB=[]; X=[]; WARN=[];
+  recalc();
+  renderCards();
+  document.getElementById('listPanel').classList.add('hidden');
+}
 </script>
 </body>
 </html>
