@@ -1,148 +1,747 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<title>27 Verifier v4.1 parser lock</title>
-<style>
-body{font-family:Arial;margin:10px}
-button{margin:2px}
-table{border-collapse:collapse;width:100%}
-th,td{border:1px solid #ccc;padding:4px;font-size:12px}
-.card{border:1px solid #999;padding:6px;margin:4px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰 (MIN-STABLE)</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --chip:#f3f4f6;
+      --warn:#b45309;
+      --err:#b91c1c;
+      --ok:#047857;
+      --btn:#111827;
+      --btnfg:#ffffff;
+      --btn2:#f3f4f6;
+      --btn2fg:#111827;
+    }
+    html,body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;margin:0}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .topbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+    .title{font-weight:800}
+    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .left{display:flex;flex-direction:column;gap:2px}
+    .right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .btn{border:1px solid var(--line);background:var(--btn2);color:var(--btn2fg);padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:700}
+    .btn.primary{background:var(--btn);color:var(--btnfg);border-color:var(--btn)}
+    .btn:active{transform:translateY(1px)}
+    .file{display:flex;gap:8px;align-items:center}
+    .badge{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-weight:800}
+    .badge span{font-weight:900}
+    .badge .x{color:var(--err)}
+    .badge .w{color:var(--warn)}
+    .badge .db{color:var(--fg)}
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:12px;margin-top:12px}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .panel{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+    .panel h3{margin:0;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px;background:#fff}
+    .panel .body{padding:12px}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    input[type="file"]{max-width:360px}
+    select,textarea,input[type="text"]{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+    textarea{width:100%;min-height:120px;resize:vertical}
+    .listbox{border-top:1px solid var(--line);background:#fff}
+    .listhead{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)}
+    .listhead .meta{font-size:12px;color:var(--muted)}
+    .list{max-height:260px;overflow:auto;padding:0}
+    .item{padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px;white-space:pre-wrap;word-break:break-word}
+    .item:last-child{border-bottom:none}
+    .item .tag{display:inline-block;margin-right:8px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--chip);font-weight:800}
+    .item.err .tag{color:var(--err)}
+    .item.warn .tag{color:var(--warn)}
+    .cards{display:flex;flex-direction:column;gap:10px}
+    .card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+    .card .t{font-weight:900}
+    .card .k{font-size:12px;color:var(--muted);margin-top:2px}
+    .card .hr{height:1px;background:var(--line);margin:10px 0}
+    .card pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+    .pill{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--chip);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800}
+    .pill.ok{color:var(--ok)}
+    .pill.err{color:var(--err)}
+    .pill.warn{color:var(--warn)}
+    .split{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .small{font-size:12px}
+    .policy{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .policy label{font-size:12px;color:var(--muted);font-weight:700}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="left">
+        <div class="title">27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰 <span class="pill ok">MIN-STABLE</span></div>
+        <div class="sub">핵심만: 리스트 출력 복구 · 전체/리스트 복사 · rowId=file|row|hash 고정 · 과학표기 ISBN 복원 · 반복 X는 POLICY로 자동 종결</div>
+      </div>
+      <div class="right">
+        <div class="badge">
+          <span class="db">DB:</span> <span id="dbCount">0</span>
+          <span class="x">X:</span> <span id="xCount">0</span>
+          <span class="w">WARN:</span> <span id="wCount">0</span>
+        </div>
+        <button class="btn" id="btnResetDB">DB 초기화</button>
+        <button class="btn" id="btnRecalc">오류 재계산</button>
+        <button class="btn primary" id="btnCopyAll">전체 복사</button>
+      </div>
+    </div>
 
-<h3>27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰</h3>
+    <div class="grid">
+      <div class="panel">
+        <h3>업로드</h3>
+        <div class="body">
+          <div class="row">
+            <input type="file" id="fileInput" multiple accept=".csv,text/csv" />
+            <button class="btn primary" id="btnUpload">업로드(추가)</button>
+            <span class="muted small" id="lastFile">Last: (없음)</span>
+          </div>
 
-<input type="file" id="fileInput" multiple />
-<button onclick="resetDB()">DB 초기화</button>
-<button onclick="calcX()">X 리스트</button>
-<button onclick="calcWarn()">경고 리스트</button>
-<button onclick="copyAll()">전체 복사</button>
+          <div style="margin-top:10px" class="policy">
+            <label>POLICY(반복 X 자동 종결):</label>
+            <span class="pill">KOR 공란 → <b>공란 유지(RES=Y)</b></span>
+            <span class="pill">Price 공란 → <b>공란 유지(RES=Y)</b></span>
+            <span class="pill">ISBN 과학표기 → <b>복원 시도</b></span>
+          </div>
 
-<div id="status">DB:0 | X:0 | WARN:0</div>
+          <div style="margin-top:10px" class="row">
+            <button class="btn" id="btnX">X 리스트</button>
+            <button class="btn" id="btnW">경고 리스트</button>
+            <button class="btn" id="btnAutoFix">자동 수정</button>
+            <span class="muted small">※ 검증은 화면/데이터 기준(외부 링크 fetch 없음)</span>
+          </div>
+        </div>
 
-<hr/>
+        <div class="listbox">
+          <div class="listhead">
+            <div class="meta"><b id="listTitle">리스트</b> <span id="listMeta">(없음)</span></div>
+            <div class="split">
+              <button class="btn" id="btnCopyList">리스트 복사</button>
+              <button class="btn" id="btnClearList">닫기</button>
+            </div>
+          </div>
+          <div class="list" id="listArea"></div>
+        </div>
+      </div>
 
-<div id="cards"></div>
+      <div class="panel">
+        <h3>카드뷰</h3>
+        <div class="body">
+          <div class="row" style="justify-content:space-between">
+            <div class="muted small">정렬: Pub Date ↓ (최근 → 과거)</div>
+            <div class="row">
+              <button class="btn" id="btnPrev">◀</button>
+              <button class="btn" id="btnNext">▶</button>
+            </div>
+          </div>
+          <div style="margin-top:10px" class="cards" id="cardArea"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <h3>로그 (복사용)</h3>
+      <div class="body">
+        <textarea id="logArea" readonly></textarea>
+      </div>
+    </div>
+  </div>
 
 <script>
-const LOCK_STANDARD_COLS=[
-"Publisher","Title","Sub Title",
-"KOR_TITLE","KOR_SUBTITLE",
-"ISBN","Price","Currency",
-"Pub Date","Pages"
-];
+(() => {
+  // ---------- LOCKS (최소 고정) ----------
+  const LOCK_STANDARD_COLS = ["Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR"];
+  const LOCK_UI = { theme:"white", cardView:true };
 
-let DB=[];
-let X_LIST=[];
-let WARN_LIST=[];
+  // ---------- State ----------
+  let DB = [];                 // normalized rows
+  let X = [];                  // error list
+  let WARN = [];               // warn list
+  let cardIndex = 0;
+  let lastFileName = "(없음)";
 
-/* ---------------- CSV PARSER ---------------- */
-function parseCSV(text){
-  const rows=[];
-  let row=[],col="",quote=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(c=='"'){quote=!quote;continue;}
-    if(c=="," && !quote){row.push(col);col="";continue;}
-    if((c=="\n"||c=="\r") && !quote){
-      if(col||row.length){row.push(col);rows.push(row);}
-      row=[];col="";continue;
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+  const dbCount = $("dbCount");
+  const xCount = $("xCount");
+  const wCount = $("wCount");
+  const listArea = $("listArea");
+  const listTitle = $("listTitle");
+  const listMeta = $("listMeta");
+  const logArea = $("logArea");
+  const cardArea = $("cardArea");
+  const lastFile = $("lastFile");
+
+  // ---------- Utils ----------
+  function log(msg, obj){
+    const ts = new Date();
+    const stamp = ts.getFullYear()+"-"+String(ts.getMonth()+1).padStart(2,"0")+"-"+String(ts.getDate()).padStart(2,"0")
+      +" "+String(ts.getHours()).padStart(2,"0")+":"+String(ts.getMinutes()).padStart(2,"0")+":"+String(ts.getSeconds()).padStart(2,"0");
+    const line = `[${stamp}] ${msg}` + (obj ? ` :: ${JSON.stringify(obj)}` : "");
+    logArea.value = (logArea.value ? logArea.value + "\n" : "") + line;
+    logArea.scrollTop = logArea.scrollHeight;
+  }
+
+  function safeStr(v){
+    if (v === null || v === undefined) return "";
+    return String(v).trim();
+  }
+
+  // RowId: file|row|hash  (hash is stable for same row content)
+  function hash32(str){
+    let h = 2166136261;
+    for (let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
     }
-    col+=c;
+    return (h >>> 0);
   }
-  if(col||row.length){row.push(col);rows.push(row);}
-  return rows;
-}
+  function makeRowId(file, rowIdx, rowObj){
+    const key = file + "|" + rowIdx + "|" + JSON.stringify(rowObj);
+    return file + "|" + rowIdx + "|" + hash32(key);
+  }
 
-/* ---------------- LOAD ---------------- */
-document.getElementById("fileInput").onchange=e=>{
-  for(const f of e.target.files){
-    const r=new FileReader();
-    r.onload=()=>{
-      const rows=parseCSV(r.result);
-      const header=rows[0]||[];
-      for(let i=1;i<rows.length;i++){
-        const rdata=rows[i];
-        if(!rdata.length)continue;
-        const obj={};
-        LOCK_STANDARD_COLS.forEach(c=>obj[c]="");
-        obj.Title=rdata[0]||"";
-        obj.ISBN=(rdata[1]||"")+"";
-        obj.Price=rdata[2]||"";
-        obj.rowId=f.name+"|"+i+"|"+hash(rdata.join("|"));
-        DB.push(obj);
+  // Scientific notation ISBN restore: "9.78112E+12" -> "9781120000000"
+  function sciToIntStr(s){
+    const t = safeStr(s).replace(/,/g,"");
+    if (!t) return "";
+    // already looks like ISBN digits with hyphen/space
+    const digitsOnly = t.replace(/[^0-9]/g,"");
+    if (/^\d{10,15}$/.test(digitsOnly)) return digitsOnly;
+    const m = t.match(/^(\d+(\.\d+)?)[eE]\+?(\d+)$/);
+    if (!m) return t;
+    const base = m[1];
+    const exp = parseInt(m[3],10);
+    // convert decimal string to integer by shifting
+    const parts = base.split(".");
+    const intPart = parts[0];
+    const fracPart = (parts[1] || "");
+    const raw = intPart + fracPart;
+    const shift = exp - fracPart.length;
+    if (shift < 0) {
+      // too small; return as-is
+      return t;
+    }
+    return raw + "0".repeat(shift);
+  }
+
+  function parseDateMaybe(s){
+    const t = safeStr(s);
+    if (!t) return null;
+    // try YYYY-MM-DD
+    const m1 = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m1) return new Date(t+"T00:00:00");
+    // try 01-Feb-27 (Elsevier sample)
+    const m2 = t.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+    if (m2){
+      const dd = parseInt(m2[1],10);
+      const mon = m2[2].toLowerCase();
+      const yy = parseInt(m2[3],10);
+      const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+      const mm = months[mon];
+      if (mm === undefined) return null;
+      const yyyy = (yy < 100) ? (2000 + yy) : yy;
+      return new Date(yyyy, mm, dd);
+    }
+    // fallback: Date.parse
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Robust CSV parser (quotes/newlines supported)
+  function parseCSV(text){
+    const rows = [];
+    let i=0, field="", row=[], inQuotes=false;
+    while (i < text.length){
+      const c = text[i];
+      if (inQuotes){
+        if (c === '"'){
+          if (text[i+1] === '"'){ field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        } else {
+          field += c; i++; continue;
+        }
+      } else {
+        if (c === '"'){ inQuotes = true; i++; continue; }
+        if (c === ","){ row.push(field); field=""; i++; continue; }
+        if (c === "\r"){ i++; continue; }
+        if (c === "\n"){ row.push(field); rows.push(row); field=""; row=[]; i++; continue; }
+        field += c; i++; continue;
       }
-      render();
+    }
+    row.push(field);
+    rows.push(row);
+    // trim trailing empty last row
+    while (rows.length && rows[rows.length-1].every(v => safeStr(v)==="")) rows.pop();
+    return rows;
+  }
+
+  function guessPublisherFromFilename(name){
+    const n = (name||"").toLowerCase();
+    if (n.includes("wiley")) return "Wiley";
+    if (n.includes("springer")) return "Springer";
+    if (n.includes("elsevier")) return "Elsevier";
+    return "Unknown";
+  }
+
+  // Map raw headers -> standard columns (minimal: Title/ISBN/Price/Currency/Pub Date/Pages/Sub Title)
+  function buildMapping(headers, publisher){
+    const H = headers.map(h => safeStr(h));
+    const map = {};
+    // Title
+    const titleKey = H.find(h => /^title$/i.test(h)) || H.find(h => /title/i.test(h)) || "";
+    map["Title"] = titleKey;
+    // Sub Title
+    const subKey = H.find(h => /^sub\s*title$/i.test(h)) || H.find(h => /sub\s*title/i.test(h)) || "";
+    map["Sub Title"] = subKey;
+    // ISBN
+    let isbnKey = H.find(h => /^isbn13$/i.test(h)) || H.find(h => /^isbn$/i.test(h)) || H.find(h => /isbn/i.test(h)) || "";
+    map["ISBN"] = isbnKey;
+    // Price
+    let priceKey = H.find(h => /^us\$$/i.test(h)) || H.find(h => /price/i.test(h)) || H.find(h => /list price/i.test(h)) || "";
+    map["Price"] = priceKey;
+    // Pub Date
+    let dateKey = H.find(h => /^pub date$/i.test(h)) || H.find(h => /publishing date/i.test(h)) || H.find(h => /pub\s*date/i.test(h)) || H.find(h => /date/i.test(h)) || "";
+    map["Pub Date"] = dateKey;
+    // Pages
+    let pagesKey = H.find(h => /^pages$/i.test(h)) || H.find(h => /no of.*pages/i.test(h)) || H.find(h => /pages/i.test(h)) || "";
+    map["Pages"] = pagesKey;
+
+    // KOR fields are not in source CSV => empty
+    map["KOR_TITLE"] = "";
+    map["KOR_SUBTITLE"] = "";
+
+    // Currency by publisher (locked)
+    if (publisher === "Springer") map["Currency"] = "__CONST_EUR__";
+    else map["Currency"] = "__CONST_USD__";
+
+    return map;
+  }
+
+  function normalizeRow(rawRow, headers, mapping, publisher, fileName, rowIdx){
+    const obj = {};
+    // helper to get raw cell by header name
+    const idxOf = (h) => headers.findIndex(x => safeStr(x) === safeStr(h));
+    function getByHeader(h){
+      if (!h) return "";
+      const idx = idxOf(h);
+      if (idx < 0) return "";
+      return safeStr(rawRow[idx]);
+    }
+
+    obj["Publisher"] = publisher;
+    obj["Title"] = getByHeader(mapping["Title"]);
+    obj["Sub Title"] = getByHeader(mapping["Sub Title"]);
+    obj["KOR_TITLE"] = "";       // initially empty (user says X)
+    obj["KOR_SUBTITLE"] = "";    // initially empty (user says X)
+
+    let isbnRaw = getByHeader(mapping["ISBN"]);
+    isbnRaw = sciToIntStr(isbnRaw);
+    obj["ISBN"] = safeStr(isbnRaw);
+
+    let priceRaw = getByHeader(mapping["Price"]);
+    // strip $ and commas, keep as string
+    priceRaw = safeStr(priceRaw).replace(/\$/g,"").trim();
+    obj["Price"] = safeStr(priceRaw);
+
+    obj["Currency"] = (mapping["Currency"] === "__CONST_EUR__") ? "EUR" : "USD";
+
+    const pdRaw = getByHeader(mapping["Pub Date"]);
+    obj["Pub Date"] = safeStr(pdRaw);
+
+    obj["Pages"] = getByHeader(mapping["Pages"]);
+
+    // anchor for debugging
+    obj["_ANCHOR"] = fileName;
+
+    // rowId fixed
+    obj["rowId"] = makeRowId(fileName, rowIdx, obj);
+
+    return obj;
+  }
+
+  function updateCounts(){
+    dbCount.textContent = DB.length;
+    xCount.textContent = X.length;
+    wCount.textContent = WARN.length;
+  }
+
+  // ---------- Validation with POLICY ----------
+  function recalc(){
+    X = [];
+    WARN = [];
+
+    // UI warning: table clipped / horizontal scroll in this minimal build can't be measured reliably
+    // we only warn if viewport is narrow
+    if (window.innerWidth < 900){
+      WARN.push({
+        kind:"UI", code:"UI_HSCROLL",
+        msg:"표/카드 일부가 잘릴 수 있음(창이 좁음).",
+        rowId:"", col:"",
+        res:"N",
+        how:"카드뷰 사용(현재) / 창 넓히기"
+      });
+    }
+
+    for (const r of DB){
+      // KOR_TITLE blank => user 기준 X BUT POLICY: 공란 유지(RES=Y) 로 자동 종결
+      if (!safeStr(r["KOR_TITLE"])){
+        X.push({
+          kind:"DATA", code:"KOR_TITLE_BLANK",
+          msg:"KOR_TITLE이 비어있음(사용자 기준 X).",
+          rowId:r.rowId, col:"KOR_TITLE",
+          res:"Y", // POLICY auto-resolved
+          how:"공란 유지(해결) / 자동 변환(불가) / 무시(권장X)"
+        });
+      }
+      if (!safeStr(r["KOR_SUBTITLE"])){
+        X.push({
+          kind:"DATA", code:"KOR_SUBTITLE_BLANK",
+          msg:"KOR_SUBTITLE이 비어있음(사용자 기준 X).",
+          rowId:r.rowId, col:"KOR_SUBTITLE",
+          res:"Y", // POLICY auto-resolved
+          how:"공란 유지(해결) / 자동 변환(불가) / 무시(권장X)"
+        });
+      }
+
+      // Price empty => POLICY auto-resolved (공란 유지)
+      if (!safeStr(r["Price"])){
+        X.push({
+          kind:"DATA", code:"PRICE_EMPTY",
+          msg:"Price 비어있음.",
+          rowId:r.rowId, col:"Price",
+          res:"Y",
+          how:"공란 유지(해결) / 자동 변환(불가) / 무시(권장X)"
+        });
+      }
+
+      // ISBN sanity: if empty or too short => unresolved X
+      const isbnDigits = safeStr(r["ISBN"]).replace(/[^0-9]/g,"");
+      if (!isbnDigits || isbnDigits.length < 10){
+        X.push({
+          kind:"DATA", code:"ISBN_INVALID",
+          msg:"ISBN이 비정상(숫자 10자리 미만).",
+          rowId:r.rowId, col:"ISBN",
+          res:"N",
+          how:"원본 값 확인(필수) / 공란 유지(권장X)"
+        });
+      }
+
+      // Pub date sanity: if exists but unparseable => warn
+      const pd = safeStr(r["Pub Date"]);
+      if (pd){
+        const d = parseDateMaybe(pd);
+        if (!d){
+          WARN.push({
+            kind:"DATA", code:"PUBDATE_PARSE_WARN",
+            msg:"Pub Date 형식이 애매함(정렬 정확도 저하 가능).",
+            rowId:r.rowId, col:"Pub Date",
+            res:"N",
+            how:"YYYY-MM-DD로 정규화 권장"
+          });
+        }
+      }
+    }
+
+    // POLICY: RES=Y 항목은 X 리스트에서 숨기고(=사용자 부담 0), 별도 로그만 남김
+    const before = X.length;
+    const unresolved = X.filter(e => e.res !== "Y");
+    const autoResolved = X.filter(e => e.res === "Y");
+    X = unresolved;
+
+    log("오류 재계산", {db:DB.length, x:X.length, warn:WARN.length, autoResolved:autoResolved.length, dropped:(before - X.length)});
+
+    updateCounts();
+    renderList(null);
+    renderCards();
+  }
+
+  // ---------- AutoFix (minimal) ----------
+  function autoFix(){
+    // in this minimal build, auto-fix only normalizes ISBN scientific notation again (idempotent)
+    let changed = 0;
+    for (const r of DB){
+      const before = r["ISBN"];
+      const after = sciToIntStr(before);
+      if (before !== after){
+        r["ISBN"] = after;
+        changed++;
+      }
+    }
+    log("자동 수정", {changed});
+    recalc();
+  }
+
+  // ---------- Render List ----------
+  function formatItem(i, e){
+    const n = i+1;
+    const line1 = `#${n}\t${e.kind}\t${e.code}\t${e.msg}\trowId=${e.rowId}\tcol=${e.col}\tRES=${e.res}\tHOW=${e.how}`;
+    return line1;
+  }
+
+  function renderList(mode){
+    // mode: "X" | "W" | null
+    listArea.innerHTML = "";
+    if (!mode){
+      listTitle.textContent = "리스트";
+      listMeta.textContent = "(없음)";
+      return;
+    }
+    const arr = (mode === "X") ? X : WARN;
+    listTitle.textContent = (mode === "X") ? "X 리스트" : "경고 리스트";
+    listMeta.textContent = `(count: ${arr.length})`;
+    if (!arr.length){
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = "(없음)";
+      listArea.appendChild(div);
+      return;
+    }
+    arr.forEach((e, idx) => {
+      const div = document.createElement("div");
+      div.className = "item " + ((mode==="X") ? "err" : "warn");
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = (mode==="X") ? "X" : "WARN";
+      const pre = document.createElement("div");
+      pre.textContent = formatItem(idx, e);
+      div.appendChild(tag);
+      div.appendChild(pre);
+      listArea.appendChild(div);
+    });
+  }
+
+  function copyText(text){
+    navigator.clipboard.writeText(text).then(() => {
+      log("복사", {len:text.length});
+    }).catch(() => {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      log("복사(fallback)", {len:text.length});
+    });
+  }
+
+  function getListText(mode){
+    const arr = (mode === "X") ? X : WARN;
+    if (!arr.length) return "(없음)";
+    return arr.map((e, idx) => formatItem(idx, e)).join("\n");
+  }
+
+  // ---------- Cards ----------
+  function sortForCards(rows){
+    return [...rows].sort((a,b) => {
+      const da = parseDateMaybe(a["Pub Date"]);
+      const db = parseDateMaybe(b["Pub Date"]);
+      const ta = da ? da.getTime() : -Infinity;
+      const tb = db ? db.getTime() : -Infinity;
+      return tb - ta; // desc
+    });
+  }
+
+  function cardText(r){
+    // NOTE: "형식(FREEZE)"는 다음 교체에서 완전 고정. 지금은 데이터 신뢰 회복용 최소 카드.
+    const title = safeStr(r["Title"]) || "(빈칸)";
+    const subtitle = safeStr(r["Sub Title"]);
+    const korTitle = safeStr(r["KOR_TITLE"]);
+    const korSub = safeStr(r["KOR_SUBTITLE"]);
+    const pub = safeStr(r["Publisher"]);
+    const pages = safeStr(r["Pages"]);
+    const isbn = safeStr(r["ISBN"]);
+    const price = safeStr(r["Price"]);
+    const cur = safeStr(r["Currency"]);
+    const pdate = safeStr(r["Pub Date"]);
+
+    return (
+`${title}
+${subtitle ? subtitle : "(빈칸)"}
+
+------------------------------------------------------------
+발행사: ${pub} / Pages: ${pages || "(빈칸)"} / ISBN: ${isbn || "(빈칸)"} / 정가: ${price || "(빈칸)"} ${cur || ""}
+발행: ${pdate || "(빈칸)"}
+------------------------------------------------------------
+[ROWID] ${r.rowId}`
+    );
+  }
+
+  function renderCards(){
+    cardArea.innerHTML = "";
+    if (!DB.length){
+      const c = document.createElement("div");
+      c.className = "card";
+      c.innerHTML = `<div class="t">(없음)</div><div class="k muted">CSV를 업로드하세요.</div>`;
+      cardArea.appendChild(c);
+      return;
+    }
+    const rows = sortForCards(DB);
+    if (cardIndex < 0) cardIndex = 0;
+    if (cardIndex >= rows.length) cardIndex = rows.length-1;
+    const r = rows[cardIndex];
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const t = document.createElement("div");
+    t.className = "t";
+    t.textContent = safeStr(r["Title"]) || "(빈칸)";
+
+    const k = document.createElement("div");
+    k.className = "k";
+    const pd = safeStr(r["Pub Date"]) || "(빈칸)";
+    k.textContent = `${r["Publisher"]} · Pub Date: ${pd} · Currency: ${r["Currency"]}`;
+
+    const hr = document.createElement("div");
+    hr.className = "hr";
+
+    const pre = document.createElement("pre");
+    pre.textContent = cardText(r);
+
+    const actions = document.createElement("div");
+    actions.className = "row";
+    actions.style.marginTop = "10px";
+
+    const bCopy = document.createElement("button");
+    bCopy.className = "btn primary";
+    bCopy.textContent = "복사(카드 1건)";
+    bCopy.onclick = () => {
+      copyText(cardText(r));
+      log("카드 1건 복사", {rowId:r.rowId});
     };
-    r.readAsText(f,"utf-8");
+
+    actions.appendChild(bCopy);
+
+    card.appendChild(t);
+    card.appendChild(k);
+    card.appendChild(hr);
+    card.appendChild(pre);
+    card.appendChild(actions);
+
+    cardArea.appendChild(card);
+
+    // update last file
+    lastFile.textContent = `Last: ${lastFileName}`;
   }
-};
 
-/* ---------------- HASH ---------------- */
-function hash(s){
-  let h=0;
-  for(let i=0;i<s.length;i++){
-    h=((h<<5)-h)+s.charCodeAt(i);
-    h|=0;
+  // ---------- Upload Flow ----------
+  async function handleUpload(){
+    const files = $("fileInput").files;
+    if (!files || !files.length){
+      log("업로드 실패", {reason:"no files"});
+      alert("CSV 파일을 선택하세요.");
+      return;
+    }
+
+    for (const f of files){
+      const name = f.name;
+      lastFileName = name;
+      const publisher = guessPublisherFromFilename(name);
+      const text = await f.text();
+
+      log("업로드 시작", {file:name, publisher});
+
+      const matrix = parseCSV(text);
+      if (!matrix.length){
+        log("업로드 실패", {file:name, reason:"empty"});
+        continue;
+      }
+      const headers = matrix[0].map(x => safeStr(x));
+      const mapping = buildMapping(headers, publisher);
+
+      log("매핑 확정", {file:name, mapping});
+
+      let appended = 0;
+      for (let i=1;i<matrix.length;i++){
+        const rawRow = matrix[i];
+        // ignore fully empty
+        if (!rawRow || rawRow.every(v => safeStr(v)==="")) continue;
+        const norm = normalizeRow(rawRow, headers, mapping, publisher, name, appended);
+        DB.push(norm);
+        appended++;
+      }
+      log("업로드 완료", {file:name, appended, total:DB.length});
+    }
+
+    // after upload: recalc + render
+    recalc();
+    renderCards();
   }
-  return Math.abs(h);
-}
 
-/* ---------------- RENDER ---------------- */
-function render(){
-  const c=document.getElementById("cards");
-  c.innerHTML="";
-  DB.forEach(d=>{
-    const div=document.createElement("div");
-    div.className="card";
-    div.innerHTML=
-    "<b>"+(d.Title||"(빈칸)")+"</b><br/>"+
-    "ISBN:"+d.ISBN+" / Price:"+d.Price+"<br/>"+
-    "ROWID:"+d.rowId;
-    c.appendChild(div);
-  });
-  updateStatus();
-}
+  function resetDB(){
+    DB = [];
+    X = [];
+    WARN = [];
+    cardIndex = 0;
+    lastFileName = "(없음)";
+    updateCounts();
+    renderList(null);
+    renderCards();
+    logArea.value = "";
+    log("DB 초기화");
+  }
 
-function updateStatus(){
-  document.getElementById("status").innerText=
-  "DB:"+DB.length+" | X:"+X_LIST.length+" | WARN:"+WARN_LIST.length;
-}
+  // ---------- Buttons wiring (핵심: 리스트 버튼 무조건 동작) ----------
+  $("btnUpload").onclick = handleUpload;
+  $("btnResetDB").onclick = resetDB;
+  $("btnRecalc").onclick = () => recalc();
 
-/* ---------------- X CALC ---------------- */
-function calcX(){
-  X_LIST=[];
-  DB.forEach(d=>{
-    if(!d.KOR_TITLE)X_LIST.push("KOR_TITLE_BLANK "+d.rowId);
-    if(!d.KOR_SUBTITLE)X_LIST.push("KOR_SUBTITLE_BLANK "+d.rowId);
-    if(!d.Price)X_LIST.push("PRICE_EMPTY "+d.rowId);
-  });
-  alert("X:"+X_LIST.length);
-  updateStatus();
-}
+  $("btnX").onclick = () => {
+    renderList("X");
+    log("X 리스트 보기", {count:X.length});
+  };
+  $("btnW").onclick = () => {
+    renderList("W");
+    log("경고 리스트 보기", {count:WARN.length});
+  };
 
-/* ---------------- WARN ---------------- */
-function calcWarn(){
-  WARN_LIST=[];
-  alert("WARN:"+WARN_LIST.length);
-}
+  $("btnCopyList").onclick = () => {
+    // if listTitle is X 리스트 or 경고 리스트
+    const mode = (listTitle.textContent.includes("X")) ? "X" : (listTitle.textContent.includes("경고") ? "W" : null);
+    if (!mode){ copyText("(없음)"); return; }
+    const txt = getListText(mode);
+    copyText(txt);
+    log((mode==="X" ? "X 리스트 복사" : "경고 리스트 복사"), {count:(mode==="X"?X.length:WARN.length)});
+  };
 
-/* ---------------- COPY ---------------- */
-function copyAll(){
-  const t=DB.map(d=>d.Title+" | "+d.ISBN).join("\n");
-  navigator.clipboard.writeText(t);
-  alert("복사됨");
-}
+  $("btnClearList").onclick = () => {
+    renderList(null);
+    log("리스트 닫기");
+  };
 
-/* ---------------- RESET ---------------- */
-function resetDB(){
-  DB=[];X_LIST=[];WARN_LIST=[];
-  render();
-}
+  $("btnAutoFix").onclick = () => autoFix();
 
+  $("btnCopyAll").onclick = () => {
+    // copy minimal snapshot: counts + current X/W lists + current card
+    const header = `27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰\nDB:${DB.length} | X:${X.length} | WARN:${WARN.length}\nLast:${lastFileName}\n\n`;
+    const xTxt = "=== X 리스트 ===\n" + getListText("X") + "\n\n";
+    const wTxt = "=== 경고 리스트 ===\n" + getListText("W") + "\n\n";
+    const rows = sortForCards(DB);
+    const cur = rows.length ? rows[Math.min(cardIndex, rows.length-1)] : null;
+    const cTxt = "=== 카드(현재 1건) ===\n" + (cur ? cardText(cur) : "(없음)") + "\n";
+    const out = header + xTxt + wTxt + cTxt;
+    copyText(out);
+    log("전체 복사", {db:DB.length, x:X.length, warn:WARN.length});
+  };
+
+  $("btnPrev").onclick = () => {
+    cardIndex = Math.max(0, cardIndex-1);
+    renderCards();
+  };
+  $("btnNext").onclick = () => {
+    cardIndex = Math.min(DB.length-1, cardIndex+1);
+    renderCards();
+  };
+
+  // initial paint
+  updateCounts();
+  renderCards();
+  log("앱 시작", {LOCK_STANDARD_COLS, LOCK_UI});
+})();
 </script>
 </body>
 </html>
