@@ -3,972 +3,650 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 v6 – CSV 업로드 · X/경고 자동검증 · 복사 · 카드뷰 (입력무결성 잠금)</title>
+  <title>27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰 (LOCK: RAW→INTERNAL→DISPLAY)</title>
   <style>
-    :root{
-      --bg:#ffffff; --panel:#f7f7f9; --panel2:#ffffff; --txt:#111111; --muted:#666;
-      --line:#d7dbe2; --ok:#1a7f37; --bad:#d1242f; --warn:#b26a00; --btn:#ffffff;
-      --btn2:#f1f4f8; --shadow:0 1px 0 rgba(0,0,0,.04);
-    }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--txt); }
-    header{ position:sticky; top:0; z-index:50; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); }
-    .wrap{ max-width:1280px; margin:0 auto; padding:10px 12px; }
-    .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .title{ font-weight:800; font-size:14px; }
-    .hint{ font-size:12px; color:var(--muted); margin-top:4px; }
-    .panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px; box-shadow:var(--shadow); }
-    .btn{
-      background:var(--btn); color:var(--txt); border:1px solid var(--line);
-      padding:9px 11px; border-radius:10px; cursor:pointer; font-size:13px; box-shadow:var(--shadow);
-    }
-    .btn:active{ transform:translateY(1px); }
-    .btn.primary{ border-color:#2a79ff; }
-    .btn.danger{ border-color:var(--bad); }
-    .btn.ok{ border-color:var(--ok); }
-    .btn.small{ padding:6px 10px; border-radius:9px; font-size:12px; }
-    input[type=file]{ display:none; }
-
-    .kpis{ display:flex; gap:8px; flex-wrap:wrap; }
-    .kpi{ padding:6px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--line); font-size:12px; color:var(--muted); }
-
-    main .wrap{ padding-top:10px; }
-
-    /* TABLE */
-    .tableWrap{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel2); }
-    table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
-    thead th{
-      position:sticky; top:110px; z-index:10;
-      background:#ffffff; color:var(--muted);
-      border-bottom:1px solid var(--line); padding:10px 8px; font-size:12px; text-align:left;
-      white-space:nowrap;
-    }
-    tbody td{ border-bottom:1px solid #eef1f5; padding:8px; vertical-align:top; font-size:13px; word-break:break-word; overflow-wrap:anywhere; }
-    tbody tr:hover td{ background:#fafbfc; }
-
-    .colPub{ width:90px; }
-    .colTitle{ width:360px; }
-    .colSub{ width:260px; }
-    .colKor{ width:200px; }
-    .colISBN{ width:165px; }
-    .colPrice{ width:110px; }
-    .colCur{ width:80px; }
-    .colAction{ width:110px; }
-
-    .pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:#fff; font-size:12px; color:var(--muted); }
-    .markX{ color:var(--bad); font-weight:800; }
-    .markW{ color:var(--warn); font-weight:800; }
-    .markOK{ color:var(--ok); font-weight:800; }
-
-    /* FOOTER LOG */
-    .footerBar{ position:fixed; left:0; right:0; bottom:0; z-index:60; background:rgba(255,255,255,.96); border-top:1px solid var(--line); }
-    details{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px; box-shadow:var(--shadow); }
-    details summary{ cursor:pointer; color:var(--muted); font-size:13px; }
-    pre{ margin:8px 0 0; max-height:220px; overflow:auto; background:#fff; padding:10px; border-radius:10px; border:1px solid var(--line); font-size:12px; }
-
-    /* MODALS */
-    .modalBack{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:80; padding:14px; }
-    .modal{ width:min(1020px, 100%); max-height:86vh; overflow:auto; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); }
-    .modal h3{ margin:0; font-size:14px; }
-    .list{ display:flex; flex-direction:column; gap:8px; }
-    .item{ border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff; }
-    .itemTop{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
-    .itemMeta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .reason{ color:var(--muted); font-size:12px; margin-top:6px; }
-    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .right{ margin-left:auto; }
-
-    /* CARDS */
-    .cards{ display:none; gap:10px; flex-direction:column; }
-    .card{ border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff; }
-    .card pre{ max-height:none; }
-
-    .spacer{ height:140px; }
-
-    @media (max-width:820px){
-      thead th{ top:164px; }
-      .colTitle{ width:280px; }
-      .colSub{ width:220px; }
-      .colKor{ width:160px; }
-    }
+    :root{--bg:#fff;--fg:#111;--muted:#666;--line:#e5e5e5;--chip:#f5f5f5;--bad:#b00020;--warn:#9a6b00;}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Arial,sans-serif;background:var(--bg);color:var(--fg);}
+    header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 12px;z-index:10}
+    .title{font-weight:800}
+    .sub{color:var(--muted);font-size:12px;margin-top:4px}
+    .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    button,.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-weight:700;cursor:pointer}
+    button:hover{background:#fafafa}
+    .chip{display:inline-flex;gap:6px;align-items:center;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-weight:800}
+    .chip small{font-weight:700;color:var(--muted)}
+    .wrap{display:grid;grid-template-columns: 420px 1fr;gap:12px;padding:12px}
+    @media (max-width: 1100px){.wrap{grid-template-columns:1fr}}
+    .panel{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+    .panel h3{margin:0;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px}
+    .panel .body{padding:10px 12px}
+    .kv{display:grid;grid-template-columns: 120px 1fr;gap:6px 10px;font-size:13px}
+    .kv div:nth-child(odd){color:var(--muted)}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .card{border:1px solid var(--line);border-radius:14px;padding:12px}
+    .card .h{font-weight:900}
+    .card .m{color:var(--muted);margin-top:6px;font-size:12px}
+    .card pre{white-space:pre-wrap;word-break:break-word;background:#fafafa;border:1px solid var(--line);border-radius:12px;padding:10px;margin:10px 0 0 0;font-size:12px}
+    .rownav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .bad{color:var(--bad);font-weight:900}
+    .warn{color:var(--warn);font-weight:900}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .small{font-size:12px;color:var(--muted)}
+    textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:12px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:999}
+    .modal.open{display:flex}
+    .modal .box{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:1100px;width:100%;max-height:85vh;overflow:auto}
+    .modal .box header{position:sticky;top:0;border-bottom:1px solid var(--line)}
+    .modal .box .content{padding:12px}
+    .modal .box .content pre{white-space:pre-wrap;word-break:break-word;background:#fafafa;border:1px solid var(--line);border-radius:12px;padding:10px;margin:0;font-size:12px}
+    .right{margin-left:auto}
   </style>
 </head>
 <body>
 <header>
-  <div class="wrap">
-    <div class="row">
-      <div class="panel" style="flex:1; min-width:260px;">
-        <div class="title">27번 도구 v6 – CSV 업로드 · X/경고 자동검증 · 복사 · 카드뷰 (입력무결성 잠금)</div>
-        <div class="hint">이번 교체 목표는 1개뿐: <b>원본 CSV → 내부 저장 → 화면 표시</b>가 동일하게 들어오도록 잠금. (구분자 자동감지·BOM 제거·과학표기 ISBN 복원·헤더 누락 경고화)</div>
-      </div>
+  <div class="title">27번 도구 – CSV 업로드 · X 자동검증 · 카드뷰 <span class="chip"><small>LOCK</small> RAW→INTERNAL→DISPLAY</span></div>
+  <div class="sub">핵심: ① CSV 문자열 원본 보존(숫자 변환 금지) ② 매핑 누락/과학표기/형식 깨짐은 X/경고에 반드시 걸림 ③ “공란 정책”은 자동 종결(RES=Y)로 X 감소</div>
 
-      <label class="btn primary" for="fileInput">업로드(추가)</label>
-      <input id="fileInput" type="file" accept=".csv,text/csv" multiple />
+  <div class="bar">
+    <span class="chip">DB <small id="statDb">0</small></span>
+    <span class="chip">X <small id="statX">0</small></span>
+    <span class="chip">WARN <small id="statW">0</small></span>
 
-      <button class="btn danger" id="btnResetDB">DB 초기화</button>
-      <button class="btn" id="btnClearLog">로그 초기화</button>
-      <button class="btn" id="btnRecalc">오류 재계산</button>
+    <button id="btnReset">DB 초기화</button>
 
-      <button class="btn ok" id="btnShowX">X 리스트</button>
-      <button class="btn" id="btnShowW">경고 리스트</button>
+    <label class="btn">
+      업로드(CSV)
+      <input id="fileInput" type="file" accept=".csv,text/csv" multiple style="display:none" />
+    </label>
 
-      <button class="btn" id="btnToggleView">카드뷰</button>
-      <button class="btn" id="btnCopyCards">카드 전체 복사</button>
-    </div>
+    <button id="btnRecalc">오류 재계산</button>
+    <button id="btnX">X 리스트</button>
+    <button id="btnW">경고 리스트</button>
 
-    <div class="row" style="margin-top:10px;">
-      <div class="kpis">
-        <span class="kpi">DB: <b id="kpiRows">0</b> rows</span>
-        <span class="kpi">X: <b id="kpiX">0</b></span>
-        <span class="kpi">경고: <b id="kpiW">0</b></span>
-        <span class="kpi">Last: <b id="kpiLast">-</b></span>
-        <span class="kpi">정렬: Pub Date ↓ (최근 → 과거) 고정</span>
-        <span class="kpi">rowId 고정: file|row|hash</span>
-        <span class="kpi">CSV 잠금: delimiter auto-detect · BOM strip</span>
-      </div>
-      <button class="btn small right" id="btnResort">정렬 재적용</button>
-    </div>
+    <button id="btnCopyAll" class="right">전체 복사</button>
   </div>
 </header>
 
-<main>
-  <div class="wrap">
-
-    <div class="tableWrap" id="tableWrap">
-      <table id="tbl">
-        <thead>
-          <tr id="hdr"></tr>
-        </thead>
-        <tbody id="body"></tbody>
-      </table>
+<div class="wrap">
+  <section class="panel">
+    <h3>POLICY(자동 종결 규칙)</h3>
+    <div class="body">
+      <div class="kv">
+        <div>KOR 공란</div><div><b>공란 유지</b> (RES=Y → X에서 제외)</div>
+        <div>Price 공란</div><div><b>공란 유지</b> (RES=Y → X에서 제외)</div>
+        <div>Pages 매핑 누락</div><div><b>경고</b> (WARN: MAPPING_MISS)</div>
+        <div>ISBN 과학표기</div><div><b>X로 강제 표기</b> (ISBN_SCI_NOTATION, RES=N) — “원본이 이미 과학표기면 복원 불가”를 명시</div>
+        <div>원본→표시 불일치</div><div><b>X로 강제 표기</b> (LOCK_MISMATCH, RES=N) — 이 버전은 내부/표시를 원본과 동일 문자열로 고정해서 원칙상 발생하면 안 됨</div>
+      </div>
+      <div class="small" style="margin-top:10px">
+        ※ 외부 링크 fetch 없음. 이 도구는 “원본 그대로 들어와서 그대로 표시되는지”만 잠금 검증한다.
+      </div>
     </div>
+  </section>
 
-    <div class="cards" id="cards"></div>
+  <section class="panel">
+    <h3>카드뷰 <span class="small">정렬: Pub Date ↓ (최근 → 과거)</span></h3>
+    <div class="body">
+      <div class="rownav" style="margin-bottom:10px">
+        <button id="btnPrev">◀</button>
+        <button id="btnNext">▶</button>
+        <span class="chip"><small>INDEX</small> <span id="curIdx">-</span></span>
+        <span class="chip"><small>ROWID</small> <span id="curRowId" class="mono">-</span></span>
+        <button id="btnCopyCard">복사(카드 1건)</button>
+        <button id="btnCopyKeywords">키워드 복사(준비)</button>
+      </div>
 
-    <div class="spacer"></div>
-  </div>
-</main>
-
-<div class="footerBar">
-  <div class="wrap">
-    <details id="logBox">
-      <summary>로그(하단 고정 · 접힘)</summary>
-      <pre id="log"></pre>
-    </details>
-  </div>
+      <div id="cardHost" class="card">
+        <div class="h">(없음)</div>
+        <div class="m">업로드 후 표시</div>
+        <pre id="cardText">(없음)</pre>
+        <div class="small">RAW / INTERNAL / DISPLAY 잠금 확인</div>
+        <textarea id="lockDump" readonly></textarea>
+      </div>
+    </div>
+  </section>
 </div>
 
-<!-- X MODAL -->
-<div class="modalBack" id="modalXBack">
-  <div class="modal">
-    <div class="row" style="margin-bottom:10px;">
-      <h3 style="flex:1;">X 리스트(자동 산출 · 복사 가능)</h3>
-      <button class="btn" id="btnCopyX">X 복사</button>
-      <button class="btn" id="btnCloseX">닫기</button>
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="box">
+    <header>
+      <div class="bar" style="margin:0;padding:8px 12px">
+        <div class="title" id="modalTitle">리스트</div>
+        <button id="btnCopyModal" class="right">리스트 복사</button>
+        <button id="btnClose">닫기</button>
+      </div>
+    </header>
+    <div class="content">
+      <pre id="modalBody">(없음)</pre>
     </div>
-    <div class="hint" style="margin-bottom:10px;">
-      선택: 전체/부분 체크 → 해결 옵션(2버튼) → 복사. (자동 변환이 불가한 X는 “공란 유지(해결)”로 종결 가능)
-    </div>
-    <div class="row" style="margin-bottom:10px;">
-      <label class="pill"><input type="checkbox" id="xAll" /> 전체 체크</label>
-      <button class="btn small" id="btnXResolveBlank">선택: 공란 유지(해결)</button>
-      <button class="btn small" id="btnXIgnore">선택: 무시(통과)</button>
-      <span class="pill"><span class="markX">X</span>만 표시(RES=Y는 숨김)</span>
-    </div>
-    <div class="list" id="xList"></div>
-  </div>
-</div>
-
-<!-- W MODAL -->
-<div class="modalBack" id="modalWBack">
-  <div class="modal">
-    <div class="row" style="margin-bottom:10px;">
-      <h3 style="flex:1;">경고 리스트(자동 산출 · 복사 가능)</h3>
-      <button class="btn" id="btnCopyW">경고 복사</button>
-      <button class="btn" id="btnCloseW">닫기</button>
-    </div>
-    <div class="hint" style="margin-bottom:10px;">
-      경고는 작업 지속 가능(즉시 중단 X). 필요하면 체크 후 “무시(통과)”로 닫을 수 있음.
-    </div>
-    <div class="row" style="margin-bottom:10px;">
-      <label class="pill"><input type="checkbox" id="wAll" /> 전체 체크</label>
-      <button class="btn small" id="btnWIgnore">선택: 무시(통과)</button>
-      <span class="pill"><span class="markW">경고</span>만 표시(RES=Y는 숨김)</span>
-    </div>
-    <div class="list" id="wList"></div>
   </div>
 </div>
 
 <script>
-/** ===========================
- *  FREEZE LOCK (상수)
- *  =========================== */
-const LOCK_STANDARD_COLS = [
-  "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR(file|row|id)"
-];
+/** =========================
+ *  LOG (사용자 복사용)
+ *  ========================= */
+const LOG = [];
+function log(tag, obj){
+  const ts = new Date().toISOString().replace('T',' ').replace('Z','');
+  const line = `[${ts}] ${tag} :: ${JSON.stringify(obj)}`;
+  LOG.push(line);
+  // console.log(line);
+}
 
-// 표에는 좌측 핵심만(가로 잘림 방지)
-const TABLE_COLS = [
-  "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","__DETAIL__"
-];
+/** =========================
+ *  DATA MODEL
+ *  ========================= */
+const LOCK_STANDARD_COLS = ["Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR"];
+const DB = []; // items: {file,publisher,headers,rawRow,internal,rowId,displayText,keywordsText}
+let CUR = -1;
 
-// 환율(고정) — (표기 양식은 다음 교체에서 고정)
-const FX = { USD:1500, EUR:1500 };
+let X_LIST = [];
+let W_LIST = [];
 
-// 발행사별 매핑(원본→표준)
-const LOCK_PUBLISHER_MAP = [
-  {
-    publisher: "Elsevier",
-    matchFile: (name)=> /\(elsevier\)/i.test(name) || /elsevier/i.test(name),
-    mapping: {
-      "Title": "Title",
-      "Sub Title": "",
-      "KOR_TITLE": "",
-      "KOR_SUBTITLE": "",
-      "ISBN": "ISBN",
-      "Price": "List Price (USD)",
-      "Currency": "__CONST_USD__",
-      "Pub Date": "Pub date",
-      "Pages": "No of Pages"
-    }
-  },
-  {
-    publisher: "Springer",
-    matchFile: (name)=> /^springer-/i.test(name) || /springer/i.test(name),
-    mapping: {
-      "Title": "Title",
-      "Sub Title": "Sub Title",
-      "KOR_TITLE": "",
-      "KOR_SUBTITLE": "",
-      "ISBN": "ISBN",
-      "Price": "Price EUR",
-      "Currency": "__CONST_EUR__",
-      "Pub Date": "Actual Publishing Date",
-      "Pages": "No of Arabic Pages"
-    }
-  },
-  {
-    publisher: "Wiley",
-    matchFile: (name)=> /wiley/i.test(name),
-    mapping: {
-      "Title": "Title",
-      "Sub Title": "",
-      "KOR_TITLE": "",
-      "KOR_SUBTITLE": "",
-      "ISBN": "ISBN13",
-      "Price": "US$",
-      "Currency": "__CONST_USD__",
-      "Pub Date": "Pub Date",
-      "Pages": "Pages"
-    }
+/** =========================
+ *  UTIL: stable hash (FNV-1a 32)
+ *  ========================= */
+function fnv1a32(str){
+  let h = 0x811c9dc5;
+  for(let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = (h + ((h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24))) >>> 0;
   }
-];
-
-/** ===========================
- *  localStorage
- *  =========================== */
-const LS_DB  = "wic27_db_v6";
-const LS_LOG = "wic27_log_v6";
-const LS_RES = "wic27_res_v6";   // issueKey -> {res:'BLANK'|'IGNORE', at:ts}
-const LS_VIEW= "wic27_view_v6";  // 'table'|'card'
-
-let DB = loadJSON(LS_DB, []);
-let logLines = loadJSON(LS_LOG, []);
-let RES = loadJSON(LS_RES, {});
-let VIEW = loadJSON(LS_VIEW, "table");
-
-function loadJSON(key, fallback){
-  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
-  catch(e){ return fallback; }
+  return h >>> 0;
 }
-function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
-
-/** ===========================
- *  utils
- *  =========================== */
-function djb2(str){
-  let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h)+str.charCodeAt(i); h>>>=0; }
-  return ("00000000"+h.toString(16)).slice(-8);
-}
-function normBlank(v){ return (v==null)?"":String(v).trim(); }
-function stripBOM(s){ return (s||"").replace(/^\uFEFF/,''); }
-function stripMoney(s){ s=normBlank(s); if(!s) return ""; s=s.replace(/[\s,]/g,"").replace(/^\$/,''); return s; }
-function toNumberOrBlank(s){ s=stripMoney(s); if(!s) return ""; const n=Number(s); return Number.isFinite(n)?String(n):"__BAD__"; }
-
-function sciToIntStr(s){
-  s=normBlank(s); if(!s) return "";
-  const m=s.match(/^([0-9]+(?:\.[0-9]+)?)E\+([0-9]+)$/i);
-  if(!m) return s;
-  const base=m[1], exp=parseInt(m[2],10);
-  const parts=base.split('.');
-  const digits=(parts[0]+(parts[1]||"")).replace(/^0+/,"") || "0";
-  const zeros=exp-(parts[1]||"").length;
-  return zeros>=0 ? digits + "0".repeat(zeros) : s;
-}
-function normISBN(s){
-  s=normBlank(s); if(!s) return "";
-  if(/E\+/i.test(s)) s=sciToIntStr(s);
-  const digits=s.replace(/[^0-9]/g,"");
-  return digits || s;
-}
-
-const MONTH={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
-function pad2(n){ return (n<10?"0"+n:String(n)); }
-function isValidDate(y,m,d){
-  if(y<1900||y>2100) return false;
-  const dt=new Date(y,m-1,d);
-  return dt.getFullYear()===y && (dt.getMonth()+1)===m && dt.getDate()===d;
-}
-function normDate(s){
-  s=normBlank(s); if(!s) return "";
-  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){ const y=+m[1], mo=+m[2], d=+m[3]; return isValidDate(y,mo,d)?`${y}-${pad2(mo)}-${pad2(d)}`:"__BAD__"; }
-  m=s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2}|\d{4})$/);
-  if(m){
-    const d=+m[1]; const mo=MONTH[m[2].toLowerCase()]; if(!mo) return "__BAD__";
-    let y=+m[3]; if(String(m[3]).length===2) y=2000+y;
-    return isValidDate(y,mo,d)?`${y}-${pad2(mo)}-${pad2(d)}`:"__BAD__";
+function stableStringify(obj){
+  // stable key order for hashing
+  const keys = Object.keys(obj).sort();
+  let out = "";
+  for(const k of keys){
+    out += k + "=" + String(obj[k]) + "\n";
   }
-  return "__BAD__";
-}
-function normPages(s){
-  s=normBlank(s); if(!s) return "";
-  const t=s.replace(/[\s,]/g,"");
-  return /^\d+$/.test(t)?t:"__BAD__";
-}
-
-/** ===========================
- *  CSV parser (입력무결성 잠금 핵심)
- *  - delimiter 자동감지(, ; \t |)
- *  - BOM 제거
- *  - 따옴표/줄바꿈 포함 셀 처리
- *  =========================== */
-function detectDelimiter(text){
-  const t = stripBOM(text || "");
-  const lines = t.split(/\r?\n/).filter(x=>x.trim()!=="");
-  const head = (lines[0]||"");
-  const cands = [",",";","\t","|"];
-  let best = ",";
-  let bestScore = -1;
-  for(const d of cands){
-    // 헤더 라인에서 구분자 개수로 점수
-    const score = (head.split(d).length-1);
-    if(score > bestScore){ bestScore=score; best=d; }
-  }
-  return best;
-}
-
-function parseDelimited(text){
-  const delim = detectDelimiter(text);
-  const src = stripBOM(text || "");
-  const rows=[]; let i=0, cur="", inQ=false; const row=[];
-  function pushCell(){ row.push(cur); cur=""; }
-  function pushRow(){
-    if(row.length===1 && row[0].trim()===""){ row.length=0; return; }
-    rows.push(row.slice()); row.length=0;
-  }
-  while(i<src.length){
-    const ch=src[i];
-    if(inQ){
-      if(ch==='"'){
-        if(src[i+1]==='"'){ cur+='"'; i+=2; continue; }
-        inQ=false; i++; continue;
-      }
-      cur+=ch; i++; continue;
-    }else{
-      if(ch==='"'){ inQ=true; i++; continue; }
-      if(ch===delim){ pushCell(); i++; continue; }
-      if(ch==='\n'){ pushCell(); pushRow(); i++; continue; }
-      if(ch==='\r'){ i++; continue; }
-      cur+=ch; i++; continue;
-    }
-  }
-  pushCell(); pushRow();
-  return { rows, delim };
-}
-
-/** ===========================
- *  mapping + row
- *  =========================== */
-function detectPublisher(fileName){
-  for(const p of LOCK_PUBLISHER_MAP){ if(p.matchFile(fileName)) return p.publisher; }
-  const m=fileName.match(/\(([^)]+)\)/); if(m) return m[1].trim();
-  return "Unknown";
-}
-function getMappingFor(fileName){
-  const pub=detectPublisher(fileName);
-  const e=LOCK_PUBLISHER_MAP.find(x=>x.publisher===pub);
-  return e?e.mapping:null;
-}
-function findHeaderIndex(headers, colName){
-  const target = (colName||"").trim();
-  if(!target) return -1;
-  // 정확 일치 우선, 없으면 대소문자/공백 유사 매칭
-  let idx = headers.findIndex(h=>h.trim()===target);
-  if(idx>=0) return idx;
-  const lowT = target.toLowerCase();
-  idx = headers.findIndex(h=>h.trim().toLowerCase()===lowT);
-  return idx;
-}
-function getCell(headers, rawRow, colName){
-  const idx=findHeaderIndex(headers, colName);
-  if(idx<0) return "";
-  return normBlank(rawRow[idx] ?? "");
-}
-
-function makeAnchor(fileName, rowIndex, rowObj){
-  const stable=`${fileName}|${rowIndex}|${rowObj.Title||""}|${rowObj.ISBN||""}`;
-  const id=djb2(stable);
-  const anchorStr=`${fileName} | ${rowIndex} | ${id}`;
-  return { id, anchorStr, anchorKey:`${fileName}|${rowIndex}|${id}` };
-}
-
-function makeStandardRow({fileName, headers, rawRow, rowIndex, mapping}){
-  const publisher=detectPublisher(fileName);
-  const out={};
-  out.Publisher=publisher;
-
-  const missing = [];
-  const raw = {}; // 원본값(무결성 확인용)
-
-  function mapStd(std){
-    const src=mapping?mapping[std]:"";
-    if(!src) return "";
-    if(src==="__CONST_USD__") return "USD";
-    if(src==="__CONST_EUR__") return "EUR";
-    const idx=findHeaderIndex(headers, src);
-    if(idx<0){ missing.push(`${std}<=${src}`); return ""; }
-    const v = normBlank(rawRow[idx] ?? "");
-    raw[src]=v;
-    return v;
-  }
-
-  out.Title=mapStd("Title");
-  out["Sub Title"]=mapStd("Sub Title");
-  out.KOR_TITLE=mapStd("KOR_TITLE");
-  out.KOR_SUBTITLE=mapStd("KOR_SUBTITLE");
-
-  out.ISBN=normISBN(mapStd("ISBN"));
-
-  const priceNorm=toNumberOrBlank(mapStd("Price"));
-  out.Price=(priceNorm==="__BAD__")?"__BAD__":priceNorm;
-
-  out.Currency=normBlank(mapStd("Currency"));
-  out["Pub Date"]=normDate(mapStd("Pub Date"));
-  out.Pages=normPages(mapStd("Pages"));
-
-  const anc=makeAnchor(fileName, rowIndex, out);
-  out._ANCHOR=anc.anchorStr;
-  out.__rowId=anc.anchorKey; // file|row|hash
-
-  out.__missing = missing; // 경고로 잡기
-  out.__raw = raw;         // 원본값(로깅/검증용)
   return out;
 }
 
-/** ===========================
- *  logging
- *  =========================== */
-function log(event, payload){
-  const ts=new Date().toISOString().replace('T',' ').slice(0,19);
-  const line=`[${ts}] ${event} :: ${JSON.stringify(payload)}`;
-  logLines.push(line);
-  if(logLines.length>600) logLines=logLines.slice(-600);
-  saveJSON(LS_LOG, logLines);
-  document.getElementById('log').textContent=logLines.join('\n');
+/** =========================
+ *  CSV PARSER (RFC4180-ish)
+ *  - IMPORTANT: NEVER convert to number.
+ *  - keep exactly what CSV contains (except CRLF normalization).
+ *  ========================= */
+function parseCSV(text){
+  // normalize line endings, preserve content
+  text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const rows = [];
+  let row = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+
+    if(inQuotes){
+      if(ch === '"'){
+        const next = text[i+1];
+        if(next === '"'){ // escaped quote
+          cur += '"';
+          i++;
+        }else{
+          inQuotes = false;
+        }
+      }else{
+        cur += ch;
+      }
+    }else{
+      if(ch === '"'){
+        inQuotes = true;
+      }else if(ch === ","){
+        row.push(cur);
+        cur = "";
+      }else if(ch === "\n"){
+        row.push(cur);
+        rows.push(row);
+        row = [];
+        cur = "";
+      }else{
+        cur += ch;
+      }
+    }
+  }
+  // last cell
+  row.push(cur);
+  // ignore last empty line only if it's truly empty single cell
+  if(!(row.length===1 && row[0]==="" && rows.length>0)){
+    rows.push(row);
+  }
+  return rows;
 }
 
-/** ===========================
- *  issues (X + WARN)
- *  =========================== */
-function issueKey(type, code, rowId, col){
-  return `${type}|${code}|${rowId}|${col||''}`;
+/** =========================
+ *  MAPPING (auto)
+ *  ========================= */
+function inferPublisher(fileName){
+  const n = (fileName||"").toLowerCase();
+  if(n.includes("wiley")) return "Wiley";
+  if(n.includes("springer")) return "Springer";
+  if(n.includes("elsevier")) return "Elsevier";
+  return "UNKNOWN";
+}
+function normalizeHeaderKey(h){
+  return String(h||"").trim().toLowerCase();
+}
+function buildMapping(headers, publisher){
+  // map internal standard -> header name or const
+  const H = headers.map(h=>String(h));
+  const keyToHeader = new Map();
+  for(const h of H){
+    keyToHeader.set(normalizeHeaderKey(h), h);
+  }
+
+  function pick(candidates){
+    for(const c of candidates){
+      const hit = keyToHeader.get(normalizeHeaderKey(c));
+      if(hit) return hit;
+    }
+    return "";
+  }
+
+  const m = {
+    "Title": pick(["Title","Book Title","Product Title"]),
+    "Sub Title": pick(["Sub Title","Subtitle","SubTitle"]),
+    "ISBN": pick(["ISBN","ISBN13","ISBN-13","ISBN 13","ISBN-10","ISBN10"]),
+    "Price": pick(["US$","List Price (USD)","List Price","Price","Price EUR","EUR","USD"]),
+    "Pub Date": pick(["Pub Date","Pub date","Publication Date","Actual Publishing Date","Publishing Date"]),
+    "Pages": pick(["Pages","No of Pages","No of Arabic Pages","Page Count","Number of Pages"])
+  };
+
+  // Currency const
+  let currency = "";
+  const priceKey = normalizeHeaderKey(m["Price"]);
+  if(publisher==="Springer") currency = "__CONST_EUR__";
+  else if(publisher==="Wiley" || publisher==="Elsevier") currency = "__CONST_USD__";
+  else {
+    if(priceKey.includes("eur")) currency="__CONST_EUR__";
+    else if(priceKey.includes("usd") || priceKey.includes("us$")) currency="__CONST_USD__";
+    else currency="__CONST__";
+  }
+
+  // KOR fields are not in CSV by default
+  m["KOR_TITLE"] = "";
+  m["KOR_SUBTITLE"] = "";
+  m["Currency"] = currency;
+
+  return m;
 }
 
-function autoIssues(){
-  const xs=[]; const ws=[];
+/** =========================
+ *  BUILD ROW (RAW → INTERNAL → DISPLAY)
+ *  ========================= */
+function buildRowItem({fileName, publisher, headers, rowArr, rowIndex}){
+  // RAW: header->cell string (NO number conversion)
+  const rawRow = {};
+  for(let i=0;i<headers.length;i++){
+    const h = headers[i];
+    rawRow[h] = (rowArr[i] !== undefined ? String(rowArr[i]) : "");
+  }
 
-  // DATA: per row
-  for(const r of DB){
-    // (핵심) 헤더 누락/매핑 누락은 X가 아니라 경고로 분리해서, “데이터 외곡” 원인을 리스트로 고정 노출
-    if(Array.isArray(r.__missing) && r.__missing.length){
-      ws.push({
-        type:'W', scope:'DATA', code:'MAPPING_MISS',
-        msg:`매핑 컬럼이 CSV 헤더에 없음: ${r.__missing.join(', ')}`,
-        rowId:r._ANCHOR, col:'', how:'원본 헤더 확인 / 매핑표 수정(다음 교체에서 자동 매핑 강화)'
+  const mapping = buildMapping(headers, publisher);
+
+  // INTERNAL: standard columns only, values must be EXACT raw strings (or "")
+  const internal = {};
+  internal["Publisher"] = publisher;
+  internal["Title"] = mapping["Title"] ? rawRow[mapping["Title"]] : "";
+  internal["Sub Title"] = mapping["Sub Title"] ? rawRow[mapping["Sub Title"]] : "";
+  internal["KOR_TITLE"] = "";       // default empty
+  internal["KOR_SUBTITLE"] = "";    // default empty
+  internal["ISBN"] = mapping["ISBN"] ? rawRow[mapping["ISBN"]] : "";
+  internal["Price"] = mapping["Price"] ? rawRow[mapping["Price"]] : "";
+  internal["Currency"] = mapping["Currency"] || "__CONST__";
+  internal["Pub Date"] = mapping["Pub Date"] ? rawRow[mapping["Pub Date"]] : "";
+  internal["Pages"] = mapping["Pages"] ? rawRow[mapping["Pages"]] : "";
+  internal["_ANCHOR"] = ""; // reserved
+
+  // ROWID: file|row|hash (hash from RAW, stable)
+  const h32 = fnv1a32(stableStringify(rawRow));
+  const rowId = `${fileName}|${rowIndex}|${h32}`;
+
+  // DISPLAY: must be derived ONLY from INTERNAL (no other transforms)
+  const titleLine = internal["Title"] || "(빈칸)";
+  const subLine = internal["Sub Title"] || "((빈칸))";
+  const pub = internal["Publisher"] || "(빈칸)";
+  const pages = internal["Pages"] || "(빈칸)";
+  const isbn = internal["ISBN"] || "(빈칸)";
+  const price = internal["Price"] || "(빈칸)";
+  const cur = internal["Currency"] === "__CONST_USD__" ? "USD"
+            : internal["Currency"] === "__CONST_EUR__" ? "EUR"
+            : internal["Currency"];
+  const pubDate = internal["Pub Date"] || "(빈칸)";
+
+  const displayText =
+`${titleLine}
+${subLine}
+
+------------------------------------------------------------
+발행사: ${pub} / Pages: ${pages} / ISBN: ${isbn} / 정가: ${price} ${cur}
+발행: ${pubDate}
+------------------------------------------------------------
+● 자세한 내용의 링크 : (빈칸)
+
+[ROWID] ${rowId}`;
+
+  // keywords placeholder (next step)
+  const keywordsText = ``; // empty for now, but button exists
+
+  return { file:fileName, publisher, headers, mapping, rawRow, internal, rowId, displayText, keywordsText };
+}
+
+/** =========================
+ *  VALIDATION (X/WARN)
+ *  ========================= */
+function isSciNotationISBN(v){
+  const s = String(v||"").trim();
+  // common excel sci notation like 9.78139E+12
+  return /^[0-9]+\.[0-9]+e\+\d+$/i.test(s) || /e\+\d+/i.test(s);
+}
+
+function recalcAll(){
+  X_LIST = [];
+  W_LIST = [];
+
+  // per-row validation
+  for(const item of DB){
+    const rid = item.rowId;
+
+    // WARN: mapping miss (Pages is most common)
+    if(!item.mapping["Pages"] || !item.mapping["Pages"].trim()){
+      W_LIST.push({
+        no: W_LIST.length+1,
+        level:"DATA",
+        code:"MAPPING_MISS",
+        msg:`매핑 컬럼이 CSV 헤더에 없음: Pages<=Pages`,
+        rowId: rid.replace(/\|[0-9]+\|[0-9]+$/, m => m), // keep
+        col:"",
+        RES:"N",
+        HOW:"원본 헤더 확인 / 매핑표 수정(다음 교체에서 자동 매핑 강화)"
       });
     }
 
-    // user 기준: KOR 공란은 X
-    if(normBlank(r.KOR_TITLE)===""){
-      xs.push({type:'X', scope:'DATA', code:'KOR_TITLE_BLANK', msg:'KOR_TITLE이 비어있음(사용자 기준 X).', rowId:r._ANCHOR, col:'KOR_TITLE', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }
-    if(normBlank(r.KOR_SUBTITLE)===""){
-      xs.push({type:'X', scope:'DATA', code:'KOR_SUBTITLE_BLANK', msg:'KOR_SUBTITLE이 비어있음(사용자 기준 X).', rowId:r._ANCHOR, col:'KOR_SUBTITLE', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }
+    // POLICY: KOR blanks are auto-resolved (NOT X)
+    // POLICY: Price empty is auto-resolved (NOT X)
 
-    // ISBN 13
-    const d=(r.ISBN||'').replace(/[^0-9]/g,'');
-    if(d && d.length!==13){
-      xs.push({type:'X', scope:'DATA', code:'ISBN_BAD', msg:'ISBN 13자리 불일치.', rowId:r._ANCHOR, col:'ISBN', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }
-
-    // date
-    if(r['Pub Date']==='__BAD__'){
-      xs.push({type:'X', scope:'DATA', code:'DATE_BAD', msg:'발행일 형식 깨짐.', rowId:r._ANCHOR, col:'Pub Date', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
+    // X: ISBN sci notation (must be visible)
+    if(item.internal["ISBN"] && isSciNotationISBN(item.internal["ISBN"])){
+      X_LIST.push({
+        no: X_LIST.length+1,
+        level:"DATA",
+        code:"ISBN_SCI_NOTATION",
+        msg:`ISBN이 과학표기(엑셀 변형)로 들어옴. 원본이 이미 변형이면 복원 불가 → 반드시 확인 필요.`,
+        rowId: rid,
+        col:"ISBN",
+        RES:"N",
+        HOW:"CSV 내 ISBN을 '텍스트'로 저장해 13자리 문자열로 재업로드"
+      });
     }
 
-    // currency
-    if(!normBlank(r.Currency)){
-      xs.push({type:'X', scope:'DATA', code:'CURR_EMPTY', msg:'Currency 비어있음.', rowId:r._ANCHOR, col:'Currency', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }
-
-    // price
-    if(r.Price==='__BAD__'){
-      xs.push({type:'X', scope:'DATA', code:'PRICE_BAD', msg:'Price 숫자 해석 불가.', rowId:r._ANCHOR, col:'Price', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }else if(normBlank(r.Price) && r.Price!=="0"){
-      xs.push({type:'X', scope:'DATA', code:'PRICE_EMPTY', msg:'Price 비어있음.', rowId:r._ANCHOR, col:'Price', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }else if(String(r.Price)==='0'){
-      xs.push({type:'X', scope:'DATA', code:'PRICE_ZERO', msg:'Price = 0.', rowId:r._ANCHOR, col:'Price', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }
-
-    // pages
-    if(r.Pages==='__BAD__'){
-      xs.push({type:'X', scope:'DATA', code:'PAGES_BAD', msg:'Pages 숫자 해석 불가.', rowId:r._ANCHOR, col:'Pages', how:'공란 유지(해결) / 자동 변환(불가) / 무시(권장X)'});
-    }
-  }
-
-  // UI warnings: horizontal cut / overflow
-  const wrap=document.getElementById('tableWrap');
-  const tbl=document.getElementById('tbl');
-  const hasH = wrap && tbl && (tbl.scrollWidth > wrap.clientWidth + 4);
-  if(hasH){
-    ws.push({type:'W', scope:'UI', code:'UI_HSCROLL', msg:'표가 좁아 일부가 잘릴 수 있음.', rowId:'', col:'', how:'카드뷰 사용 / 창 넓히기'});
-  }
-
-  // apply RES filter
-  const fx = (arr)=> arr.map((it,idx)=>{
-    const k=issueKey(it.type,it.code,it.rowId,it.col);
-    const res=RES[k];
-    return {...it, idx:idx+1, key:k, RES: res? 'Y':'N', RES_KIND: res?res.res:''};
-  }).filter(it=>it.RES==='N');
-
-  return { X: fx(xs), W: fx(ws) };
-}
-
-function setResolved(items, resKind){
-  const ts=new Date().toISOString().slice(0,19);
-  items.forEach(it=>{ RES[it.key]={res:resKind, at:ts}; });
-  saveJSON(LS_RES, RES);
-  recalcAndRender();
-}
-
-/** ===========================
- *  render
- *  =========================== */
-const hdrEl=document.getElementById('hdr');
-const bodyEl=document.getElementById('body');
-const cardsEl=document.getElementById('cards');
-
-function renderHeader(){
-  hdrEl.innerHTML='';
-  const labels={
-    Publisher:'Publisher', Title:'Title', 'Sub Title':'Sub Title', KOR_TITLE:'KOR_TITLE', KOR_SUBTITLE:'KOR_SUBTITLE',
-    ISBN:'ISBN', Price:'Price', Currency:'Currency', 'Pub Date':'Pub Date', Pages:'Pages', '__DETAIL__':'상세'
-  };
-  const classes={Publisher:'colPub',Title:'colTitle','Sub Title':'colSub',KOR_TITLE:'colKor',KOR_SUBTITLE:'colKor',ISBN:'colISBN',Price:'colPrice',Currency:'colCur','__DETAIL__':'colAction'};
-  for(const col of TABLE_COLS){
-    const th=document.createElement('th');
-    th.textContent=labels[col]||col;
-    if(classes[col]) th.classList.add(classes[col]);
-    hdrEl.appendChild(th);
-  }
-}
-
-function fmt(v){
-  if(v==="") return "(빈칸)";
-  if(v==="__BAD__") return "(형식오류)";
-  return v;
-}
-
-function toSupplyKRW(r){
-  const cur=normBlank(r.Currency);
-  const fx=FX[cur]||1500;
-  const price=Number(r.Price);
-  if(!Number.isFinite(price)) return "";
-  return String(Math.round(price*fx));
-}
-
-function cardText(r){
-  const title = fmt(r.Title);
-  const kor = fmt(r.KOR_TITLE);
-  const line='------------------------------------------------------------';
-  const price = (r.Price==='__BAD__')? '(형식오류)': fmt(r.Price);
-  const cur = fmt(r.Currency);
-  const supply = toSupplyKRW(r);
-  const supplyStr = supply? `${supply} KRW(환율 1500)` : '(빈칸)';
-  const pages = fmt(r.Pages);
-  const isbn = fmt(r.ISBN);
-  const pub = fmt(r['Pub Date']);
-
-  return `${title}\n(${kor})\n\n${line}\n발행사: ${r.Publisher} / Pages: ${pages} / ISBN: ${isbn} / 정가: ${price} ${cur}\n발행: ${pub} / 공급가: ${supplyStr}\n${line}\n● 자세한 내용의 링크 : (빈칸)\n\n[ROWID] ${r._ANCHOR}`;
-}
-
-function renderTable(){
-  renderHeader();
-  bodyEl.innerHTML='';
-
-  for(const r of DB){
-    const tr=document.createElement('tr');
-    for(const col of TABLE_COLS){
-      const td=document.createElement('td');
-      if(col==='__DETAIL__'){
-        const b=document.createElement('button');
-        b.className='btn small';
-        b.textContent='상세/복사';
-        b.addEventListener('click',()=>{
-          const text=cardText(r);
-          copyText(text);
-          log('카드 1건 복사', {rowId:r._ANCHOR});
+    // X: LOCK mismatch (RAW→INTERNAL)
+    // For mapped fields, internal must equal raw[source] exactly
+    const checkPairs = [
+      ["Title", item.mapping["Title"]],
+      ["Sub Title", item.mapping["Sub Title"]],
+      ["ISBN", item.mapping["ISBN"]],
+      ["Price", item.mapping["Price"]],
+      ["Pub Date", item.mapping["Pub Date"]],
+      ["Pages", item.mapping["Pages"]],
+    ];
+    for(const [std, src] of checkPairs){
+      if(!src) continue;
+      const rawV = item.rawRow[src];
+      const intV = item.internal[std];
+      if(String(rawV) !== String(intV)){
+        X_LIST.push({
+          no: X_LIST.length+1,
+          level:"LOCK",
+          code:"LOCK_MISMATCH",
+          msg:`원본→내부 잠금 불일치: ${std} (raw:'${rawV}' vs internal:'${intV}')`,
+          rowId: rid,
+          col: std,
+          RES:"N",
+          HOW:"정규화/변환 로직이 끼어들지 못하도록 잠금(이 버전에서는 원칙상 발생하면 안됨)"
         });
-        td.appendChild(b);
-        tr.appendChild(td);
-        continue;
       }
-      const v=fmt(r[col]);
-      td.textContent=v;
-      if(v==='(빈칸)') td.style.color='var(--muted)';
-      if(v==='(형식오류)') td.style.color='var(--warn)';
-      tr.appendChild(td);
-    }
-    bodyEl.appendChild(tr);
-  }
-}
-
-function renderCards(){
-  cardsEl.innerHTML='';
-  DB.forEach(r=>{
-    const card=document.createElement('div');
-    card.className='card';
-
-    const top=document.createElement('div');
-    top.className='row';
-    top.style.marginBottom='8px';
-
-    const meta=document.createElement('span');
-    meta.className='pill mono';
-    meta.textContent=r._ANCHOR;
-
-    const btn=document.createElement('button');
-    btn.className='btn small';
-    btn.textContent='복사';
-    btn.addEventListener('click',()=>{
-      copyText(cardText(r));
-      log('카드 1건 복사', {rowId:r._ANCHOR});
-    });
-
-    top.appendChild(meta);
-    top.appendChild(btn);
-
-    const pre=document.createElement('pre');
-    pre.textContent=cardText(r);
-
-    card.appendChild(top);
-    card.appendChild(pre);
-    cardsEl.appendChild(card);
-  });
-}
-
-function setView(v){
-  VIEW=v; saveJSON(LS_VIEW, VIEW);
-  const isCard = (VIEW==='card');
-  document.getElementById('tableWrap').style.display = isCard ? 'none' : 'block';
-  cardsEl.style.display = isCard ? 'flex' : 'none';
-  document.getElementById('btnToggleView').textContent = isCard ? '표뷰' : '카드뷰';
-}
-
-function renderIssues(){
-  const {X,W}=autoIssues();
-  document.getElementById('kpiRows').textContent=String(DB.length);
-  document.getElementById('kpiX').textContent=String(X.length);
-  document.getElementById('kpiW').textContent=String(W.length);
-
-  window.__ISSUES__ = {X,W};
-}
-
-function recalcAndRender(){
-  sortDB();
-  saveJSON(LS_DB, DB);
-  renderIssues();
-  if(VIEW==='card'){ renderCards(); }
-  else{ renderTable(); }
-}
-
-/** ===========================
- *  modals
- *  =========================== */
-function buildList(containerId, items, kind){
-  const el=document.getElementById(containerId);
-  el.innerHTML='';
-  if(items.length===0){
-    const d=document.createElement('div'); d.className='item'; d.textContent = kind==='X' ? 'X 없음' : '경고 없음';
-    el.appendChild(d); return;
-  }
-
-  items.forEach((it, i)=>{
-    const box=document.createElement('div'); box.className='item';
-
-    const top=document.createElement('div'); top.className='itemTop';
-
-    const meta=document.createElement('div'); meta.className='itemMeta';
-
-    const ck=document.createElement('input'); ck.type='checkbox'; ck.className='sel'; ck.dataset.key=it.key;
-
-    const pill1=document.createElement('span'); pill1.className='pill';
-    pill1.innerHTML = `${kind==='X'?'<span class="markX">X</span>':'<span class="markW">W</span>'} <b>#${i+1}</b>`;
-
-    const pill2=document.createElement('span'); pill2.className='pill'; pill2.textContent = it.scope;
-    const pill3=document.createElement('span'); pill3.className='pill'; pill3.textContent = it.code;
-
-    const pill4=document.createElement('span'); pill4.className='pill mono'; pill4.textContent = it.rowId || '(UI)';
-
-    const pill5=document.createElement('span'); pill5.className='pill'; pill5.textContent = it.col ? (`col=${it.col}`) : '';
-
-    meta.appendChild(ck);
-    meta.appendChild(pill1);
-    meta.appendChild(pill2);
-    meta.appendChild(pill3);
-    meta.appendChild(pill4);
-    if(it.col) meta.appendChild(pill5);
-
-    const act=document.createElement('div'); act.className='row';
-
-    if(kind==='X'){
-      const b1=document.createElement('button'); b1.className='btn small'; b1.textContent='공란 유지(해결)';
-      b1.addEventListener('click',()=>{ setResolved([it],'BLANK'); log('X 해결(공란)', {key:it.key}); });
-
-      const b2=document.createElement('button'); b2.className='btn small'; b2.textContent='무시(통과)';
-      b2.addEventListener('click',()=>{ setResolved([it],'IGNORE'); log('X 무시', {key:it.key}); });
-
-      act.appendChild(b1);
-      act.appendChild(b2);
-    }else{
-      const b2=document.createElement('button'); b2.className='btn small'; b2.textContent='무시(통과)';
-      b2.addEventListener('click',()=>{ setResolved([it],'IGNORE'); log('경고 무시', {key:it.key}); });
-      act.appendChild(b2);
     }
 
-    top.appendChild(meta);
-    top.appendChild(act);
+    // X: DISPLAY mismatch (INTERNAL→DISPLAY) (derived from internal only; if changed later, this catches)
+    // We'll reconstruct minimal fingerprint to verify.
+    const fp = item.displayText.includes(`[ROWID] ${item.rowId}`) ? "OK" : "BAD";
+    if(fp !== "OK"){
+      X_LIST.push({
+        no: X_LIST.length+1,
+        level:"LOCK",
+        code:"DISPLAY_MISMATCH",
+        msg:`내부→표시 잠금 불일치: ROWID 표시가 깨짐`,
+        rowId: rid,
+        col:"DISPLAY",
+        RES:"N",
+        HOW:"표시 템플릿이 내부 데이터만 사용하도록 유지"
+      });
+    }
+  }
 
-    const reason=document.createElement('div'); reason.className='reason';
-    reason.textContent = `${it.msg}  HOW=${it.how}`;
+  // sort numbering stable
+  X_LIST.forEach((x,i)=>x.no=i+1);
+  W_LIST.forEach((w,i)=>w.no=i+1);
 
-    box.appendChild(top);
-    box.appendChild(reason);
-    el.appendChild(box);
-  });
-}
-
-function selectedKeys(modalId){
-  const modal=document.getElementById(modalId);
-  const cks=[...modal.querySelectorAll('input.sel')];
-  return cks.filter(x=>x.checked).map(x=>x.dataset.key);
-}
-
-function setAll(modalId, checked){
-  const modal=document.getElementById(modalId);
-  const cks=[...modal.querySelectorAll('input.sel')];
-  cks.forEach(x=>x.checked=checked);
-}
-
-function copyIssuesText(items){
-  const lines=[];
-  items.forEach((it,i)=>{
-    lines.push(`#${i+1}\t${it.scope}\t${it.code}\t${it.msg}\trowId=${it.rowId}\tcol=${it.col}\tRES=N\tHOW=${it.how}`);
-  });
-  return lines.join('\n');
-}
-
-function openX(){
-  const items=window.__ISSUES__?.X || [];
-  buildList('xList', items, 'X');
-  document.getElementById('xAll').checked=false;
-  document.getElementById('modalXBack').style.display='flex';
-}
-function openW(){
-  const items=window.__ISSUES__?.W || [];
-  buildList('wList', items, 'W');
-  document.getElementById('wAll').checked=false;
-  document.getElementById('modalWBack').style.display='flex';
-}
-
-/** ===========================
- *  sort (Pub Date 최신순 ↓ 고정)
- *  =========================== */
-function sortDB(){
+  // sort DB by Pub Date desc (string sort fallback)
   DB.sort((a,b)=>{
-    const da=(a['Pub Date'] && a['Pub Date']!=='__BAD__')?a['Pub Date']:'0000-00-00';
-    const db=(b['Pub Date'] && b['Pub Date']!=='__BAD__')?b['Pub Date']:'0000-00-00';
-    if(da<db) return 1;   // DESC
-    if(da>db) return -1;
-    return a.__rowId < b.__rowId ? -1 : 1;
+    const da = String(a.internal["Pub Date"]||"");
+    const db = String(b.internal["Pub Date"]||"");
+    // try ISO-like compare, else lexicographic
+    return db.localeCompare(da);
   });
+
+  // stats
+  document.getElementById("statDb").textContent = String(DB.length);
+  document.getElementById("statX").textContent = String(X_LIST.length);
+  document.getElementById("statW").textContent = String(W_LIST.length);
+
+  log("오류 재계산", {db:DB.length, x:X_LIST.length, warn:W_LIST.length});
+
+  // keep cursor in range
+  if(DB.length===0){ CUR = -1; renderCard(); return; }
+  if(CUR<0) CUR = 0;
+  if(CUR>=DB.length) CUR = DB.length-1;
+  renderCard();
 }
 
-/** ===========================
- *  copy helper
- *  =========================== */
-async function copyText(text){
+/** =========================
+ *  RENDER
+ *  ========================= */
+function renderCard(){
+  const host = document.getElementById("cardHost");
+  const h = host.querySelector(".h");
+  const m = host.querySelector(".m");
+  const pre = document.getElementById("cardText");
+  const idx = document.getElementById("curIdx");
+  const rid = document.getElementById("curRowId");
+  const dump = document.getElementById("lockDump");
+
+  if(CUR<0 || CUR>=DB.length){
+    h.textContent="(없음)";
+    m.textContent="업로드 후 표시";
+    pre.textContent="(없음)";
+    idx.textContent="-";
+    rid.textContent="-";
+    dump.value="";
+    return;
+  }
+
+  const item = DB[CUR];
+  h.textContent = item.internal["Title"] || "(빈칸)";
+  m.textContent = `${item.publisher} · Pub Date: ${item.internal["Pub Date"]||"(빈칸)"} · Currency: ${item.internal["Currency"]}`;
+  pre.textContent = item.displayText;
+  idx.textContent = `${CUR+1}/${DB.length}`;
+  rid.textContent = item.rowId;
+
+  // lock dump: show RAW/INTERNAL key fields only (copyable)
+  const lockObj = {
+    ROWID: item.rowId,
+    RAW: item.rawRow,
+    INTERNAL: item.internal,
+    DISPLAY: item.displayText
+  };
+  dump.value = JSON.stringify(lockObj, null, 2);
+}
+
+/** =========================
+ *  MODAL LIST FORMAT
+ *  ========================= */
+function formatXList(){
+  if(X_LIST.length===0) return "(없음)";
+  return X_LIST.map(x=>{
+    return `#${x.no}\t${x.level}\t${x.code}\t${x.msg}\trowId=${x.rowId}\tcol=${x.col}\tRES=${x.RES}\tHOW=${x.HOW}`;
+  }).join("\n");
+}
+function formatWList(){
+  if(W_LIST.length===0) return "(없음)";
+  return W_LIST.map(w=>{
+    return `#${w.no}\t${w.level}\t${w.code}\t${w.msg}\trowId=${w.rowId}\tcol=${w.col}\tRES=${w.RES}\tHOW=${w.HOW}`;
+  }).join("\n");
+}
+function openModal(title, body){
+  const modal = document.getElementById("modal");
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").textContent = body;
+  modal.classList.add("open");
+}
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+}
+
+/** =========================
+ *  CLIPBOARD
+ *  ========================= */
+async function copyText(txt){
   try{
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(txt);
   }catch(e){
-    const ta=document.createElement('textarea');
-    ta.value=text; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy');
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
     ta.remove();
   }
 }
 
-/** ===========================
- *  upload
- *  =========================== */
-function readFileAsText(file){
-  return new Promise((res, rej)=>{
-    const fr=new FileReader();
-    fr.onload=()=>res(fr.result);
-    fr.onerror=()=>rej(fr.error);
-    fr.readAsText(file);
-  });
-}
+/** =========================
+ *  EVENTS
+ *  ========================= */
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  DB.length = 0;
+  CUR = -1;
+  X_LIST = [];
+  W_LIST = [];
+  document.getElementById("statDb").textContent="0";
+  document.getElementById("statX").textContent="0";
+  document.getElementById("statW").textContent="0";
+  renderCard();
+  log("DB 초기화", {db:0});
+});
 
-async function readAndAppendFile(file){
-  const name=file.name;
-  const mapping=getMappingFor(name);
-  const textRaw=await readFileAsText(file);
+document.getElementById("fileInput").addEventListener("change", async (ev)=>{
+  const files = Array.from(ev.target.files || []);
+  for(const f of files){
+    const fileName = f.name;
+    const publisher = inferPublisher(fileName);
+    log("업로드 시작", {file:fileName, publisher});
 
-  const { rows, delim } = parseDelimited(textRaw);
-  if(rows.length<2){ log('업로드 실패', {file:name, reason:'no rows'}); return; }
+    const text = await f.text(); // raw text
+    const table = parseCSV(text);
+    if(table.length<2){
+      log("업로드 실패", {file:fileName, reason:"rows<2"});
+      continue;
+    }
+    const headers = table[0].map(x=>String(x));
+    log("헤더", {file:fileName, headers});
 
-  const headers=rows[0].map(h=>normBlank(h));
-  log('업로드 시작', {file:name, publisher:detectPublisher(name), headers, delim: (delim==="\t"?"\\t":delim)});
-  log('매핑 확정', {file:name, mapping:mapping||{}});
+    // take all data rows (skip empty all cells)
+    let appended = 0;
+    for(let r=1;r<table.length;r++){
+      const rowArr = table[r];
+      const allEmpty = rowArr.every(c=>String(c||"")==="");
+      if(allEmpty) continue;
 
-  let appended=0;
-  for(let i=1;i<rows.length;i++){
-    const rawRow=rows[i];
-    if(rawRow.every(c=>normBlank(c)==="")) continue;
-    const rec=makeStandardRow({fileName:name, headers, rawRow, rowIndex:i, mapping});
-    DB.push(rec); appended++;
+      const item = buildRowItem({fileName, publisher, headers, rowArr, rowIndex:r-1});
+      DB.push(item);
+      appended++;
+    }
+
+    log("업로드 완료", {file:fileName, appended, total:DB.length});
   }
-
-  log('업로드 완료', {file:name, appended, total:DB.length});
-  document.getElementById('kpiLast').textContent=name;
-}
-
-async function handleFiles(files){
-  for(const f of files){ await readAndAppendFile(f); }
-  recalcAndRender();
-}
-
-/** ===========================
- *  events
- *  =========================== */
-document.getElementById('fileInput').addEventListener('change', async (e)=>{
-  const files=[... (e.target.files||[])];
-  if(!files.length) return;
-  await handleFiles(files);
-  e.target.value='';
+  // reset input
+  ev.target.value = "";
+  recalcAll();
 });
 
-document.getElementById('btnResetDB').addEventListener('click', ()=>{
-  DB=[]; saveJSON(LS_DB, DB);
-  RES={}; saveJSON(LS_RES, RES);
-  log('DB 초기화', {});
-  recalcAndRender();
+document.getElementById("btnRecalc").addEventListener("click", ()=>{
+  recalcAll();
 });
 
-document.getElementById('btnClearLog').addEventListener('click', ()=>{
-  logLines=[]; saveJSON(LS_LOG, logLines);
-  document.getElementById('log').textContent='';
+document.getElementById("btnPrev").addEventListener("click", ()=>{
+  if(DB.length===0) return;
+  CUR = Math.max(0, CUR-1);
+  renderCard();
+});
+document.getElementById("btnNext").addEventListener("click", ()=>{
+  if(DB.length===0) return;
+  CUR = Math.min(DB.length-1, CUR+1);
+  renderCard();
 });
 
-document.getElementById('btnResort').addEventListener('click', ()=>{
-  sortDB(); saveJSON(LS_DB, DB);
-  log('정렬 재적용', {by:'Pub Date ↓'});
-  recalcAndRender();
+document.getElementById("btnX").addEventListener("click", ()=>{
+  const body = formatXList();
+  openModal("X 리스트", body);
+  log("X 리스트 보기", {count:X_LIST.length});
+});
+document.getElementById("btnW").addEventListener("click", ()=>{
+  const body = formatWList();
+  openModal("경고 리스트", body);
+  log("경고 리스트 보기", {count:W_LIST.length});
+});
+document.getElementById("btnClose").addEventListener("click", closeModal);
+document.getElementById("modal").addEventListener("click", (e)=>{
+  if(e.target.id==="modal") closeModal();
 });
 
-document.getElementById('btnRecalc').addEventListener('click', ()=>{
-  log('오류 재계산', {});
-  recalcAndRender();
+document.getElementById("btnCopyModal").addEventListener("click", async ()=>{
+  const t = document.getElementById("modalBody").textContent;
+  await copyText(t);
+  log("리스트 복사", {chars:t.length});
 });
 
-document.getElementById('btnShowX').addEventListener('click', openX);
-document.getElementById('btnShowW').addEventListener('click', openW);
-
-document.getElementById('btnCloseX').addEventListener('click', ()=>{ document.getElementById('modalXBack').style.display='none'; });
-document.getElementById('btnCloseW').addEventListener('click', ()=>{ document.getElementById('modalWBack').style.display='none'; });
-document.getElementById('modalXBack').addEventListener('click', (e)=>{ if(e.target.id==='modalXBack') e.currentTarget.style.display='none'; });
-document.getElementById('modalWBack').addEventListener('click', (e)=>{ if(e.target.id==='modalWBack') e.currentTarget.style.display='none'; });
-
-// select all
-document.getElementById('xAll').addEventListener('change', (e)=>{
-  setAll('modalXBack', e.target.checked);
-});
-document.getElementById('wAll').addEventListener('change', (e)=>{
-  setAll('modalWBack', e.target.checked);
+document.getElementById("btnCopyAll").addEventListener("click", async ()=>{
+  // copy all display texts in current DB order
+  const all = DB.map(it=>it.displayText).join("\n\n==============================\n\n");
+  await copyText(all);
+  log("전체 복사", {rows:DB.length});
 });
 
-// bulk actions
-document.getElementById('btnXResolveBlank').addEventListener('click', ()=>{
-  const keys=selectedKeys('modalXBack');
-  const items=(window.__ISSUES__?.X||[]).filter(it=>keys.includes(it.key));
-  setResolved(items,'BLANK');
-  log('X 선택 해결(공란)', {count: items.length});
-});
-document.getElementById('btnXIgnore').addEventListener('click', ()=>{
-  const keys=selectedKeys('modalXBack');
-  const items=(window.__ISSUES__?.X||[]).filter(it=>keys.includes(it.key));
-  setResolved(items,'IGNORE');
-  log('X 선택 무시', {count: items.length});
-});
-document.getElementById('btnWIgnore').addEventListener('click', ()=>{
-  const keys=selectedKeys('modalWBack');
-  const items=(window.__ISSUES__?.W||[]).filter(it=>keys.includes(it.key));
-  setResolved(items,'IGNORE');
-  log('경고 선택 무시', {count: items.length});
+document.getElementById("btnCopyCard").addEventListener("click", async ()=>{
+  if(CUR<0 || CUR>=DB.length) return;
+  const t = DB[CUR].displayText;
+  await copyText(t);
+  log("카드 1건 복사", {rowId:DB[CUR].rowId});
 });
 
-// copy
-document.getElementById('btnCopyX').addEventListener('click', async ()=>{
-  const items=window.__ISSUES__?.X || [];
-  await copyText(copyIssuesText(items));
-  log('X 리스트 복사', {count: items.length});
-});
-document.getElementById('btnCopyW').addEventListener('click', async ()=>{
-  const items=window.__ISSUES__?.W || [];
-  await copyText(copyIssuesText(items));
-  log('경고 리스트 복사', {count: items.length});
+document.getElementById("btnCopyKeywords").addEventListener("click", async ()=>{
+  // Placeholder (next step): user wants category/keyword blocks & copy buttons.
+  // For now we keep button but copy empty string to make behavior obvious.
+  await copyText("");
+  log("키워드 복사", {status:"empty_placeholder"});
 });
 
-document.getElementById('btnToggleView').addEventListener('click', ()=>{
-  setView(VIEW==='card'?'table':'card');
-  recalcAndRender();
-});
-
-document.getElementById('btnCopyCards').addEventListener('click', async ()=>{
-  const text = DB.map(r=>cardText(r)).join('\n\n');
-  await copyText(text);
-  log('카드 전체 복사', {count: DB.length});
-});
-
-/** ===========================
- *  boot
- *  =========================== */
-if(logLines.length) document.getElementById('log').textContent=logLines.join('\n');
-setView(VIEW);
-recalcAndRender();
+// App start log
+log("앱 시작", {LOCK_STANDARD_COLS, LOCK_UI:{theme:"white", cardView:true}});
+renderCard();
 </script>
 </body>
 </html>
