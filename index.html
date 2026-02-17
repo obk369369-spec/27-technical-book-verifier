@@ -725,7 +725,9 @@ document.getElementById("sortMode").addEventListener("change", ()=>{
   sortAndRender(true);
   log("정렬 변경", {mode: document.getElementById("sortMode").value});
 });
+
 document.getElementById("btnCloseModal").addEventListener("click", closeModal);
+
 document.getElementById("backdrop").addEventListener("click", (e)=>{ if (e.target.id === "backdrop") closeModal(); });
 
 function boot(){
