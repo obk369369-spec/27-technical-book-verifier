@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27 FINAL – Toggle Table/Card · CSV LOCK · X/WARN</title>
+  <title>27 FINAL – Persist + Categorize + Card List · CSV LOCK · X/WARN</title>
   <style>
     :root{
       --bg:#fff; --fg:#111; --muted:#666; --line:#e7e7e7; --chip:#f6f6f6;
-      --danger:#b00020; --warn:#8a5a00; --ok:#0b6b0b;
+      --danger:#b00020; --warn:#8a5a00; --ok:#0b6b0b; --accent:#111;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       --sans: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
     }
     html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans)}
     header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line)}
-    .wrap{max-width:1280px;margin:0 auto;padding:12px 14px}
+    .wrap{max-width:1380px;margin:0 auto;padding:12px 14px}
     .topline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
     .brand{font-weight:900;font-size:16px}
     .badge{font-family:var(--mono);font-size:12px;background:#111;color:#fff;padding:7px 10px;border-radius:999px}
@@ -24,6 +24,7 @@
     button.danger{background:var(--danger);border-color:var(--danger)}
     button:disabled{opacity:.45;cursor:not-allowed}
     select,input[type="text"]{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#111;font-size:13px}
+    textarea{width:100%;min-height:220px;border-radius:12px;border:1px solid var(--line);padding:10px;font-family:var(--mono);font-size:12px;line-height:1.45}
     .pill{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-family:var(--mono);font-size:12px}
     .pill b{margin-left:6px}
     .pill.bad b{color:var(--danger)}
@@ -44,18 +45,41 @@
 
     /* table */
     .tableWrap{border:1px solid var(--line);border-radius:12px;overflow:auto}
-    table{width:100%;border-collapse:collapse;min-width:1320px}
+    table{width:100%;border-collapse:collapse;min-width:1560px}
     th,td{border-bottom:1px solid var(--line);padding:8px 10px;font-size:12px;vertical-align:top}
     th{position:sticky;top:0;background:#fafafa;z-index:1;text-align:left}
     tr:hover td{background:#fcfcfc}
     .tbtn{font-size:12px;padding:6px 8px;border-radius:10px}
 
+    /* cards list */
+    .grid{display:grid;grid-template-columns: 280px 1fr; gap:12px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    .side{border:1px solid var(--line);border-radius:14px;padding:12px}
+    .side h4{margin:0 0 10px 0;font-size:13px}
+    .catlist{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow:auto}
+    .catbtn{display:flex;justify-content:space-between;gap:10px;align-items:center;
+      padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:#111;font-weight:800;cursor:pointer}
+    .catbtn.on{border-color:#111;background:#111;color:#fff}
+    .tag{font-family:var(--mono);font-size:11px;background:#f1f1f1;border:1px solid var(--line);padding:2px 6px;border-radius:999px;color:#333}
+    .catbtn.on .tag{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff}
+
+    .cardsWrap{border:1px solid var(--line);border-radius:14px;padding:12px}
+    .cardsHeader{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+    .cardsList{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:70vh;overflow:auto}
+    .oneCard{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff}
+    .oneCardTop{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .oneCardTitle{font-weight:900;font-size:13px}
+    .oneCardMeta{color:var(--muted);font-size:12px}
+    .miniRow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
     /* modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:14px;z-index:999}
-    .modal{width:min(1200px,100%);max-height:min(85vh,900px);overflow:auto;background:#fff;border-radius:14px;border:1px solid var(--line);padding:12px}
-
+    .modal{width:min(1200px,100%);max-height:min(88vh,980px);overflow:auto;background:#fff;border-radius:14px;border:1px solid var(--line);padding:12px}
     .logbox{max-height:240px;overflow:auto;background:#fafafa;border:1px dashed var(--line);padding:10px;border-radius:12px}
     .kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:#fafafa;padding:2px 6px;border-radius:8px}
+    .checkline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .checkbox{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 10px}
+    .checkbox input{transform:translateY(1px)}
   </style>
 </head>
 <body>
@@ -63,13 +87,14 @@
 <header>
   <div class="wrap">
     <div class="topline">
-      <div class="brand">27번 도구 FINAL – Toggle(Table/Card) · CSV 업로드 · X/WARN 자동검증</div>
+      <div class="brand">27번 도구 FINAL – Persist + Category Rules + Toggle(Table/Card List) · CSV 업로드 · X/WARN 자동검증</div>
       <div class="badge" id="badgeTop">UPDATED: - · HASH: -</div>
     </div>
 
     <div class="sub">
       <b>FLOW</b> <span class="kbd">설정→확인→복사→외부활용→완료</span> · <b>LOCK</b> <span class="kbd">RAW→INTERNAL→DISPLAY</span> (핵심 필드만) · 외부 fetch 없음<br/>
-      <b>KOR 자동채움</b>: KOR 공란이면 자동으로 채움(번역 API 없음 → “[번역대기]” 표기) · KOR은 X/WARN 처리하지 않음
+      <b>KOR 자동채움</b>: 공란이면 <span class="kbd">[번역대기]</span>로 채움(번역 API 없음) · KOR은 X/WARN 처리하지 않음 ·
+      <b>Category/Keyword</b>: 규칙 기반 자동 분류(제목/부제/발행사/ISBN에서 키워드 매칭)
     </div>
 
     <div class="row">
@@ -92,6 +117,8 @@
 
       <button id="btnX" class="secondary">X 리스트</button>
       <button id="btnW" class="secondary">경고 리스트</button>
+
+      <button id="btnRules" class="secondary">분류 규칙</button>
 
       <button id="btnCopyTable" class="secondary">테이블 복사</button>
       <button id="btnCopyAllCards" class="secondary">카드 전체 복사</button>
@@ -117,16 +144,22 @@
           <option value="TITLE_ASC">Title A→Z</option>
           <option value="TITLE_DESC">Title Z→A</option>
         </select>
-        <input id="q" type="text" placeholder="검색(Title/ISBN/KOR/키워드)" style="min-width:240px" />
+        <input id="q" type="text" placeholder="검색(Title/ISBN/KOR/키워드/Publisher)" style="min-width:260px" />
         <button id="btnClearQ" class="secondary">검색 해제</button>
       </div>
     </div>
 
     <div class="row" style="justify-content:space-between;">
       <div class="muted" id="last">Last: (없음)</div>
-      <div class="tabs">
-        <button id="tabTable" class="secondary tabbtn on">테이블 뷰</button>
-        <button id="tabCard" class="secondary tabbtn off">카드 뷰</button>
+      <div class="row" style="margin-top:0;gap:10px;">
+        <div class="checkbox">
+          <input id="persist" type="checkbox" />
+          <label for="persist" style="font-weight:900;cursor:pointer;">persist(유지 저장)</label>
+        </div>
+        <div class="tabs">
+          <button id="tabTable" class="secondary tabbtn on">테이블 뷰</button>
+          <button id="tabCard" class="secondary tabbtn off">카드 뷰(리스트)</button>
+        </div>
       </div>
     </div>
   </div>
@@ -135,7 +168,7 @@
 <main class="wrap">
   <section class="card view on" id="viewTable">
     <h3>테이블뷰 (전체 화면)</h3>
-    <div class="muted">워드/엑셀 붙여넣기용(탭 전환으로 카드뷰 전체화면 가능)</div>
+    <div class="muted">워드/엑셀 붙여넣기용(탭 전환으로 카드 리스트 전체화면 가능)</div>
     <div class="divider"></div>
     <div class="tableWrap">
       <table>
@@ -144,15 +177,15 @@
             <th style="width:70px;">복사</th>
             <th style="width:140px;">Pub Date</th>
             <th style="width:260px;">Title</th>
-            <th style="width:240px;">Sub Title</th>
+            <th style="width:260px;">Sub Title</th>
             <th style="width:240px;">KOR_TITLE</th>
             <th style="width:240px;">KOR_SUBTITLE</th>
-            <th style="width:150px;">ISBN</th>
+            <th style="width:170px;">ISBN</th>
             <th style="width:90px;">Pages</th>
             <th style="width:120px;">Price</th>
             <th style="width:120px;">Currency</th>
             <th style="width:130px;">Publisher</th>
-            <th style="width:180px;">Category/Keyword</th>
+            <th style="width:220px;">Category/Keyword</th>
             <th style="width:70px;">ROW</th>
           </tr>
         </thead>
@@ -164,27 +197,41 @@
   </section>
 
   <section class="card view" id="viewCard">
-    <h3>카드뷰 (전체 화면)</h3>
-    <div class="row" style="justify-content:space-between;margin-top:0;">
-      <div class="muted">INDEX <b id="idx">0/0</b></div>
-      <div class="row" style="margin-top:0;">
-        <button id="btnPrev" class="secondary tbtn" disabled>◀</button>
-        <button id="btnNext" class="secondary tbtn" disabled>▶</button>
-        <button id="btnCopyCard" class="secondary" disabled>복사(카드 1건)</button>
-        <button id="btnRaw" class="secondary" disabled>RAW 보기</button>
-        <button id="btnLock" class="secondary" disabled>LOCK 확인</button>
-      </div>
+    <h3>카드뷰(리스트) (전체 화면)</h3>
+    <div class="muted">카테고리/검색 결과에 맞춰 여러 건을 한 번에 표시(각 카드 복사 버튼 포함)</div>
+    <div class="divider"></div>
+
+    <div class="grid">
+      <aside class="side">
+        <h4>카테고리</h4>
+        <div class="muted" style="margin-bottom:8px;">클릭하면 카드/테이블이 같은 필터로 바뀜</div>
+        <div class="catlist" id="catlist"></div>
+      </aside>
+
+      <section class="cardsWrap">
+        <div class="cardsHeader">
+          <div class="miniRow">
+            <span class="pill">필터 결과 <b id="sView">0</b></span>
+            <span class="pill">선택 <b id="sCat">전체</b></span>
+          </div>
+          <div class="miniRow">
+            <button id="btnCopyFilteredCards" class="secondary">필터 카드 전체 복사</button>
+            <button id="btnRawFiltered" class="secondary">필터 ROWID 목록</button>
+          </div>
+        </div>
+        <div class="cardsList" id="cardsList">
+          <div class="muted">(없음)</div>
+        </div>
+
+        <div class="divider"></div>
+        <h3>POLICY</h3>
+        <div class="mono" id="policy"></div>
+
+        <div class="divider"></div>
+        <h3>로그</h3>
+        <div class="logbox mono" id="log"></div>
+      </section>
     </div>
-    <div class="divider"></div>
-    <div id="card" class="big">(없음)</div>
-
-    <div class="divider"></div>
-    <h3>POLICY</h3>
-    <div class="mono" id="policy"></div>
-
-    <div class="divider"></div>
-    <h3>로그</h3>
-    <div class="logbox mono" id="log"></div>
   </section>
 </main>
 
@@ -199,24 +246,27 @@
     </div>
     <div class="muted" id="mHint"></div>
     <div class="divider"></div>
-    <div class="mono" id="mBody">(없음)</div>
+    <div id="mBodyWrap">
+      <div class="mono" id="mBody">(없음)</div>
+    </div>
   </div>
 </div>
 
 <script>
 /* ========= RULESET ========= */
 const RULESET = {
-  UPDATED: "2026-02-18D",
-  EDITION: "TOGGLE_TABLE_CARD",
+  UPDATED: "2026-02-18E",
+  EDITION: "PERSIST_CATEGORIZE_TOGGLE",
   FLOW_LOCK: ["설정","확인","복사","외부활용","완료"],
   NO_FETCH: true,
   STANDARD_COLUMNS: [
     "Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","CATEGORY_KEYWORD"
   ],
-  LOCK_FIELDS: ["Title","ISBN","Pub Date","Price","Pages"], // KOR은 잠금 대상 아님(자동채움이기 때문)
-  KOR_AUTO: "KOR 공란이면 자동채움(번역 API 없음 → [번역대기] 접두)",
-  COPY_MODAL: "X/WARN/증명/RAW/LOCK은 모달에서 innerText 복사(누락 방지)",
-  UI: "테이블/카드 탭 전환(전체 화면)"
+  LOCK_FIELDS: ["Title","ISBN","Pub Date","Price","Pages"], // KOR은 잠금 대상 아님(자동채움/외부 번역 없음)
+  KOR_AUTO: "KOR 공란이면 [번역대기]로 자동 채움(외부 번역 없음)",
+  CATEGORY_RULES: "규칙 기반 분류(Title/Sub/Publisher/ISBN에서 키워드 매칭) → '카테고리 > 키워드'로 표시",
+  PERSIST: "persist(유지 저장)=localStorage로 DB/검색/정렬/탭/규칙 유지",
+  UI: "테이블/카드(리스트) 탭 전환(전체 화면)"
 };
 function hash32(str){
   let h=2166136261>>>0;
@@ -226,18 +276,72 @@ function hash32(str){
 const RULE_HASH = hash32(JSON.stringify(RULESET));
 document.getElementById("badgeTop").textContent = `UPDATED: ${RULESET.UPDATED} / ${RULESET.EDITION} · HASH: ${RULE_HASH}`;
 
+/* ========= STORAGE ========= */
+const LS_KEY = "tbv27_state_v2";
+function canPersist(){ return document.getElementById("persist").checked === true; }
+function saveState(){
+  if(!canPersist()) return;
+  try{
+    const s = {
+      v:2,
+      RULE_HASH,
+      files: STATE.files,
+      baseDb: STATE.baseDb,
+      lastFile: STATE.lastFile,
+      q: document.getElementById("q").value,
+      sortMode: document.getElementById("sortMode").value,
+      tab: STATE.tab,
+      catFilter: STATE.catFilter,
+      korAuto: STATE.korAuto
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(s));
+  }catch(e){
+    // 저장 실패 시에도 작업 중단 금지
+  }
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    if(!s || s.v!==2) return false;
+
+    // RULE_HASH가 달라도(업데이트) DB는 살려서 이어가게 함
+    STATE.files = Array.isArray(s.files)? s.files : [];
+    STATE.baseDb = Array.isArray(s.baseDb)? s.baseDb : [];
+    STATE.lastFile = s.lastFile || "(없음)";
+    STATE.tab = s.tab || "table";
+    STATE.catFilter = s.catFilter || "전체";
+    STATE.korAuto = Number(s.korAuto||0);
+
+    document.getElementById("q").value = s.q || "";
+    document.getElementById("sortMode").value = s.sortMode || "CAT_PUB_ASC";
+    document.getElementById("last").textContent = `Last: ${STATE.lastFile}`;
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+function clearState(){
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+}
+
 /* ========= STATE ========= */
 const STATE = {
-  files: [],
-  baseDb: [],
+  files: [],         // {fileName,publisher,headers,mapping}
+  baseDb: [],        // {rowId,file,rawRow,internal,lock:{raw}}
   viewDb: [],
   x: [], w: [],
   autoResolved: 0,
   korAuto: 0,
-  cursor: 0,
   lastFile: "(없음)",
+  tab: "table",
+  catFilter: "전체",
+  categoryRulesText: "",
+  categoryRules: [],
   log: []
 };
+
 const $ = (id)=>document.getElementById(id);
 const safe = (v)=> (v===null||v===undefined) ? "" : String(v);
 const trim = (v)=> safe(v).trim();
@@ -252,6 +356,7 @@ function log(event,obj){
   STATE.log.push(line);
   $("log").textContent = STATE.log.join("\n");
   $("log").scrollTop = $("log").scrollHeight;
+  saveState();
 }
 async function copyText(text){
   try{ await navigator.clipboard.writeText(text); }
@@ -373,6 +478,77 @@ function autoKorSubtitle(sub){
   return `[번역대기] ${t}`;
 }
 
+/* ========= Category rules =========
+   규칙 문법(한 줄):
+   카테고리 | 키워드1,키워드2,키워드3
+   예) 배터리 | battery,bms,management system
+*/
+function defaultRulesText(){
+  return [
+    "배터리 | battery,bms,management system",
+    "교육 | education,teaching,classroom",
+    "의학 | medical,health,clinical,disease",
+    "AI/로봇 | ai,robot,autonomous,deep learning",
+    "금융 | finance,banking,financial,investment",
+    "에너지 | energy,renewable,unconventional",
+    "마케팅 | marketing,brand,consumer",
+  ].join("\n");
+}
+function parseRules(text){
+  const lines = safe(text).split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const rules=[];
+  for(const line of lines){
+    if(line.startsWith("#")) continue;
+    const parts = line.split("|").map(p=>p.trim());
+    if(parts.length<2) continue;
+    const category = parts[0];
+    const keywords = parts.slice(1).join("|")
+      .split(",").map(k=>k.trim()).filter(Boolean);
+    if(!category || !keywords.length) continue;
+    rules.push({category, keywords});
+  }
+  return rules;
+}
+function categorize(internal){
+  // CSV에 category가 이미 있으면 그걸 1순위로 유지 (단, "미분류"면 규칙 적용)
+  const cur = trim(internal.CATEGORY_KEYWORD);
+  const curIsUseful = cur && cur !== "미분류";
+  if(curIsUseful) return cur;
+
+  const hay = [
+    trim(internal.Title),
+    trim(internal["Sub Title"]),
+    trim(internal.Publisher),
+    trim(internal.ISBN)
+  ].join(" ").toLowerCase();
+
+  for(const r of STATE.categoryRules){
+    for(const kw of r.keywords){
+      const k = kw.toLowerCase();
+      if(!k) continue;
+      if(hay.includes(k)){
+        return `${r.category} > ${kw}`;
+      }
+    }
+  }
+  return "미분류";
+}
+function recategorizeAll(){
+  let changed=0;
+  for(const it of STATE.baseDb){
+    const before = trim(it.internal.CATEGORY_KEYWORD) || "미분류";
+    const after = categorize(it.internal);
+    if(before !== after){
+      it.internal.CATEGORY_KEYWORD = after;
+      changed++;
+    }else{
+      // before가 공란이면 표준화
+      if(blank(it.internal.CATEGORY_KEYWORD)) it.internal.CATEGORY_KEYWORD = after;
+    }
+  }
+  log("분류 재계산", {changed, rules: STATE.categoryRules.length});
+}
+
 /* ========= display builders ========= */
 function money(price, currency){
   const p=trim(price); if(!p) return "(빈칸)";
@@ -420,16 +596,18 @@ function addW(code,msg,rowId,col,res,how){
 }
 
 function recalc(){
-  STATE.x=[]; STATE.w=[]; STATE.autoResolved=0; // AUTO(RES=Y): KOR/Price 공란 카운트용(표시만)
+  STATE.x=[]; STATE.w=[]; STATE.autoResolved=0;
+
   // file-level WARN
   for(const f of STATE.files){
     if(!f.mapping.Pages){
       addW("MAPPING_MISS","Pages 매핑이 비어있음(헤더에 Pages가 없을 수 있음)", `${f.fileName}|*|*`,"","RES=N","원본 헤더 확인 / Pages 공란 유지 가능");
     }
   }
+
   // row-level X
   for(const it of STATE.baseDb){
-    if(blank(it.internal.Price)) STATE.autoResolved++; // Price 공란 자동 종결 카운트
+    if(blank(it.internal.Price)) STATE.autoResolved++;
 
     // ISBN 과학표기
     if(looksSci(it.lock.raw.ISBN) || looksSci(it.internal.ISBN)){
@@ -453,6 +631,7 @@ function recalc(){
     }
   }
   updateStats();
+  saveState();
 }
 
 /* ========= filtering + sorting ========= */
@@ -469,11 +648,21 @@ function passesQuery(it, q){
   ].join(" ").toLowerCase();
   return fields.includes(t);
 }
-function applyView(resetCursor){
+function passesCat(it){
+  const f = STATE.catFilter || "전체";
+  if(f==="전체") return true;
+  const c = trim(it.internal.CATEGORY_KEYWORD)||"미분류";
+  // "카테고리 > 키워드"이면 앞쪽 카테고리 기준으로 필터
+  const head = c.split(">").map(x=>x.trim())[0];
+  return head === f;
+}
+function applyView(){
   const mode=$("sortMode").value;
   const q=trim($("q").value);
+
   let arr = STATE.baseDb.slice();
   if(q) arr = arr.filter(it=>passesQuery(it,q));
+  arr = arr.filter(it=>passesCat(it));
 
   arr.sort((a,b)=>{
     if(mode==="TITLE_ASC") return trim(a.internal.Title).localeCompare(trim(b.internal.Title));
@@ -487,19 +676,19 @@ function applyView(resetCursor){
     if(mode==="PUB_DESC") return bb-aa;
     if(mode==="PUB_ASC") return aa-bb;
 
-    const ca=trim(a.internal.CATEGORY_KEYWORD)||"미분류";
-    const cb=trim(b.internal.CATEGORY_KEYWORD)||"미분류";
+    const ca=(trim(a.internal.CATEGORY_KEYWORD)||"미분류").split(">").map(x=>x.trim())[0];
+    const cb=(trim(b.internal.CATEGORY_KEYWORD)||"미분류").split(">").map(x=>x.trim())[0];
     const c=ca.localeCompare(cb);
     if(c!==0) return c;
     return aa-bb; // 과거→최근
   });
 
   STATE.viewDb = arr;
-  if(resetCursor) STATE.cursor=0;
   renderAll();
+  saveState();
 }
 
-/* ========= rendering ========= */
+/* ========= stats + policy ========= */
 function updateStats(){
   $("sDb").textContent=String(STATE.baseDb.length);
   $("sX").textContent=String(STATE.x.length);
@@ -509,6 +698,7 @@ function updateStats(){
 
   const pol = [
     "KOR 자동채움: KOR 공란이면 [번역대기]로 자동 채움(외부 번역 없음)",
+    "Category/Keyword: 규칙 기반 자동 분류 → '카테고리 > 키워드' 표기(미분류 유지 가능)",
     "Price 공란 → AUTO(RES=Y) 카운트",
     "Pages 매핑 없음 → WARN (MAPPING_MISS)",
     "ISBN 과학표기 → X (ISBN_SCI_NOTATION)",
@@ -517,77 +707,153 @@ function updateStats(){
   ].join("\n");
   $("policy").textContent = pol;
 }
+
+/* ========= rendering ========= */
 function renderTable(){
   const tb=$("tbody");
   const rows = STATE.viewDb;
   if(!rows.length){
-    tb.innerHTML = `<tr><td colspan="13" class="muted">검색 결과 없음</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="13" class="muted">검색/카테고리 필터 결과 없음</td></tr>`;
     return;
   }
-  tb.innerHTML = rows.map((it, i)=>{
+  tb.innerHTML = rows.map((it)=>{
     const id=it.rowId.replace(/"/g,'&quot;');
-    const d=trim(it.internal["Pub Date"]);
-    const title=trim(it.internal.Title);
-    const sub=trim(it.internal["Sub Title"]);
-    const kor=trim(it.internal.KOR_TITLE);
-    const kors=trim(it.internal.KOR_SUBTITLE);
-    const isbn=trim(it.internal.ISBN);
-    const pages=trim(it.internal.Pages);
-    const price=trim(it.internal.Price);
     const cur=it.internal.Currency;
-    const pub=trim(it.internal.Publisher);
-    const cat=trim(it.internal.CATEGORY_KEYWORD)||"미분류";
     return `
-      <tr data-rowid="${id}" data-idx="${i}">
+      <tr>
         <td><button class="secondary tbtn" data-act="copy" data-rowid="${id}">복사</button></td>
-        <td>${d}</td>
-        <td>${title}</td>
-        <td>${sub}</td>
-        <td>${kor}</td>
-        <td>${kors}</td>
-        <td>${isbn}</td>
-        <td>${pages}</td>
-        <td>${price}</td>
+        <td>${trim(it.internal["Pub Date"])}</td>
+        <td>${trim(it.internal.Title)}</td>
+        <td>${trim(it.internal["Sub Title"])}</td>
+        <td>${trim(it.internal.KOR_TITLE)}</td>
+        <td>${trim(it.internal.KOR_SUBTITLE)}</td>
+        <td>${trim(it.internal.ISBN)}</td>
+        <td>${trim(it.internal.Pages)}</td>
+        <td>${trim(it.internal.Price)}</td>
         <td>${cur==="__CONST_USD__"?"USD":(cur==="__CONST_EUR__"?"EUR":cur)}</td>
-        <td>${pub}</td>
-        <td>${cat}</td>
+        <td>${trim(it.internal.Publisher)}</td>
+        <td>${trim(it.internal.CATEGORY_KEYWORD)||"미분류"}</td>
         <td><button class="secondary tbtn" data-act="view" data-rowid="${id}">보기</button></td>
       </tr>
     `;
   }).join("");
 }
-function currentItem(){
-  if(!STATE.viewDb.length) return null;
-  const idx = Math.max(0, Math.min(STATE.cursor, STATE.viewDb.length-1));
-  return STATE.viewDb[idx];
+
+function buildCatCounts(){
+  const counts = new Map();
+  for(const it of STATE.baseDb){
+    const c = trim(it.internal.CATEGORY_KEYWORD)||"미분류";
+    const head = c.split(">").map(x=>x.trim())[0] || "미분류";
+    counts.set(head, (counts.get(head)||0)+1);
+  }
+  const items = Array.from(counts.entries())
+    .sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]));
+  return items;
 }
-function renderCard(){
-  const it=currentItem();
-  if(!it){
-    $("card").textContent="(없음)";
-    $("idx").textContent="0/0";
-    $("btnPrev").disabled=true; $("btnNext").disabled=true;
-    $("btnCopyCard").disabled=true; $("btnRaw").disabled=true; $("btnLock").disabled=true;
+function renderCats(){
+  const box=$("catlist");
+  const items = buildCatCounts();
+  const total = STATE.baseDb.length;
+
+  const makeBtn = (name, count)=>{
+    const on = (STATE.catFilter===name);
+    return `
+      <button class="catbtn ${on?"on":""}" data-cat="${name}">
+        <span>${name}</span>
+        <span class="tag">${count}</span>
+      </button>
+    `;
+  };
+
+  let html = makeBtn("전체", total);
+  for(const [name,count] of items){
+    if(name==="전체") continue;
+    html += makeBtn(name, count);
+  }
+  box.innerHTML = html;
+  $("sCat").textContent = STATE.catFilter || "전체";
+}
+
+function renderCards(){
+  const list=$("cardsList");
+  const rows=STATE.viewDb;
+  $("sView").textContent = String(rows.length);
+
+  if(!rows.length){
+    list.innerHTML = `<div class="muted">(없음)</div>`;
     return;
   }
-  $("card").textContent = cardText(it.internal, it.rowId);
-  $("idx").textContent = `${STATE.cursor+1}/${STATE.viewDb.length}`;
-  $("btnPrev").disabled=false; $("btnNext").disabled=false;
-  $("btnCopyCard").disabled=false; $("btnRaw").disabled=false; $("btnLock").disabled=false;
+
+  list.innerHTML = rows.map((it)=>{
+    const title = trim(it.internal.Title) || "(빈칸)";
+    const sub = trim(it.internal["Sub Title"]);
+    const kor = trim(it.internal.KOR_TITLE) || "((빈칸))";
+    const kors = trim(it.internal.KOR_SUBTITLE);
+    const pub = trim(it.internal.Publisher)||"(빈칸)";
+    const isbn = trim(it.internal.ISBN)||"(빈칸)";
+    const date = trim(it.internal["Pub Date"])||"(빈칸)";
+    const pages = trim(it.internal.Pages)||"(미기재)";
+    const price = money(it.internal.Price, it.internal.Currency);
+    const cat = trim(it.internal.CATEGORY_KEYWORD)||"미분류";
+    const id = it.rowId.replace(/"/g,'&quot;');
+
+    return `
+      <div class="oneCard" data-rowid="${id}">
+        <div class="oneCardTop">
+          <div>
+            <div class="oneCardTitle">${title}</div>
+            ${sub?`<div class="oneCardMeta">${sub}</div>`:""}
+            <div class="oneCardMeta">${kor}${kors?` / ${kors}`:""}</div>
+          </div>
+          <div class="miniRow">
+            <button class="secondary tbtn" data-act="copycard" data-rowid="${id}">복사</button>
+            <button class="secondary tbtn" data-act="raw" data-rowid="${id}">RAW</button>
+            <button class="secondary tbtn" data-act="lock" data-rowid="${id}">LOCK</button>
+          </div>
+        </div>
+        <div class="mono">발행: ${date} · 발행사: ${pub} · ISBN: ${isbn} · Pages: ${pages} · 정가: ${price}</div>
+        <div class="mono">카테고리/키워드: ${cat}</div>
+        <div class="mono">[ROWID] ${it.rowId}</div>
+      </div>
+    `;
+  }).join("");
 }
-function renderAll(){ renderTable(); renderCard(); }
+
+function renderAll(){
+  renderTable();
+  renderCats();
+  renderCards();
+  updateStats();
+}
 
 /* ========= modal ========= */
-function openModal(title, hint, body){
+function openModal(title, hint, body, asTextarea=false){
   $("mTitle").textContent=title;
   $("mHint").textContent=hint||"";
-  $("mBody").textContent=body||"(없음)";
+  const wrap = $("mBodyWrap");
+  wrap.innerHTML = "";
+  if(asTextarea){
+    const ta = document.createElement("textarea");
+    ta.id="mTA";
+    ta.value = body || "";
+    wrap.appendChild(ta);
+    $("mCopy").onclick = async ()=>{
+      await copyText(ta.value);
+      log("모달 복사", {title, lines: ta.value.split("\n").length});
+    };
+  }else{
+    const div = document.createElement("div");
+    div.className="mono";
+    div.id="mBody";
+    div.textContent = body||"(없음)";
+    wrap.appendChild(div);
+    $("mCopy").onclick = async ()=>{
+      const full = div.innerText;
+      await copyText(full);
+      log("모달 복사", {title, lines: full.split("\n").length});
+    };
+  }
   $("backdrop").style.display="flex";
-  $("mCopy").onclick = async ()=>{
-    const full = $("mBody").innerText; // 누락 방지
-    await copyText(full);
-    log("모달 복사", {title, lines: full.split("\n").length});
-  };
 }
 function closeModal(){ $("backdrop").style.display="none"; }
 $("mClose").addEventListener("click", closeModal);
@@ -620,15 +886,18 @@ function tableText(){
   ].join("\t"));
   return [head, ...lines].join("\n");
 }
-function allCardsText(){
-  if(!STATE.viewDb.length) return "(없음)";
-  return STATE.viewDb.map(it=>cardText(it.internal,it.rowId)).join("\n\n==============================\n\n");
+function allCardsText(rows){
+  const arr = rows && rows.length ? rows : STATE.viewDb;
+  if(!arr.length) return "(없음)";
+  return arr.map(it=>cardText(it.internal,it.rowId)).join("\n\n==============================\n\n");
 }
 function wordGuideText(){
+  // 카테고리(앞부분)별로 Pub Date 오름차순
   const groups={};
   for(const it of STATE.viewDb){
-    const k=trim(it.internal.CATEGORY_KEYWORD)||"미분류";
-    (groups[k] ||= []).push(it);
+    const raw = trim(it.internal.CATEGORY_KEYWORD)||"미분류";
+    const head = raw.split(">").map(x=>x.trim())[0] || "미분류";
+    (groups[head] ||= []).push(it);
   }
   const keys=Object.keys(groups).sort((a,b)=>a.localeCompare(b));
   let out="";
@@ -640,7 +909,7 @@ function wordGuideText(){
       const d=trim(it.internal["Pub Date"]);
       const t=trim(it.internal.Title);
       const kt=trim(it.internal.KOR_TITLE);
-      out += `- ${d} / ${t} / ${kt}\n`;
+      out += `- ${d} / ${t} / ${kt} / ${it.rowId}\n`;
     }
     out += "\n";
   }
@@ -649,13 +918,13 @@ function wordGuideText(){
 function proofText(){
   return JSON.stringify({RULESET, RULE_HASH}, null, 2);
 }
-function rawJson(){
-  const it=currentItem();
+function rawJsonByRowId(rowId){
+  const it = STATE.baseDb.find(x=>x.rowId===rowId);
   if(!it) return "{}";
   return JSON.stringify({ROWID: it.rowId, RAW_ROW_OBJECT: it.rawRow}, null, 2);
 }
-function lockJson(){
-  const it=currentItem();
+function lockJsonByRowId(rowId){
+  const it = STATE.baseDb.find(x=>x.rowId===rowId);
   if(!it) return "{}";
   return JSON.stringify({
     ROWID: it.rowId,
@@ -664,6 +933,10 @@ function lockJson(){
     INTERNAL: it.internal,
     DISPLAY: cardText(it.internal, it.rowId)
   }, null, 2);
+}
+function rowIdsText(){
+  if(!STATE.viewDb.length) return "(없음)";
+  return STATE.viewDb.map(x=>x.rowId).join("\n");
 }
 
 /* ========= upload ========= */
@@ -740,6 +1013,9 @@ async function upload(){
       CATEGORY_KEYWORD: safe(obj[kCat]??"")
     };
 
+    // Category 규칙 적용(미분류/공란이면 자동)
+    internal.CATEGORY_KEYWORD = categorize(internal);
+
     const rawLock = {
       Title: rawTitle,
       ISBN: rawIsbn,
@@ -763,90 +1039,16 @@ async function upload(){
   log("업로드 완료", {file:f.name, appended, total: STATE.baseDb.length, korAuto: STATE.korAuto});
 
   recalc();
-  applyView(true);
+  applyView();
   updateStats();
+  saveState();
 }
-
-/* ========= events ========= */
-$("btnUpload").addEventListener("click", upload);
-$("btnReset").addEventListener("click", ()=>{
-  if(!confirm("DB 초기화?")) return;
-  STATE.files=[]; STATE.baseDb=[]; STATE.viewDb=[]; STATE.x=[]; STATE.w=[];
-  STATE.autoResolved=0; STATE.korAuto=0; STATE.cursor=0; STATE.lastFile="(없음)"; STATE.log=[];
-  $("last").textContent="Last: (없음)";
-  $("q").value="";
-  $("log").textContent="";
-  updateStats(); renderAll();
-  log("DB 초기화", {});
-});
-$("btnRecalc").addEventListener("click", ()=>{
-  recalc();
-  log("오류 재계산", {db:STATE.baseDb.length, x:STATE.x.length, w:STATE.w.length, auto:STATE.autoResolved, korAuto: STATE.korAuto});
-});
-$("btnX").addEventListener("click", ()=>{ openModal("X 리스트","",xText()); log("X 리스트 보기",{count:STATE.x.length}); });
-$("btnW").addEventListener("click", ()=>{ openModal("경고 리스트","",wText()); log("경고 리스트 보기",{count:STATE.w.length}); });
-
-$("btnCopyTable").addEventListener("click", async ()=>{
-  await copyText(tableText());
-  log("테이블 복사", {count: STATE.viewDb.length});
-});
-$("btnCopyAllCards").addEventListener("click", async ()=>{
-  await copyText(allCardsText());
-  log("카드 전체 복사", {count: STATE.viewDb.length});
-});
-$("btnWord").addEventListener("click", async ()=>{
-  await copyText(wordGuideText());
-  log("워드 안내서 복사", {order:"CAT→PUB_ASC"});
-});
-$("btnProof").addEventListener("click", ()=>{
-  openModal("RULESET/LOCK 증명", "이 화면이 ‘근거(증명)’야.", proofText());
-  log("RULESET/LOCK 증명", {hash: RULE_HASH});
-});
-
-$("btnPrev").addEventListener("click", ()=>{
-  if(!STATE.viewDb.length) return;
-  STATE.cursor = (STATE.cursor - 1 + STATE.viewDb.length) % STATE.viewDb.length;
-  renderCard();
-});
-$("btnNext").addEventListener("click", ()=>{
-  if(!STATE.viewDb.length) return;
-  STATE.cursor = (STATE.cursor + 1) % STATE.viewDb.length;
-  renderCard();
-});
-$("btnCopyCard").addEventListener("click", async ()=>{
-  const it=currentItem(); if(!it) return;
-  await copyText(cardText(it.internal, it.rowId));
-  log("카드 1건 복사", {rowId: it.rowId});
-});
-$("btnRaw").addEventListener("click", ()=> openModal("RAW 보기","원본 CSV 행", rawJson()));
-$("btnLock").addEventListener("click", ()=> openModal("LOCK 확인","핵심 필드 RAW/INTERNAL 비교", lockJson()));
-
-$("sortMode").addEventListener("change", ()=>{ applyView(true); log("정렬 변경", {mode:$("sortMode").value}); });
-$("q").addEventListener("input", ()=> applyView(true));
-$("btnClearQ").addEventListener("click", ()=>{ $("q").value=""; applyView(true); log("검색 해제", {}); });
-
-$("tbody").addEventListener("click", async (e)=>{
-  const btn = e.target.closest("button");
-  if(!btn) return;
-  const act = btn.getAttribute("data-act");
-  const rowId = btn.getAttribute("data-rowid");
-  const idx = STATE.viewDb.findIndex(x=>x.rowId===rowId);
-  if(idx<0) return;
-  STATE.cursor = idx;
-  renderCard();
-  if(act==="copy"){
-    const it=currentItem();
-    await copyText(cardText(it.internal, it.rowId));
-    log("테이블에서 1건 복사", {rowId: it.rowId});
-  }else{
-    log("테이블에서 보기", {rowId});
-  }
-});
 
 /* ========= tabs ========= */
 function setTab(tab){
   const vt=$("viewTable"), vc=$("viewCard");
   const bt=$("tabTable"), bc=$("tabCard");
+  STATE.tab = tab;
   if(tab==="table"){
     vt.classList.add("on"); vc.classList.remove("on");
     bt.classList.add("on"); bt.classList.remove("off");
@@ -856,59 +1058,188 @@ function setTab(tab){
     bc.classList.add("on"); bc.classList.remove("off");
     bt.classList.add("off"); bt.classList.remove("on");
   }
+  saveState();
 }
+
+/* ========= events ========= */
+$("btnUpload").addEventListener("click", upload);
+
+$("btnReset").addEventListener("click", ()=>{
+  if(!confirm("DB 초기화? (persist 켜져있으면 저장도 삭제됨)")) return;
+  STATE.files=[]; STATE.baseDb=[]; STATE.viewDb=[]; STATE.x=[]; STATE.w=[];
+  STATE.autoResolved=0; STATE.korAuto=0; STATE.lastFile="(없음)";
+  STATE.catFilter="전체";
+  STATE.log=[];
+  $("last").textContent="Last: (없음)";
+  $("q").value="";
+  $("log").textContent="";
+  updateStats(); renderAll();
+  clearState();
+  log("DB 초기화", {});
+});
+
+$("btnRecalc").addEventListener("click", ()=>{
+  // 규칙이 바뀌었을 수 있으니 분류도 같이 재계산
+  recategorizeAll();
+  recalc();
+  applyView();
+  log("오류/분류 재계산", {db:STATE.baseDb.length, x:STATE.x.length, w:STATE.w.length});
+});
+
+$("btnX").addEventListener("click", ()=>{ openModal("X 리스트","",xText()); log("X 리스트 보기",{count:STATE.x.length}); });
+$("btnW").addEventListener("click", ()=>{ openModal("경고 리스트","",wText()); log("경고 리스트 보기",{count:STATE.w.length}); });
+
+$("btnCopyTable").addEventListener("click", async ()=>{
+  await copyText(tableText());
+  log("테이블 복사", {count: STATE.viewDb.length});
+});
+$("btnCopyAllCards").addEventListener("click", async ()=>{
+  await copyText(allCardsText(STATE.viewDb));
+  log("카드 전체 복사", {count: STATE.viewDb.length});
+});
+$("btnWord").addEventListener("click", async ()=>{
+  await copyText(wordGuideText());
+  log("워드 안내서 복사", {order:"CAT→PUB_ASC", cat: STATE.catFilter, q: trim($("q").value)});
+});
+$("btnProof").addEventListener("click", ()=>{
+  openModal("RULESET/LOCK 증명", "이 화면이 ‘근거(증명)’", proofText());
+  log("RULESET/LOCK 증명", {hash: RULE_HASH});
+});
+
+$("sortMode").addEventListener("change", ()=>{ applyView(); log("정렬 변경", {mode:$("sortMode").value}); });
+$("q").addEventListener("input", ()=> applyView());
+$("btnClearQ").addEventListener("click", ()=>{ $("q").value=""; applyView(); log("검색 해제", {}); });
+
+$("tbody").addEventListener("click", async (e)=>{
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  const act = btn.getAttribute("data-act");
+  const rowId = btn.getAttribute("data-rowid");
+  const it = STATE.baseDb.find(x=>x.rowId===rowId);
+  if(!it) return;
+
+  if(act==="copy"){
+    await copyText(cardText(it.internal, it.rowId));
+    log("테이블에서 1건 복사", {rowId: it.rowId});
+  }else{
+    setTab("card");
+    // 카드 리스트에서 해당 카드로 스크롤(가능하면)
+    setTimeout(()=>{
+      const el = document.querySelector(`.oneCard[data-rowid="${rowId.replace(/"/g,'\\"')}"]`);
+      if(el) el.scrollIntoView({block:"start", behavior:"smooth"});
+    }, 50);
+    log("테이블에서 보기", {rowId});
+  }
+});
+
+$("cardsList").addEventListener("click", async (e)=>{
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  const act = btn.getAttribute("data-act");
+  const rowId = btn.getAttribute("data-rowid");
+  if(!rowId) return;
+
+  if(act==="copycard"){
+    const it = STATE.baseDb.find(x=>x.rowId===rowId);
+    if(!it) return;
+    await copyText(cardText(it.internal, it.rowId));
+    log("카드(리스트) 1건 복사", {rowId});
+  }else if(act==="raw"){
+    openModal("RAW 보기","원본 CSV 행", rawJsonByRowId(rowId));
+    log("RAW 보기", {rowId});
+  }else if(act==="lock"){
+    openModal("LOCK 확인","핵심 필드 RAW/INTERNAL 비교", lockJsonByRowId(rowId));
+    log("LOCK 확인", {rowId});
+  }
+});
+
+$("btnCopyFilteredCards").addEventListener("click", async ()=>{
+  await copyText(allCardsText(STATE.viewDb));
+  log("필터 카드 전체 복사", {count: STATE.viewDb.length, cat: STATE.catFilter, q: trim($("q").value)});
+});
+$("btnRawFiltered").addEventListener("click", ()=>{
+  openModal("필터 ROWID 목록","현재 필터 결과", rowIdsText());
+  log("필터 ROWID", {count: STATE.viewDb.length});
+});
+
 $("tabTable").addEventListener("click", ()=>{ setTab("table"); log("탭 전환",{to:"table"}); });
 $("tabCard").addEventListener("click", ()=>{ setTab("card"); log("탭 전환",{to:"card"}); });
 
-function renderCard(){
-  const it=currentItem();
-  if(!it){
-    $("card").textContent="(없음)";
-    $("idx").textContent="0/0";
-    $("btnPrev").disabled=true; $("btnNext").disabled=true;
-    $("btnCopyCard").disabled=true; $("btnRaw").disabled=true; $("btnLock").disabled=true;
-    return;
-  }
-  $("card").textContent = cardText(it.internal, it.rowId);
-  $("idx").textContent = `${STATE.cursor+1}/${STATE.viewDb.length}`;
-  $("btnPrev").disabled=false; $("btnNext").disabled=false;
-  $("btnCopyCard").disabled=false; $("btnRaw").disabled=false; $("btnLock").disabled=false;
-}
-function renderTable(){
-  const tb=$("tbody");
-  const rows = STATE.viewDb;
-  if(!rows.length){
-    tb.innerHTML = `<tr><td colspan="13" class="muted">검색 결과 없음</td></tr>`;
-    return;
-  }
-  tb.innerHTML = rows.map((it, i)=>{
-    const id=it.rowId.replace(/"/g,'&quot;');
-    return `
-      <tr>
-        <td><button class="secondary tbtn" data-act="copy" data-rowid="${id}">복사</button></td>
-        <td>${trim(it.internal["Pub Date"])}</td>
-        <td>${trim(it.internal.Title)}</td>
-        <td>${trim(it.internal["Sub Title"])}</td>
-        <td>${trim(it.internal.KOR_TITLE)}</td>
-        <td>${trim(it.internal.KOR_SUBTITLE)}</td>
-        <td>${trim(it.internal.ISBN)}</td>
-        <td>${trim(it.internal.Pages)}</td>
-        <td>${trim(it.internal.Price)}</td>
-        <td>${it.internal.Currency==="__CONST_USD__"?"USD":(it.internal.Currency==="__CONST_EUR__"?"EUR":it.internal.Currency)}</td>
-        <td>${trim(it.internal.Publisher)}</td>
-        <td>${trim(it.internal.CATEGORY_KEYWORD)||"미분류"}</td>
-        <td><button class="secondary tbtn" data-act="view" data-rowid="${id}">보기</button></td>
-      </tr>
-    `;
-  }).join("");
-}
-function renderAll(){ renderTable(); renderCard(); }
+$("catlist").addEventListener("click", (e)=>{
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  const cat = btn.getAttribute("data-cat");
+  if(!cat) return;
+  STATE.catFilter = cat;
+  applyView();
+  log("카테고리 필터", {cat});
+});
 
+/* ========= rules modal ========= */
+$("btnRules").addEventListener("click", ()=>{
+  const hint =
+`규칙 문법(한 줄):
+카테고리 | 키워드1,키워드2,키워드3
+- Title/Sub/Publisher/ISBN에 키워드가 포함되면 '카테고리 > 키워드'로 표시
+- CSV에 Category/Keyword가 이미 있으면(미분류가 아니면) 유지`;
+  openModal("분류 규칙", hint, STATE.categoryRulesText || defaultRulesText(), true);
+
+  // modal 내에 저장 버튼을 추가
+  const wrap = $("mBodyWrap");
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "규칙 저장 + 재분류";
+  saveBtn.className = "secondary";
+  saveBtn.style.marginTop = "10px";
+  wrap.appendChild(saveBtn);
+
+  saveBtn.onclick = ()=>{
+    const ta = document.getElementById("mTA");
+    const txt = ta ? ta.value : "";
+    STATE.categoryRulesText = txt;
+    STATE.categoryRules = parseRules(txt);
+    recategorizeAll();
+    recalc();
+    applyView();
+    saveState();
+    closeModal();
+    log("분류 규칙 저장", {rules: STATE.categoryRules.length});
+  };
+});
+
+/* ========= persist checkbox ========= */
+$("persist").addEventListener("change", ()=>{
+  if(canPersist()){
+    saveState();
+    log("persist ON", {});
+  }else{
+    // OFF면 저장만 중단(기존 저장은 지우지 않음)
+    log("persist OFF", {});
+  }
+});
+
+/* ========= boot ========= */
 function boot(){
-  updateStats();
-  renderAll();
-  setTab("table");
-  log("앱 시작", {UPDATED:RULESET.UPDATED, HASH:RULE_HASH, EDITION:RULESET.EDITION, FLOW:RULESET.FLOW_LOCK});
+  // 기본 규칙 로드
+  STATE.categoryRulesText = defaultRulesText();
+  STATE.categoryRules = parseRules(STATE.categoryRulesText);
+
+  // persisted state 있으면 복원(단, persist 체크는 사용자가 켜야 저장됨)
+  const restored = loadState();
+  if(restored){
+    // 복원했으면 규칙도 복원된 DB에 적용될 수 있으니 최소 1회 재분류(현재 규칙 기준)
+    // (기존 Category가 유효하면 유지됨)
+    recategorizeAll();
+  }
+
+  // 화면 값 반영
+  $("last").textContent = `Last: ${STATE.lastFile}`;
+
+  // 첫 렌더
+  recalc();
+  applyView();
+
+  setTab(STATE.tab || "table");
+  log("앱 시작", {UPDATED:RULESET.UPDATED, HASH:RULE_HASH, EDITION:RULESET.EDITION, restored});
 }
 boot();
 </script>
