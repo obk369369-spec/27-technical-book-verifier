@@ -84,15 +84,24 @@
       position:sticky;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(8px);
       border-top:1px solid var(--line);padding:8px 10px;border-radius:12px;margin-top:10px
     }
+    .collapse{
+      border:1px solid var(--line);border-radius:12px;overflow:hidden
+    }
+    .collapse .ch{
+      padding:8px 10px;background:var(--soft);border-bottom:1px solid var(--line);
+      display:flex;justify-content:space-between;align-items:center;gap:10px
+    }
+    .collapse .cb{padding:10px}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
 <div class="wrap">
   <h1>27번 도구 FINAL – Persist + Category→Keyword Drilldown + Toggle(Table/Card List) · CSV 업로드 · X/WARN 자동검증</h1>
   <div class="meta">
-    <span class="must">UPDATED: 2026-02-18F</span>
+    <span class="must">UPDATED: 2026-02-18G</span>
     <span class="badge">PERSIST_CATEGORIZE_KEYWORD_DRILLDOWN_TOGGLE</span>
-    <span class="badge">HASH: 9A4C7F12</span>
+    <span class="badge">HASH: 6C1B0D4A</span>
     <div class="small">
       FLOW 설정→확인→복사→외부활용→완료 · LOCK RAW→INTERNAL→DISPLAY (핵심 필드만) · 외부 fetch 없음<br/>
       KOR 자동채움: 공란이면 <b>[번역대기]</b>로 채움(번역 API 없음) · KOR은 X/WARN 처리하지 않음 · Category/Keyword: 규칙 기반 자동 분류(제목/부제/발행사/ISBN 키워드 매칭)
@@ -154,30 +163,44 @@
     </div>
 
     <div class="card col2">
-      <div class="hd">카테고리 → 키워드 (drill down)</div>
+      <div class="hd">카테고리/키워드</div>
       <div class="bd">
-        <div class="twoPane">
-          <div class="pane">
-            <div class="ph">카테고리 (클릭)</div>
-            <div class="pb" id="catList"></div>
+        <div class="collapse">
+          <div class="ch">
+            <div><b>카테고리 → 키워드 (drill down)</b> <span class="muted">(기본: 접힘)</span></div>
+            <div class="btns">
+              <button id="btnToggleCat" class="secondary miniBtn">펼치기</button>
+            </div>
           </div>
-          <div class="pane">
-            <div class="ph">키워드 (카테고리 선택 후 클릭)</div>
-            <div class="pb" id="keyList"></div>
+          <div class="cb hidden" id="catPanel">
+            <div class="twoPane">
+              <div class="pane">
+                <div class="ph">카테고리 (클릭)</div>
+                <div class="pb" id="catList"></div>
+              </div>
+              <div class="pane">
+                <div class="ph">키워드 (카테고리 선택 후 클릭)</div>
+                <div class="pb" id="keyList"></div>
+              </div>
+            </div>
+            <div class="stickyBottom">
+              <div class="small">
+                <span class="pill" id="pillCat">카테고리: 전체</span>
+                <span class="pill" id="pillKey">키워드: (없음)</span>
+                <span class="pill good" id="pillCount">필터 결과: 0</span>
+              </div>
+              <div class="btns" style="margin-top:6px">
+                <button id="btnClearFilters" class="secondary">필터 해제</button>
+                <button id="btnCopyFilteredCards" class="secondary">필터 카드 전체 복사</button>
+                <button id="btnCopyRowIds" class="secondary">필터 ROWID 목록</button>
+              </div>
+              <div class="hint">왼쪽 카테고리 → 오른쪽 키워드 클릭하면 테이블/카드가 같은 필터로 바뀜</div>
+            </div>
           </div>
         </div>
-        <div class="stickyBottom">
-          <div class="small">
-            <span class="pill" id="pillCat">카테고리: 전체</span>
-            <span class="pill" id="pillKey">키워드: (없음)</span>
-            <span class="pill good" id="pillCount">필터 결과: 0</span>
-          </div>
-          <div class="btns" style="margin-top:6px">
-            <button id="btnClearFilters" class="secondary">필터 해제</button>
-            <button id="btnCopyFilteredCards" class="secondary">필터 카드 전체 복사</button>
-            <button id="btnCopyRowIds" class="secondary">필터 ROWID 목록</button>
-          </div>
-          <div class="hint">왼쪽 카테고리 → 오른쪽 키워드 클릭하면 테이블/카드가 같은 필터로 바뀜</div>
+
+        <div class="hint" style="margin-top:8px">
+          화면이 복잡하면 위 패널을 접은 채로 사용하면 돼(테이블/카드만 보이게).
         </div>
       </div>
     </div>
@@ -265,11 +288,11 @@
 <script>
 (() => {
   // ====== VERSION ======
-  const UPDATED = "2026-02-18F";
-  const HASH = "9A4C7F12";
+  const UPDATED = "2026-02-18G";
+  const HASH = "6C1B0D4A";
   const EDITION = "PERSIST_CATEGORIZE_KEYWORD_DRILLDOWN_TOGGLE";
   const PERSIST_KEY = "wic27_persist_v1";
-  const UI_KEY = "wic27_ui_v1";
+  const UI_KEY = "wic27_ui_v2"; // bump to avoid old UI confusion
 
   // ====== LOCK STANDARD COLS ======
   const LOCK_STANDARD_COLS = ["Publisher","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Price","Currency","Pub Date","Pages","_ANCHOR","CATEGORY_KEYWORD"];
@@ -296,6 +319,8 @@
   const btnClearQ = el("btnClearQ");
   const lastFile = el("lastFile");
 
+  const btnToggleCat = el("btnToggleCat");
+  const catPanel = el("catPanel");
   const catList = el("catList");
   const keyList = el("keyList");
   const pillCat = el("pillCat");
@@ -317,11 +342,12 @@
   const outEl = el("out");
 
   // ====== STATE ======
-  let DB = []; // {raw, internal, display, meta}
+  let DB = [];
   let LAST_FILE = "";
   let FILTER_CAT = "전체";
   let FILTER_KEY = "";
   let ACTIVE_TAB = "table";
+  let CAT_PANEL_OPEN = false;
 
   // ====== LOG ======
   const now = () => {
@@ -343,7 +369,6 @@
       outEl.textContent = txt;
       return true;
     }catch(e){
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = txt;
       document.body.appendChild(ta);
@@ -355,7 +380,7 @@
     }
   }
 
-  // ====== CSV PARSER (quotes safe) ======
+  // ====== CSV PARSER ======
   function parseCSV(text){
     const rows = [];
     let i=0, field="", row=[], inQuotes=false;
@@ -372,7 +397,6 @@
         if(c === ','){ row.push(field); field=""; i++; continue; }
         if(c === '\n'){
           row.push(field); field="";
-          // ignore empty last line
           if(!(row.length===1 && row[0]==="")) rows.push(row);
           row=[]; i++; continue;
         }
@@ -385,7 +409,7 @@
     return rows;
   }
 
-  // ====== MAPPING (publisher-specific) ======
+  // ====== MAPPING ======
   function detectPublisherByFileName(name){
     const n = (name||"").toLowerCase();
     if(n.includes("elsevier")) return "Elsevier";
@@ -393,13 +417,11 @@
     if(n.includes("wiley")) return "Wiley";
     return "AUTO";
   }
-
   function headerIndexMap(headerRow){
     const map = {};
     headerRow.forEach((h, idx) => { map[(h||"").trim()] = idx; });
     return map;
   }
-
   function pick(mapping, hdrMap, row){
     const key = mapping;
     if(!key) return "";
@@ -408,9 +430,7 @@
     if(idx === undefined) return "";
     return (row[idx] ?? "");
   }
-
   function buildMappingForPublisher(pub, hdrMap){
-    // Default to blanks; only known headers used (NO inference beyond known set)
     if(pub==="Elsevier"){
       return { Title:"Title", SubTitle:"", KOR_TITLE:"", KOR_SUBTITLE:"", ISBN:"ISBN", Price:"List Price (USD)", Currency:"__CONST_USD__", PubDate:"Pub date", Pages:"No of Pages" };
     }
@@ -418,14 +438,11 @@
       return { Title:"Title", SubTitle:"Sub Title", KOR_TITLE:"", KOR_SUBTITLE:"", ISBN:"ISBN", Price:"Price EUR", Currency:"__CONST_EUR__", PubDate:"Actual Publishing Date", Pages:"No of Arabic Pages" };
     }
     if(pub==="Wiley"){
-      // Wiley has variants: ISBN13, US$, Pub Date, Pages
       const hasISBN13 = hdrMap["ISBN13"] !== undefined;
-      const hasUS = hdrMap["US$"] !== undefined;
       const hasPubDate = hdrMap["Pub Date"] !== undefined;
       const hasPages = hdrMap["Pages"] !== undefined;
-      return { Title:"Title", SubTitle:"", KOR_TITLE:"", KOR_SUBTITLE:"", ISBN: hasISBN13 ? "ISBN13":"ISBN", Price: hasUS ? "US$":"US$", Currency:"__CONST_USD__", PubDate: hasPubDate ? "Pub Date":"Pub Date", Pages: hasPages ? "Pages":"" };
+      return { Title:"Title", SubTitle:"", KOR_TITLE:"", KOR_SUBTITLE:"", ISBN: hasISBN13 ? "ISBN13":"ISBN", Price:"US$", Currency:"__CONST_USD__", PubDate: hasPubDate ? "Pub Date":"Pub Date", Pages: hasPages ? "Pages":"" };
     }
-    // AUTO fallback minimal
     return { Title:"Title", SubTitle:"Sub Title", KOR_TITLE:"KOR_TITLE", KOR_SUBTITLE:"KOR_SUBTITLE", ISBN:"ISBN", Price:"Price", Currency:"Currency", PubDate:"Pub Date", Pages:"Pages" };
   }
 
@@ -433,18 +450,15 @@
   function isScientificNotation(s){
     const t = (s||"").trim();
     if(!t) return false;
-    // detect like 9.78139E+12 or 9.78e12
     return /^[0-9]+(\.[0-9]+)?[eE][+\-]?[0-9]+$/.test(t);
   }
-
-  function headerRowLeak(hdrRow){
-    const joined = hdrRow.map(x => (x||"").trim().toLowerCase());
-    // if contains "title" and "isbn" typical
+  function headerRowLeak(row){
+    // "데이터행"이 헤더처럼 보이는 경우만 잡기 위해, 핵심 컬럼명 동시 포함 여부로 판정
+    const joined = (row||[]).map(x => (x||"").trim().toLowerCase());
     return joined.includes("title") && joined.some(v => v.includes("isbn"));
   }
 
-  // ====== CATEGORY/KEYWORD RULES ======
-  // Simple rules; can be expanded without breaking structure.
+  // ====== CATEGORY RULES ======
   const CATEGORY_RULES = [
     {cat:"의학", keys:[
       {k:"disease", re:/disease|infect|ibd|bowel|pathobiology|telomere/i},
@@ -460,33 +474,20 @@
       {k:"robot", re:/robot|robotic|autonomous/i},
       {k:"ai", re:/\bai\b|artificial intelligence|machine learning/i},
     ]},
-    {cat:"교육", keys:[
-      {k:"education", re:/education|teaching|classroom|students|racism/i},
-    ]},
-    {cat:"마케팅", keys:[
-      {k:"marketing", re:/marketing|brand|consumer/i},
-    ]},
-    {cat:"배터리", keys:[
-      {k:"battery", re:/battery|bms|management system/i},
-    ]},
-    {cat:"에너지", keys:[
-      {k:"energy", re:/energy|alternative|unconventional/i},
-    ]},
+    {cat:"교육", keys:[ {k:"education", re:/education|teaching|classroom|students|racism/i} ]},
+    {cat:"마케팅", keys:[ {k:"marketing", re:/marketing|brand|consumer/i} ]},
+    {cat:"배터리", keys:[ {k:"battery", re:/battery|bms|management system/i} ]},
+    {cat:"에너지", keys:[ {k:"energy", re:/energy|alternative|unconventional/i} ]},
   ];
-
   function categorize(rec){
-    // Source fields for matching (raw strings)
     const t = `${rec["Title"]||""} ${rec["Sub Title"]||""} ${rec["Publisher"]||""} ${rec["ISBN"]||""}`.trim();
     for(const group of CATEGORY_RULES){
       for(const rule of group.keys){
-        if(rule.re.test(t)){
-          return `${group.cat} > ${rule.k}`;
-        }
+        if(rule.re.test(t)) return `${group.cat} > ${rule.k}`;
       }
     }
     return "미분류";
   }
-
   function splitCatKey(catKey){
     if(!catKey) return {cat:"미분류", key:""};
     const s = String(catKey);
@@ -503,7 +504,6 @@
       korAuto++;
     }
     if(!rec["KOR_SUBTITLE"] || String(rec["KOR_SUBTITLE"]).trim()===""){
-      // keep blank if subtitle blank
       if((rec["Sub Title"]||"").trim()!==""){
         rec["KOR_SUBTITLE"] = `[번역대기] ${rec["Sub Title"]||""}`.trim();
         korAuto++;
@@ -514,9 +514,8 @@
     return korAuto;
   }
 
-  // ====== LOCK (core fields only) ======
+  // ====== LOCK ======
   const LOCK_CORE = ["Publisher","Title","Sub Title","ISBN","Price","Currency","Pub Date","Pages","CATEGORY_KEYWORD","KOR_TITLE","KOR_SUBTITLE"];
-
   function lockCheck(raw, display){
     for(const k of LOCK_CORE){
       const a = (raw[k] ?? "");
@@ -526,19 +525,16 @@
     return {ok:true, col:""};
   }
 
-  // ====== PRICE FORMAT (remove currency code in card copy) ======
+  // ====== PRICE FORMAT ======
   function stripCurrencyCode(s){
     let t = String(s||"").trim();
-    // remove trailing codes
     t = t.replace(/\s+(USD|EUR|KRW|JPY|CNY|GBP)\b/gi, "").trim();
-    // also remove double spaces
     t = t.replace(/\s{2,}/g," ").trim();
     return t;
   }
 
-  // ====== ROWID / HASH ======
+  // ====== HASH/ROWID ======
   function simpleHash(str){
-    // stable small hash (not crypto)
     let h = 2166136261;
     for(let i=0;i<str.length;i++){
       h ^= str.charCodeAt(i);
@@ -546,45 +542,30 @@
     }
     return (h>>>0).toString(16).toUpperCase().padStart(8,"0");
   }
-
   function makeRowId(fileName, idx, rec){
-    // deterministic per record
     const seed = `${fileName}|${idx}|${rec["ISBN"]||""}|${rec["Title"]||""}`;
     const hx = simpleHash(seed);
     return `${fileName}|${idx}|${hx}`;
   }
 
   // ====== X/WARN/AUTO ======
-  function evaluateIssues(fileName, idx, rec, hdrLeak=false){
+  function evaluateIssues(fileName, idx, rec, leak=false){
     const X = [];
     const W = [];
     let AUTO = 0;
 
-    // HEADER leak
-    if(hdrLeak){
+    if(leak){
       X.push({type:"DATA", code:"HEADER_ROW_LEAK", msg:"헤더가 데이터로 포함됨 → 해당 행 DB 제외", col:"", res:"N", how:"원본 CSV에서 헤더행 제거 후 재업로드"});
       return {X, W, AUTO, exclude:true};
     }
-
-    // EMPTY price -> AUTO (RES=Y)
-    if((rec["Price"]||"").trim()===""){
-      AUTO++;
-    }
-
-    // Pages mapping miss -> WARN (if mapping empty at file-level handled separately)
-    // Here only per-record: keep no WARN.
-
-    // ISBN sci notation -> X
+    if((rec["Price"]||"").trim()==="") AUTO++;
     if(isScientificNotation(rec["ISBN"]||"")){
       X.push({type:"DATA", code:"ISBN_SCI_NOTATION", msg:"ISBN이 과학표기 형태로 들어옴(원본 변형 의심). 원본이 이미 변형이면 복원 불가/또는 의심 → 확인 필요.", col:"ISBN", res:"N", how:"CSV에서 ISBN을 텍스트로 저장해 13자리 문자열로 재업로드"});
     }
-
-    // LOCK mismatch (core fields)
     const lock = lockCheck(rec, rec);
     if(!lock.ok){
       X.push({type:"DATA", code:"LOCK_MISMATCH", msg:"LOCK 불일치(핵심 필드) → X", col:lock.col, res:"N", how:"RAW/INTERNAL/DISPLAY 동일 출력 유지 필요"});
     }
-
     return {X, W, AUTO, exclude:false};
   }
 
@@ -609,19 +590,14 @@
   function currentFiltered(){
     const query = (q.value||"").trim().toLowerCase();
     const sortMode = sortSel.value;
-
     let arr = DB.slice();
 
-    // category filter
     if(FILTER_CAT && FILTER_CAT !== "전체"){
       arr = arr.filter(r => splitCatKey(r.display["CATEGORY_KEYWORD"]).cat === FILTER_CAT);
     }
-    // keyword filter
     if(FILTER_KEY){
       arr = arr.filter(r => splitCatKey(r.display["CATEGORY_KEYWORD"]).key === FILTER_KEY);
     }
-
-    // search filter
     if(query){
       arr = arr.filter(r=>{
         const ck = r.display["CATEGORY_KEYWORD"]||"";
@@ -629,8 +605,6 @@
         return blob.includes(query);
       });
     }
-
-    // sort
     const pubVal = (s) => String(s||"").trim();
     arr.sort((a,b)=>{
       const ap = pubVal(a.display["Pub Date"]);
@@ -649,7 +623,6 @@
       }
       return 0;
     });
-
     return arr;
   }
 
@@ -661,19 +634,13 @@
   }
 
   function renderCatKeyLists(){
-    const filteredBySearchOnly = (() => {
-      // categories should reflect overall DB, not search-limited (more stable)
-      return DB.slice();
-    })();
-
-    // category counts
+    const all = DB.slice();
     const catCounts = new Map();
-    catCounts.set("전체", filteredBySearchOnly.length);
-    for(const r of filteredBySearchOnly){
+    catCounts.set("전체", all.length);
+    for(const r of all){
       const {cat} = splitCatKey(r.display["CATEGORY_KEYWORD"]);
       catCounts.set(cat, (catCounts.get(cat)||0) + 1);
     }
-
     const cats = Array.from(catCounts.keys()).sort((a,b)=>{
       if(a==="전체") return -1;
       if(b==="전체") return 1;
@@ -687,7 +654,7 @@
       btn.innerHTML = `<span>${cn}</span><span class="count">${catCounts.get(cn)}</span>`;
       btn.onclick = () => {
         FILTER_CAT = cn;
-        FILTER_KEY = ""; // reset keyword when category changes
+        FILTER_KEY = "";
         saveUI();
         log("카테고리 필터", {cat: FILTER_CAT});
         renderAll();
@@ -695,9 +662,8 @@
       catList.appendChild(btn);
     });
 
-    // keyword counts (based on selected category)
     const keyCounts = new Map();
-    const base = filteredBySearchOnly.filter(r=>{
+    const base = all.filter(r=>{
       if(!FILTER_CAT || FILTER_CAT==="전체") return true;
       return splitCatKey(r.display["CATEGORY_KEYWORD"]).cat === FILTER_CAT;
     });
@@ -706,7 +672,6 @@
       const kk = key || "(없음)";
       keyCounts.set(kk, (keyCounts.get(kk)||0) + 1);
     }
-
     const keys = Array.from(keyCounts.keys()).sort((a,b)=>{
       if(a==="(없음)") return 1;
       if(b==="(없음)") return -1;
@@ -729,9 +694,11 @@
     });
   }
 
+  function escapeHtml(s){
+    return String(s??"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
   function rowCopyText(r){
-    // Card copy text format:
-    // 1) Category/Keyword line at TOP (user wants easier delete-free)
     const ck = r.display["CATEGORY_KEYWORD"]||"미분류";
     const title = r.display["Title"]||"";
     const kor = r.display["KOR_TITLE"]||"";
@@ -739,10 +706,7 @@
     const pages = r.display["Pages"]||"(미기재)";
     const isbn = r.display["ISBN"]||"";
     const pubDate = r.display["Pub Date"]||"";
-    const priceRaw = r.display["Price"]||"";
-    const price = stripCurrencyCode(priceRaw);
-
-    // NOTE: currency codes removed; we do NOT append Currency
+    const price = stripCurrencyCode(r.display["Price"]||"");
     return `${ck}
 ${title}
 ${kor}
@@ -759,7 +723,7 @@ ${kor}
   function renderTable(){
     const arr = currentFiltered();
     tbody.innerHTML = "";
-    arr.forEach((r, i)=>{
+    arr.forEach((r)=>{
       const tr = document.createElement("tr");
       const ck = r.display["CATEGORY_KEYWORD"]||"미분류";
       tr.innerHTML = `
@@ -777,9 +741,7 @@ ${kor}
         <td class="mono">${escapeHtml(ck)}</td>
         <td class="mono">${escapeHtml(r.meta.rowId)}</td>
       `;
-      tr.querySelector("button").onclick = () => {
-        copyText(rowCopyText(r));
-      };
+      tr.querySelector("button").onclick = () => copyText(rowCopyText(r));
       tbody.appendChild(tr);
     });
   }
@@ -819,17 +781,12 @@ ${kor}
     });
   }
 
-  function escapeHtml(s){
-    return String(s??"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
   function renderAll(){
     renderStats();
     renderPills();
     renderCatKeyLists();
     renderTable();
     renderCards();
-    // show correct tab
     if(ACTIVE_TAB==="table"){
       viewTable.style.display = "";
       viewCards.style.display = "none";
@@ -841,9 +798,12 @@ ${kor}
       tabTable.classList.remove("active");
       tabCards.classList.add("active");
     }
+    // category panel
+    catPanel.classList.toggle("hidden", !CAT_PANEL_OPEN);
+    btnToggleCat.textContent = CAT_PANEL_OPEN ? "접기" : "펼치기";
   }
 
-  // ====== EXPORTS ======
+  // ====== EXPORT ======
   function tableTSV(arr){
     const header = ["Pub Date","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Pages","Price","Currency","Publisher","Category/Keyword","ROWID"];
     const lines = [header.join("\t")];
@@ -867,15 +827,8 @@ ${kor}
     }
     return lines.join("\n");
   }
-
-  function cardsText(arr){
-    return arr.map(r => rowCopyText(r)).join("\n\n\n");
-  }
-
-  function rowIdList(arr){
-    return arr.map(r => r.meta.rowId).join("\n");
-  }
-
+  function cardsText(arr){ return arr.map(r => rowCopyText(r)).join("\n\n\n"); }
+  function rowIdList(arr){ return arr.map(r => r.meta.rowId).join("\n"); }
   function rulesText(){
     const lines = [];
     lines.push(`UPDATED: ${UPDATED} / HASH: ${HASH}`);
@@ -893,20 +846,14 @@ ${kor}
 
   // ====== PERSIST ======
   function savePersist(){
-    const payload = {
-      UPDATED, HASH, EDITION,
-      lastFile: LAST_FILE,
-      db: DB.map(r => ({ raw:r.raw, meta:r.meta })), // keep RAW; recompute derived on restore
-    };
+    const payload = { UPDATED, HASH, EDITION, lastFile: LAST_FILE, db: DB.map(r => ({ raw:r.raw, meta:r.meta })) };
     localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
     log("persist 저장", {count: DB.length, HASH});
   }
-
   function clearPersist(){
     localStorage.removeItem(PERSIST_KEY);
     log("persist 삭제", {});
   }
-
   function restorePersist(){
     try{
       const s = localStorage.getItem(PERSIST_KEY);
@@ -914,62 +861,48 @@ ${kor}
       const payload = JSON.parse(s);
       if(!payload || !Array.isArray(payload.db)) return false;
       DB = payload.db.map(item => {
-        const raw = item.raw || {};
-        const meta0 = item.meta || {};
-        // rebuild derived
-        const rec = Object.assign({}, raw);
-        const korAuto = ensureKor(rec); // may add [번역대기]
-        const ck = rec["CATEGORY_KEYWORD"] && String(rec["CATEGORY_KEYWORD"]).trim() ? rec["CATEGORY_KEYWORD"] : categorize(rec);
-        rec["CATEGORY_KEYWORD"] = ck;
-        // INTERNAL/DISPLAY = RAW (core-only lock mode; keep strings)
+        const rec = Object.assign({}, item.raw || {});
+        const ka = ensureKor(rec);
+        rec["CATEGORY_KEYWORD"] = (rec["CATEGORY_KEYWORD"] && String(rec["CATEGORY_KEYWORD"]).trim()) ? rec["CATEGORY_KEYWORD"] : categorize(rec);
         const internal = Object.assign({}, rec);
         const display = Object.assign({}, internal);
-
-        const meta = Object.assign({}, meta0);
-        meta.korAuto = (meta.korAuto||0) + korAuto;
-        // re-evaluate x/w/auto with known info
-        const {X,W,AUTO,exclude} = evaluateIssues(meta.fileName||"(persist)", meta.idx||0, display, false);
-        meta.X = X;
-        meta.W = meta.W && meta.W.length ? meta.W : W;
-        meta.AUTO = AUTO;
+        const meta = Object.assign({}, item.meta||{});
+        meta.korAuto = (meta.korAuto||0) + ka;
         meta.rowId = meta.rowId || makeRowId(meta.fileName||"(persist)", meta.idx||0, display);
+        const {X,W,AUTO} = evaluateIssues(meta.fileName||"(persist)", meta.idx||0, display, false);
+        meta.X = X;
+        meta.AUTO = AUTO;
+        meta.W = meta.W && meta.W.length ? meta.W : W;
         return {raw:display, internal, display, meta};
       });
       LAST_FILE = payload.lastFile || "";
       lastFile.textContent = `Last: ${LAST_FILE || "(없음)"}`;
       log("persist 복원", {count: DB.length, from: payload.UPDATED || "unknown"});
       return true;
-    }catch(e){
-      return false;
-    }
+    }catch(e){ return false; }
   }
 
   function saveUI(){
-    const u = {
-      tab: ACTIVE_TAB,
-      sort: sortSel.value,
-      q: q.value||"",
-      cat: FILTER_CAT,
-      key: FILTER_KEY
-    };
+    const u = { tab: ACTIVE_TAB, sort: sortSel.value, q: q.value||"", cat: FILTER_CAT, key: FILTER_KEY, catOpen: CAT_PANEL_OPEN };
     localStorage.setItem(UI_KEY, JSON.stringify(u));
   }
-
   function restoreUI(){
     try{
       const s = localStorage.getItem(UI_KEY);
       if(!s) return;
       const u = JSON.parse(s);
-      if(!u) return;
       ACTIVE_TAB = u.tab || "table";
       sortSel.value = u.sort || "PUB_ASC";
       q.value = u.q || "";
       FILTER_CAT = u.cat || "전체";
       FILTER_KEY = u.key || "";
+      CAT_PANEL_OPEN = !!u.catOpen;
     }catch(e){}
   }
 
   // ====== EVENTS ======
+  btnToggleCat.onclick = () => { CAT_PANEL_OPEN = !CAT_PANEL_OPEN; saveUI(); renderAll(); };
+
   tabTable.onclick = () => { ACTIVE_TAB="table"; saveUI(); log("탭 전환",{to:"table"}); renderAll(); };
   tabCards.onclick = () => { ACTIVE_TAB="cards"; saveUI(); log("탭 전환",{to:"cards"}); renderAll(); };
 
@@ -978,49 +911,14 @@ ${kor}
   btnClearQ.onclick = () => { q.value=""; saveUI(); renderAll(); };
 
   btnClearFilters.onclick = () => { FILTER_CAT="전체"; FILTER_KEY=""; saveUI(); log("필터 해제",{}); renderAll(); };
-
-  btnCopyFilteredCards.onclick = () => {
-    const arr = currentFiltered();
-    copyText(cardsText(arr));
-  };
-  btnCopyRowIds.onclick = () => {
-    const arr = currentFiltered();
-    copyText(rowIdList(arr));
-  };
-
-  btnCardsCopyAll.onclick = () => {
-    const arr = currentFiltered();
-    copyText(cardsText(arr));
-  };
-
-  btnCopyTable.onclick = () => {
-    const arr = currentFiltered();
-    copyText(tableTSV(arr));
-  };
-
-  btnCopyCards.onclick = () => {
-    copyText(cardsText(currentFiltered()));
-  };
-
-  btnCopyWord.onclick = () => {
-    // Word 안내서: 카드 텍스트 묶음 (필터 적용)
-    copyText(cardsText(currentFiltered()));
-  };
-
-  btnProof.onclick = () => {
-    const proof = {
-      UPDATED, HASH, EDITION,
-      FLOW:["설정","확인","복사","외부활용","완료"],
-      LOCK_CORE,
-      LOCK_STANDARD_COLS
-    };
-    copyText(JSON.stringify(proof, null, 2));
-  };
-
-  btnRules.onclick = () => {
-    log("분류 규칙 보기", {});
-    copyText(rulesText());
-  };
+  btnCopyFilteredCards.onclick = () => copyText(cardsText(currentFiltered()));
+  btnCopyRowIds.onclick = () => copyText(rowIdList(currentFiltered()));
+  btnCardsCopyAll.onclick = () => copyText(cardsText(currentFiltered()));
+  btnCopyTable.onclick = () => copyText(tableTSV(currentFiltered()));
+  btnCopyCards.onclick = () => copyText(cardsText(currentFiltered()));
+  btnCopyWord.onclick = () => copyText(cardsText(currentFiltered()));
+  btnProof.onclick = () => copyText(JSON.stringify({UPDATED,HASH,EDITION,FLOW:["설정","확인","복사","외부활용","완료"],LOCK_CORE,LOCK_STANDARD_COLS}, null, 2));
+  btnRules.onclick = () => { log("분류 규칙 보기", {}); copyText(rulesText()); };
 
   btnX.onclick = () => {
     const xs = [];
@@ -1029,7 +927,6 @@ ${kor}
     const lines = xs.map((x, i)=> `#${i+1}\t${x.type}\t${x.code}\t${x.msg}\trowId=${x.rowId}\tcol=${x.col}\tRES=${x.res}\tHOW=${x.how}`);
     copyText(lines.join("\n") || "(X 없음)");
   };
-
   btnW.onclick = () => {
     const ws = [];
     DB.forEach(r => r.meta.W.forEach(w => ws.push({rowId:r.meta.rowId, ...w})));
@@ -1050,9 +947,8 @@ ${kor}
   };
 
   btnRecalc.onclick = () => {
-    // re-evaluate issues (does not change RAW strings)
     DB = DB.map(r=>{
-      const {X,W,AUTO,exclude} = evaluateIssues(r.meta.fileName, r.meta.idx, r.display, false);
+      const {X,W,AUTO} = evaluateIssues(r.meta.fileName, r.meta.idx, r.display, false);
       r.meta.X = X;
       r.meta.W = r.meta.W && r.meta.W.length ? r.meta.W : W;
       r.meta.AUTO = AUTO;
@@ -1064,49 +960,39 @@ ${kor}
 
   btnUpload.onclick = async () => {
     const files = Array.from(file.files || []);
-    if(files.length===0){
-      log("업로드 실패", {reason:"no file"});
-      return;
-    }
+    if(files.length===0){ log("업로드 실패", {reason:"no file"}); return; }
+
     for(const f of files){
       const text = await f.text();
       const rows = parseCSV(text);
       if(rows.length===0) continue;
 
       const hdr = rows[0];
-      const hdrLeak = headerRowLeak(hdr);
       const hdrMap = headerIndexMap(hdr);
 
       const pub = detectPublisherByFileName(f.name);
       const mapping = buildMappingForPublisher(pub, hdrMap);
+
       log("업로드 시작", {file:f.name, publisher:pub, HASH});
       log("매핑 확정", {file:f.name, mapping, currency:mapping.Currency});
 
       let appended = 0;
       let korAutoSum = 0;
 
-      // Pages mapping miss file-level warn if mapping.Pages is empty
       const fileWarns = [];
       if(!mapping.Pages){
         fileWarns.push({type:"DATA", code:"MAPPING_MISS", msg:"Pages 매핑이 비어있음(헤더에 Pages가 없을 수 있음)", rowId:`${f.name}|*|*`, col:"", res:"N", how:"원본 헤더 확인 / Pages 공란 유지 가능"});
       }
 
-      // Data rows start at 1
       for(let i=1;i<rows.length;i++){
         const row = rows[i];
 
-        // if header leak row exists inside data
-        const isLeakRow = hdrLeak || headerRowLeak(row);
-        if(isLeakRow){
-          const dummy = {"Title":"","Sub Title":"","KOR_TITLE":"","KOR_SUBTITLE":"","ISBN":"","Price":"","Currency":"","Pub Date":"","Pages":"","Publisher":pub,"CATEGORY_KEYWORD":""};
-          const meta = {fileName:f.name, idx:i-1, rowId:`${f.name}|${i-1}|LEAK`, X:[], W:[], AUTO:0, korAuto:0};
-          const {X,W,AUTO,exclude} = evaluateIssues(f.name, i-1, dummy, true);
-          meta.X = X; meta.W = W; meta.AUTO = AUTO;
-          // exclude row from DB
+        // ✅ FIX: 헤더 누수 판정은 "데이터행(row)"만 검사 (hdrLeak를 OR로 쓰지 않음)
+        if(headerRowLeak(row)){
+          // leak row is excluded
           continue;
         }
 
-        // Build RAW record (strings only)
         const rec = {};
         rec["Publisher"] = (pub==="AUTO") ? (pick("Publisher", hdrMap, row) || "AUTO") : pub;
         rec["Title"] = pick(mapping.Title, hdrMap, row);
@@ -1120,23 +1006,20 @@ ${kor}
         rec["Pages"] = pick(mapping.Pages, hdrMap, row);
         rec["_ANCHOR"] = "";
 
-        // KOR auto fill (NO translation, only placeholder)
         const ka = ensureKor(rec);
         korAutoSum += ka;
 
-        // Category/Keyword rule-based
         rec["CATEGORY_KEYWORD"] = categorize(rec);
 
-        // INTERNAL/DISPLAY = RAW (keep strings)
         const internal = Object.assign({}, rec);
         const display = Object.assign({}, internal);
 
         const rowId = makeRowId(f.name, i-1, display);
         const meta = {fileName:f.name, idx:i-1, rowId, X:[], W:[], AUTO:0, korAuto:ka};
 
-        const {X,W,AUTO,exclude} = evaluateIssues(f.name, i-1, display, false);
+        const {X,W,AUTO} = evaluateIssues(f.name, i-1, display, false);
         meta.X = X;
-        meta.W = (fileWarns.length ? fileWarns : W); // keep file-level warn if exists
+        meta.W = (fileWarns.length ? fileWarns : W);
         meta.AUTO = AUTO;
 
         DB.push({raw:display, internal, display, meta});
@@ -1156,7 +1039,6 @@ ${kor}
   restoreUI();
   const restored = restorePersist();
   log("앱 시작", {UPDATED, HASH, EDITION, restored});
-
   renderAll();
 
 })();
