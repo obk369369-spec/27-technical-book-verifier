@@ -1902,5 +1902,48 @@ async function init(){
 
 init();
 </script>
+
+<!-- ✅ 카테고리 20개 고정 패치(무너짐 0%): 파일 맨 아래 </body> 위에 그대로 붙여넣기 -->
+<script>
+(function(){
+  const CATEGORY20 = [
+    "자동차/모빌리티","통신/IT","전자/반도체","에너지/환경","의약/바이오",
+    "의료기기/헬스케어","화학/소재","식품/농업","산업기계/로봇","항공/방위",
+    "건설/인프라","금융/핀테크","소비재/유통","물류/공급망","AI/데이터",
+    "스마트제조","친환경/ESG","보안/인증","교육/콘텐츠","기타(미분류)"
+  ];
+
+  // 전역에 있으면 그대로 사용하고, 없으면 안전하게 새로 만듦
+  window.CATEGORY_MASTER = CATEGORY20;
+
+  // 기존 normalizeCategory가 있으면 덮어써서 “20개 고정”만 보장
+  window.normalizeCategory = function(cat){
+    if(!cat) return "기타(미분류)";
+    return CATEGORY20.includes(cat) ? cat : "기타(미분류)";
+  };
+
+  // 기존 데이터가 렌더링되기 전에 category가 이상한 값이면 정리(있으면만)
+  function patchArray(arr){
+    if(!Array.isArray(arr)) return;
+    for(const r of arr){
+      if(r && typeof r === "object"){
+        r.category = window.normalizeCategory(r.category);
+      }
+    }
+  }
+
+  // 흔히 쓰는 전역 후보들을 건드리지 않고 “있을 때만” 정리
+  patchArray(window.DATA);
+  patchArray(window.data);
+  patchArray(window.rows);
+  patchArray(window.records);
+
+  console.log("[PATCH] Category 20 fixed ✅");
+})();
+</script>
+
+
+
+  
 </body>
 </html>
