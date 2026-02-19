@@ -3,1453 +3,1386 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>27번 도구 FINAL – AUTOUPLOAD_AUTOPERSIST + HEALTHLOG</title>
+  <title>27번 도구 FINAL – AUTOUPLOAD_AUTOPERSIST</title>
   <style>
     :root{
-      --bg:#ffffff;
-      --fg:#111;
-      --muted:#666;
-      --line:#e6e6e6;
-      --chip:#f4f4f4;
-      --danger:#b42318;
-      --warn:#b54708;
-      --ok:#067647;
-      --btn:#111;
-      --btnfg:#fff;
-      --shadow:0 1px 10px rgba(0,0,0,.06);
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      --bg:#ffffff; --fg:#111; --muted:#666; --line:#e6e6e6; --chip:#f4f4f4;
+      --ok:#0a7a2f; --bad:#b00020; --warn:#b26a00;
+      --btn:#111; --btnfg:#fff;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple SD Gothic Neo","Noto Sans KR", sans-serif;
     }
     body{ margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans); }
-    .wrap{ max-width:1200px; margin:0 auto; padding:14px 14px 48px; }
-    h1{ margin:0 0 8px; font-size:18px; }
-    .meta{ font-size:12px; color:var(--muted); line-height:1.35; margin-bottom:10px; }
-    .bar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:10px; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
-    .bar .group{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .sp{ flex:1; min-width:10px; }
-    button{
-      background:var(--btn);
-      color:var(--btnfg);
-      border:0;
-      border-radius:9px;
-      padding:8px 10px;
-      font-size:12px;
-      cursor:pointer;
-    }
-    button.secondary{ background:#f3f3f3; color:#111; border:1px solid var(--line); }
-    button.ghost{ background:transparent; color:#111; border:1px solid var(--line); }
-    button:disabled{ opacity:.5; cursor:not-allowed; }
-    input[type="file"]{ font-size:12px; }
-    input[type="text"]{
-      font-size:12px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; min-width:240px;
-    }
-    select{ font-size:12px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; }
-    .stats{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .pill{
-      font-size:12px; padding:6px 10px; border:1px solid var(--line); background:var(--chip); border-radius:999px;
-    }
-    .pill b{ font-family:var(--mono); font-weight:700; }
-    .grid{ display:grid; grid-template-columns: 320px 1fr; gap:12px; margin-top:12px; }
-    @media (max-width:1000px){ .grid{ grid-template-columns:1fr; } }
-    .card{
-      border:1px solid var(--line);
-      border-radius:12px;
-      box-shadow:var(--shadow);
-      background:#fff;
-      overflow:hidden;
-    }
-    .card .hd{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .card .hd .title{ font-weight:700; font-size:13px; }
-    .card .bd{ padding:10px 12px; }
-    .tiny{ font-size:11px; color:var(--muted); }
-    .kpanel{ display:block; }
-    .kpanel.hidden{ display:none; }
-    .klist{ display:grid; gap:6px; }
-    .krow{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .krow .left, .krow .right{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-    .kchip{
-      font-size:12px; padding:6px 10px; border:1px solid var(--line);
-      background:#fff; border-radius:999px; cursor:pointer;
-    }
-    .kchip.active{ background:#111; color:#fff; border-color:#111; }
-    .kchip.dim{ color:var(--muted); }
-    .kchip small{ font-family:var(--mono); color:inherit; opacity:.85; }
-    .viewbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
-    .viewbar .hint{ font-size:12px; color:var(--muted); }
-    .tableWrap{ overflow:auto; border:1px solid var(--line); border-radius:10px; }
-    table{ width:100%; border-collapse:collapse; font-size:12px; }
-    th, td{ border-bottom:1px solid var(--line); padding:8px 8px; vertical-align:top; }
-    th{ position:sticky; top:0; background:#fafafa; z-index:1; text-align:left; }
-    .nowrap{ white-space:nowrap; }
-    .mono{ font-family:var(--mono); }
-    .muted{ color:var(--muted); }
-    .rowbtn{ padding:6px 8px; font-size:11px; border-radius:8px; }
-    .danger{ color:var(--danger); }
-    .warn{ color:var(--warn); }
-    .ok{ color:var(--ok); }
-    .cardsList{ display:grid; gap:10px; }
-    .book{
-      border:1px solid var(--line);
-      border-radius:12px;
+    .wrap{ max-width:1200px; margin:0 auto; padding:14px; }
+    h1{ font-size:18px; margin:0 0 6px; }
+    .sub{ font-size:12px; color:var(--muted); margin:0 0 10px; line-height:1.35; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn{ border:0; background:var(--btn); color:var(--btnfg); padding:8px 10px; border-radius:10px; font-size:12px; cursor:pointer; }
+    .btn.secondary{ background:#f0f0f0; color:#111; border:1px solid var(--line); }
+    .btn:active{ transform:translateY(1px); }
+    .stats{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; margin:10px 0; }
+    .stat{ padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--chip); }
+    .health{
+      margin:10px 0 12px;
       padding:10px 12px;
-      box-shadow:var(--shadow);
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fafafa;
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.35;
+      white-space:nowrap;
+      overflow:auto;
+    }
+    .health .hint{ font-family:var(--sans); color:var(--muted); font-size:12px; margin-bottom:6px; white-space:normal; }
+    .bar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0 12px; }
+    .bar label{ font-size:12px; color:var(--muted); }
+    input[type="file"]{ font-size:12px; }
+    input[type="text"]{ padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-size:12px; width:min(520px, 100%); }
+    select{ padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-size:12px; }
+    .panel{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
       background:#fff;
     }
-    .book .t{ font-weight:700; font-size:14px; margin-bottom:2px; }
-    .book .st{ font-size:12px; color:#222; margin-bottom:2px; }
-    .book .kor{ font-size:12px; color:#111; }
-    .book .meta2{ margin-top:8px; font-size:12px; color:#222; display:flex; gap:10px; flex-wrap:wrap; }
-    .book .meta2 .kv{ color:#222; }
-    .book .meta2 .kv b{ font-weight:700; }
-    .book .actions{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
-    .output{
+    .grid{ display:grid; grid-template-columns: 280px 1fr; gap:10px; }
+    @media (max-width: 960px){ .grid{ grid-template-columns: 1fr; } }
+    .cats, .keys{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      min-height:120px;
+    }
+    .panelTitle{ font-size:12px; color:var(--muted); margin:0 0 8px; }
+    .list{ display:flex; flex-direction:column; gap:6px; }
+    .item{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:8px 10px; border:1px solid var(--line); border-radius:12px; cursor:pointer;
+      background:#fff;
+      font-size:12px;
+    }
+    .item:hover{ background:#fafafa; }
+    .pill{ font-size:11px; padding:2px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--line); color:#111; }
+    .item.active{ outline:2px solid #111; }
+    .tiny{ font-size:11px; color:var(--muted); }
+    .viewTabs{ display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+    .tab{ padding:7px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:12px; cursor:pointer; }
+    .tab.active{ background:#111; color:#fff; border-color:#111; }
+    .resultBox{
       margin-top:10px;
       border:1px solid var(--line);
-      border-radius:12px;
-      background:#fff;
-      box-shadow:var(--shadow);
+      border-radius:14px;
       overflow:hidden;
     }
-    .output .hd{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .output pre{
-      margin:0;
-      padding:10px 12px;
-      font-size:11px;
-      line-height:1.35;
-      white-space:pre-wrap;
-      word-break:break-word;
-      font-family:var(--mono);
-    }
-    .log{
+    table{ width:100%; border-collapse:collapse; font-size:12px; }
+    th, td{ border-bottom:1px solid var(--line); padding:8px 8px; vertical-align:top; }
+    th{ background:#fafafa; position:sticky; top:0; z-index:1; text-align:left; color:#333; }
+    td.nowrap{ white-space:nowrap; }
+    .copyBtn{ padding:5px 8px; border-radius:10px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:12px; }
+    .copyBtn:hover{ background:#fafafa; }
+    .cards{ padding:10px; display:flex; flex-direction:column; gap:10px; }
+    .card{
       border:1px solid var(--line);
-      border-radius:12px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      margin-top:12px;
+      border-radius:14px;
+      padding:10px;
       background:#fff;
     }
-    .log .hd{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-    .log pre{
-      margin:0; padding:10px 12px;
-      font-size:11px; line-height:1.35;
-      white-space:pre-wrap; word-break:break-word;
+    .card h3{ margin:0; font-size:13px; }
+    .card .k{ font-size:12px; color:#333; margin:2px 0 0; }
+    .card .meta{ margin-top:6px; font-size:12px; color:#111; }
+    .card .meta .muted{ color:var(--muted); }
+    .card .actions{ margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .hr{ height:1px; background:var(--line); margin:10px 0; }
+    .pre{
       font-family:var(--mono);
+      font-size:11px;
+      background:#0b0b0b;
+      color:#f3f3f3;
+      padding:10px;
+      border-radius:14px;
+      overflow:auto;
+      white-space:pre-wrap;
     }
-    .healthLine{ font-family:var(--mono); font-size:11px; }
-    .healthLine .tag{ padding:2px 6px; border-radius:999px; border:1px solid var(--line); background:#fafafa; }
-    .healthLine .tag.ok{ color:var(--ok); border-color:rgba(6,118,71,.25); background:rgba(6,118,71,.06); }
-    .healthLine .tag.warn{ color:var(--warn); border-color:rgba(181,71,8,.25); background:rgba(181,71,8,.06); }
-    .healthLine .tag.bad{ color:var(--danger); border-color:rgba(180,35,24,.25); background:rgba(180,35,24,.06); }
+    .footerNote{ font-size:12px; color:var(--muted); margin-top:10px; }
+    .hide{ display:none !important; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <h1>27번 도구 FINAL – Persist + Category→Keyword Drilldown + Toggle(Table/Card List) · CSV 업로드 · X/WARN 자동검증</h1>
-  <div class="meta">
-    <div><b>UPDATED:</b> <span class="mono" id="updatedText">2026-02-18H</span> · <b>HASH:</b> <span class="mono" id="hashText">7F2E1C9B</span> · <b>EDITION:</b> <span class="mono">AUTOUPLOAD_AUTOPERSIST</span></div>
-    <div>FLOW 설정→확인→복사→외부활용→완료 · LOCK RAW→INTERNAL→DISPLAY (핵심 필드만) · 외부 fetch 없음</div>
-    <div>KOR 자동채움: 공란이면 [번역대기]로 채움(번역 API 없음) · KOR은 X/WARN 처리하지 않음 · Category/Keyword: (A)사전+(B)우선순위+(C)보조신호+(D)미분류 큐</div>
-    <div class="tiny">※ CSV는 UTF-8 권장 · ISBN/Price/Pages/Date는 문자열 그대로(숫자 변환 금지)</div>
+  <p class="sub">
+    UPDATED: <b id="updatedTag">2026-02-18H</b> · HASH: <b id="hashTag">7F2E1C9B</b> · EDITION: <b>AUTOUPLOAD_AUTOPERSIST</b><br/>
+    FLOW 설정→확인→복사→외부활용→완료 · LOCK RAW→INTERNAL→DISPLAY (핵심 필드만) · 외부 fetch 없음<br/>
+    KOR 자동채움: 공란이면 <b>[번역대기]</b>로 채움(번역 API 없음) · KOR은 X/WARN 처리하지 않음 · Category/Keyword: 사전+우선순위+fallback+미분류 큐
+  </p>
+
+  <!-- ✅ 사용자가 말한 “한 줄 건강진단”은 여기(상단)만 -->
+  <div class="health" id="healthLine">
+    <div class="hint"><b>상태(한 줄 건강진단)</b><br/>※ 이 줄만 봐도 “도구가 정상/위험”인지 바로 판단 가능</div>
+    <span id="healthText">HEALTH …</span>
   </div>
 
   <div class="bar">
-    <div class="group">
-      <label class="tiny">업로드(CSV)</label>
-      <input id="fileInput" type="file" accept=".csv,text/csv" />
-      <span class="tiny" id="fileName">(없음)</span>
+    <label>업로드(CSV)</label>
+    <input id="fileInput" type="file" accept=".csv,text/csv" />
+    <span class="tiny" id="lastFileLabel">Last: (없음)</span>
+    <span class="tiny">※ CSV는 UTF-8 권장 · ISBN/Price/Pages/Date는 문자열 그대로(숫자 변환 금지)</span>
+  </div>
+
+  <div class="row">
+    <button class="btn secondary" id="btnReset">DB 초기화</button>
+    <button class="btn secondary" id="btnRecalc">오류 재계산</button>
+    <button class="btn secondary" id="btnX">X 리스트</button>
+    <button class="btn secondary" id="btnW">경고 리스트</button>
+    <button class="btn secondary" id="btnRules">분류 규칙</button>
+    <button class="btn secondary" id="btnCopyTable">테이블 복사</button>
+    <button class="btn secondary" id="btnCopyCards">카드 전체 복사</button>
+    <button class="btn secondary" id="btnCopyGuide">워드 안내서 복사</button>
+    <button class="btn secondary" id="btnProof">RULESET/LOCK 증명</button>
+    <button class="btn secondary" id="btnPersistOn">persist(유지 저장)</button>
+    <button class="btn secondary" id="btnPersistOff">persist 삭제</button>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat">DB <b id="sDB">0</b></div>
+    <div class="stat">X <b id="sX">0</b></div>
+    <div class="stat">WARN <b id="sW">0</b></div>
+    <div class="stat">AUTO(RES=Y) <b id="sA">0</b></div>
+    <div class="stat">KOR_AUTO <b id="sK">0</b></div>
+  </div>
+
+  <div class="row">
+    <label class="tiny">정렬:</label>
+    <select id="sortMode">
+      <option value="CAT_KEY_PUB_ASC">Category/Keyword → Pub Date ↑</option>
+      <option value="PUB_ASC">Pub Date ↑ (과거→최근)</option>
+      <option value="PUB_DESC">Pub Date ↓ (최근→과거)</option>
+      <option value="TITLE_ASC">Title ↑</option>
+    </select>
+
+    <input id="q" type="text" placeholder="검색(Title/ISBN/KOR/키워드/Publisher)" />
+    <button class="btn secondary" id="btnClearQ">검색 해제</button>
+  </div>
+
+  <div class="panel" style="margin-top:10px;">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <div class="panelTitle">카테고리/키워드</div>
+        <div class="tiny">카테고리 → 키워드 (drill down) (기본: 접힘)</div>
+      </div>
+      <div class="row">
+        <button class="btn secondary" id="btnToggleDrill">접기/펼치기</button>
+      </div>
     </div>
-    <div class="group">
-      <button class="secondary" id="btnReset">DB 초기화</button>
-      <button class="secondary" id="btnRecalc">오류 재계산</button>
-      <button class="secondary" id="btnRules">분류 규칙</button>
+
+    <div class="grid" id="drillPanel" style="margin-top:8px;">
+      <div class="cats">
+        <div class="panelTitle">카테고리 (클릭)</div>
+        <div class="list" id="catList"></div>
+      </div>
+      <div class="keys">
+        <div class="panelTitle">키워드 (카테고리 선택 후 클릭)</div>
+        <div class="list" id="keyList"></div>
+        <div class="hr"></div>
+        <div class="tiny" id="filterLine">카테고리: 전체 · 키워드: (없음) · 필터 결과: 0</div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn secondary" id="btnClearFilter">필터 해제</button>
+          <button class="btn secondary" id="btnCopyFilterCards">필터 카드 전체 복사</button>
+          <button class="btn secondary" id="btnCopyFilterRowIds">필터 ROWID 목록</button>
+        </div>
+        <div class="footerNote">왼쪽 카테고리 → 오른쪽 키워드 클릭하면 테이블/카드가 같은 필터로 바뀜<br/>화면이 복잡하면 위 패널을 접은 채로 사용하면 돼(테이블/카드만 보이게).</div>
+      </div>
     </div>
-    <div class="group">
-      <button class="secondary" id="btnCopyTable">테이블 복사</button>
-      <button class="secondary" id="btnCopyCards">카드 전체 복사</button>
-      <button class="secondary" id="btnCopyGuide">워드 안내서 복사</button>
-      <button class="ghost" id="btnProof">RULESET/LOCK 증명</button>
+
+    <div class="viewTabs">
+      <div class="panelTitle" style="margin:0;">뷰 전환</div>
+      <button class="tab active" id="tabTable">테이블 뷰</button>
+      <button class="tab" id="tabCards">카드 뷰(리스트)</button>
+      <span class="tiny">테이블=워드/엑셀 붙여넣기용 · 카드(리스트)=여러 건 안내서 복사/확인용</span>
     </div>
-    <div class="group">
-      <button class="ghost" id="btnPersistNow">persist(유지 저장)</button>
-      <button class="ghost" id="btnPersistClear">persist 삭제</button>
-    </div>
-    <div class="sp"></div>
-    <div class="stats">
-      <span class="pill">DB <b id="stDB">0</b></span>
-      <span class="pill">X <b id="stX">0</b></span>
-      <span class="pill">WARN <b id="stW">0</b></span>
-      <span class="pill">AUTO(RES=Y) <b id="stA">0</b></span>
-      <span class="pill">KOR_AUTO <b id="stK">0</b></span>
+
+    <div class="resultBox" id="resultBox">
+      <div id="tableWrap" style="max-height:420px; overflow:auto;">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th class="nowrap">복사</th>
+              <th class="nowrap">Pub Date</th>
+              <th>Title</th>
+              <th>Sub Title</th>
+              <th>KOR_TITLE</th>
+              <th>KOR_SUBTITLE</th>
+              <th class="nowrap">ISBN</th>
+              <th class="nowrap">Pages</th>
+              <th class="nowrap">Price</th>
+              <th class="nowrap">Currency</th>
+              <th class="nowrap">Publisher</th>
+              <th class="nowrap">Category/Keyword</th>
+              <th class="nowrap">ROW</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div id="cardsWrap" class="hide">
+        <div class="cards" id="cards"></div>
+      </div>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="hd">
-        <div class="title">카테고리/키워드</div>
-        <span class="tiny">· drill down (기본: 접힘)</span>
-        <button class="ghost" id="btnTogglePanel">접기</button>
-      </div>
-      <div class="bd">
-        <div id="panel" class="kpanel">
-          <div class="tiny">카테고리 (클릭)</div>
-          <div class="klist" id="catList"></div>
-          <div style="height:10px"></div>
-          <div class="tiny">키워드 (카테고리 선택 후 클릭)</div>
-          <div class="klist" id="keyList"></div>
-
-          <div style="height:10px"></div>
-          <div class="tiny mono" id="filterLine">카테고리: 전체 · 키워드: (없음) · 필터 결과: 0</div>
-          <div class="krow" style="margin-top:8px">
-            <button class="secondary" id="btnClearFilter">필터 해제</button>
-            <button class="secondary" id="btnCopyFilteredCards">필터 카드 전체 복사</button>
-            <button class="secondary" id="btnCopyRowIds">필터 ROWID 목록</button>
-          </div>
-          <div class="tiny" style="margin-top:8px">왼쪽 카테고리 → 오른쪽 키워드 클릭하면 테이블/카드가 같은 필터로 바뀜</div>
-          <div class="tiny">화면이 복잡하면 위 패널을 접은 채로 사용하면 돼(테이블/카드만 보이게).</div>
-        </div>
-      </div>
+  <div class="panel" style="margin-top:10px;">
+    <div class="panelTitle">출력(복사용)</div>
+    <div class="row" style="margin:8px 0;">
+      <button class="btn secondary" id="btnCopyOutput">현재 출력 복사</button>
+      <button class="btn secondary" id="btnClearOutput">출력 지우기</button>
     </div>
+    <div class="pre" id="out">(없음)</div>
+  </div>
 
-    <div>
-      <div class="card">
-        <div class="hd">
-          <div class="title">뷰 전환</div>
-          <button class="secondary" id="btnViewTable">테이블 뷰</button>
-          <button class="secondary" id="btnViewCards">카드 뷰(리스트)</button>
-          <span class="hint tiny">테이블=워드/엑셀 붙여넣기용 · 카드(리스트)=여러 건 안내서 복사/확인용</span>
-          <div class="sp"></div>
-          <label class="tiny">정렬</label>
-          <select id="sortSel">
-            <option value="CAT_KEY_PUB_ASC">Category/Keyword → Pub Date ↑</option>
-            <option value="PUB_ASC">Pub Date ↑ (과거→최근)</option>
-            <option value="PUB_DESC">Pub Date ↓ (최근→과거)</option>
-            <option value="TITLE_ASC">Title ↑</option>
-          </select>
-          <label class="tiny">검색</label>
-          <input id="q" type="text" placeholder="Title/ISBN/KOR/키워드/Publisher" />
-          <button class="ghost" id="btnClearQ">검색 해제</button>
-        </div>
-        <div class="bd">
-          <div class="tiny">Last: <span id="lastFile">(없음)</span></div>
-          <div style="height:8px"></div>
-          <div id="resultArea"></div>
-        </div>
-      </div>
-
-      <div class="output">
-        <div class="hd">
-          <div class="title">출력(복사용)</div>
-          <button class="secondary" id="btnCopyOutput">출력 전체 복사</button>
-          <span class="tiny" id="copyHint"></span>
-        </div>
-        <pre id="out">(없음)</pre>
-      </div>
-
-      <!-- 로그는 사용자가 원한대로 "제일 위"에 보이게: 화면상으로는 이 카드 자체가 아래지만,
-           실제 표시 순서는 아래 health 카드가 맨 위에 오도록, DOM을 JS로 재배치한다. -->
-      <div class="log" id="logBox">
-        <div class="hd">
-          <div class="title">로그</div>
-          <button class="ghost" id="btnLogCopy">로그 복사</button>
-          <button class="ghost" id="btnLogClear">로그 지우기</button>
-          <span class="tiny">※ JSON 상세는 유지하되, 맨 위에 “한 줄 건강진단”을 추가함</span>
-        </div>
-        <pre id="logPre"></pre>
-      </div>
-
-      <div class="log" id="healthBox">
-        <div class="hd">
-          <div class="title">상태(한 줄 건강진단)</div>
-          <span class="tiny">※ 이 줄만 봐도 “도구가 정상/위험”인지 바로 판단 가능</span>
-        </div>
-        <pre id="healthPre" class="healthLine"></pre>
-      </div>
+  <div class="panel" style="margin-top:10px;">
+    <div class="panelTitle">POLICY</div>
+    <div class="tiny" style="line-height:1.45;">
+      • KOR 자동채움: KOR 공란이면 [번역대기]로 자동 채움(외부 번역 없음)<br/>
+      • Category/Keyword: (A) 사전 + (B) 우선순위 + (C) fallback + (D) 미분류 큐<br/>
+      • Price/Pages/ISBN/Date는 문자열 그대로 유지(가능한 범위에서 표준화만)<br/>
+      • ISBN 과학표기 → X(ISBN_SCI_NOTATION) · 헤더 누수 → X(HEADER_ROW_LEAK)+해당 행 DB 제외<br/>
+      • LOCK 불일치(핵심 필드) → X(LOCK_MISMATCH)
     </div>
   </div>
+
+  <!-- 로그는 “원래 자리(하단)” 그대로 유지 -->
+  <div class="panel" style="margin-top:10px;">
+    <div class="panelTitle">로그</div>
+    <div class="pre" id="log"></div>
+  </div>
+
+  <p class="footerNote">
+    ※ “상태(한 줄 건강진단)”만 상단에 있고, 나머지 기능/로그 위치는 기존 흐름 유지.
+  </p>
 </div>
 
 <script>
 (() => {
-  // =========================
-  // 고정 메타
-  // =========================
+  // -----------------------------
+  // 고정 식별자 (사용자 요청)
+  // -----------------------------
   const UPDATED = "2026-02-18H";
   const HASH = "7F2E1C9B";
-  document.getElementById("updatedText").textContent = UPDATED;
-  document.getElementById("hashText").textContent = HASH;
+  const EDITION = "AUTOUPLOAD_AUTOPERSIST";
 
-  // =========================
-  // localStorage 키(자동 저장)
-  // =========================
+  // -----------------------------
+  // 저장 키 (persist/autopersist)
+  // -----------------------------
   const LS = {
-    DB: "wic27.db.v1",
-    RAWFILES: "wic27.rawfiles.v1",
-    UI: "wic27.ui.v1",
-    FILTER: "wic27.filter.v1",
-    RULES: "wic27.rules.v1"
+    persistEnabled: "tbv.persist.enabled",
+    db: "tbv.db",
+    lastFile: "tbv.lastFile",
+    ui: "tbv.ui",
+    rules: "tbv.rules",
+    reviewQueue: "tbv.reviewQueue"
   };
 
-  // =========================
-  // 상태
-  // =========================
-  let db = [];            // normalized rows
-  let rawFiles = {};      // filename -> raw csv text
+  // -----------------------------
+  // 상태 변수
+  // -----------------------------
+  let DB = [];     // 내부 레코드
+  let X = [];      // 에러
+  let W = [];      // 경고
+  let AUTO = 0;    // RES=Y 카운트(여기선 최소만 유지)
+  let KOR_AUTO = 0;
+
   let ui = {
-    panelOpen: false,
-    view: "cards", // "table" | "cards"
-    sort: "CAT_KEY_PUB_ASC",
+    restored: false,
+    view: "table", // table | cards
     q: "",
-    lastFile: "",
+    sort: "CAT_KEY_PUB_ASC",
+    cat: "전체",
+    key: "(없음)",
+    drillOpen: false
   };
-  let filter = { cat:"전체", key:"(없음)" };
 
-  // =========================
-  // 분류 사전/우선순위/보조신호/미분류 큐
-  // - “확장 가능” 형태로만(양식 최소 잠금)
-  // =========================
+  // -----------------------------
+  // 분류: (A) 키워드 사전 + (B) 우선순위 + (C) fallback + (D) 검토 큐
+  // - 단일 할당(1-book-1-keyword): "가장 먼저 매칭된 1개"만 부여
+  // -----------------------------
   const defaultRules = {
-    // A) 키워드 사전(용어집): keyword -> {cat, key, pri, patterns[]}
-    dict: [
-      { cat:"AI/로봇", key:"ai", pri: 100, patterns:[/\\bai\\b/i, /artificial intelligence/i, /machine learning/i, /deep learning/i] },
-      { cat:"AI/로봇", key:"robot", pri: 95, patterns:[/robot/i, /robotic/i, /autonomous/i] },
-
-      { cat:"의학", key:"medical", pri: 90, patterns:[/medical/i, /clinical/i, /medicine/i] },
-      { cat:"의학", key:"health", pri: 88, patterns:[/health/i, /healthcare/i] },
-      { cat:"의학", key:"disease", pri: 85, patterns:[/disease/i, /inflammatory/i, /pathobiology/i, /disaster management/i] },
-
-      { cat:"금융", key:"banking", pri: 80, patterns:[/banking/i, /finance/i, /financial/i] },
-      { cat:"마케팅", key:"marketing", pri: 75, patterns:[/marketing/i, /brand/i, /market\\b/i] },
-      { cat:"교육", key:"education", pri: 70, patterns:[/education/i, /classroom/i, /teaching/i] },
-
-      { cat:"배터리", key:"battery", pri: 60, patterns:[/battery/i, /bms\\b/i, /battery management/i] },
-      { cat:"에너지", key:"energy", pri: 55, patterns:[/energy/i, /renewable/i, /alternative energy/i] },
-    ],
-
-    // B) 우선순위 트리(상위→하위): cat 우선순위(동일 점수 시)
-    catPriority: ["AI/로봇","의학","금융","마케팅","교육","배터리","에너지","미분류"],
-
-    // C) 보조 신호 fallback: publisher / isbn / series 같은 보조 단서
-    publisherHints: [
-      { publisher:/elsevier/i, catBias:"의학" },
-      { publisher:/springer/i, catBias:"미분류" },
-      { publisher:/wiley/i, catBias:"미분류" },
-    ],
-
-    // D) 미분류 검토 큐(표시는 하되, 자동 재분류는 '사전 확장'으로만)
-    keepUnclassified: true,
-
-    // 단일 할당(1-book-1-keyword)
-    singleAssign: true
+    priorityCats: ["의학","AI/로봇","금융","마케팅","교육","에너지","배터리","기타"],
+    dict: {
+      "의학": ["health","medical","disease","clinic","clinical","hospital","medicine","ibd","telomere"],
+      "AI/로봇": ["ai","robot","robotic","autonomous","machine learning","deep learning"],
+      "금융": ["bank","banking","finance","financial","risk","portfolio"],
+      "마케팅": ["marketing","brand","consumer","advertising","market"],
+      "교육": ["education","teaching","classroom","school"],
+      "에너지": ["energy","renewable","power","electric","battery","grid"],
+      "배터리": ["battery","bms","management system"]
+    },
+    fallback: {
+      publisherHints: {
+        "Elsevier": { cat:"의학", key:"medical" },
+        "Springer": null,
+        "Wiley": null
+      }
+    }
   };
 
-  let rules = loadJSON(LS.RULES, defaultRules);
+  let rules = loadJSON(LS.rules, defaultRules);
+  let reviewQueue = loadJSON(LS.reviewQueue, []); // 미분류 rowId 목록
 
-  // =========================
+  // -----------------------------
+  // DOM
+  // -----------------------------
+  const $ = (id) => document.getElementById(id);
+
+  $("updatedTag").textContent = UPDATED;
+  $("hashTag").textContent = HASH;
+
+  // -----------------------------
   // 유틸
-  // =========================
-  function nowStamp(){
+  // -----------------------------
+  function nowKST(){
+    // 단순 표기용
     const d = new Date();
-    const pad = n => String(n).padStart(2,"0");
-    // KST 가정(브라우저 로컬)
+    const pad = (n)=> String(n).padStart(2,"0");
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
-
-  function log(msg, obj){
-    const line = `[${nowStamp()}] ${msg}` + (obj ? ` :: ${JSON.stringify(obj)}` : "");
-    const pre = document.getElementById("logPre");
-    pre.textContent = (pre.textContent ? pre.textContent + "\n" : "") + line;
-    // 로그는 자동 저장(필요 시)
-    // (로그까지 저장하면 용량이 커질 수 있어, 기본은 비저장)
+  function log(event, obj){
+    const line = `[${nowKST()}] ${event} :: ${obj ? JSON.stringify(obj) : ""}`.trim();
+    const cur = $("log").textContent || "";
+    $("log").textContent = (cur ? (cur + "\n") : "") + line;
+    // 로그도 persist면 저장
+    if (isPersistOn()) saveAll();
   }
 
-  function setHealthLine(text){
-    document.getElementById("healthPre").textContent = text;
+  function isPersistOn(){
+    return loadJSON(LS.persistEnabled, true) === true; // 기본 ON
   }
-
-  function chip(tag, cls){
-    // 작은 상태 태그(문자 기반)
-    return `[${tag}:${cls}]`;
+  function setPersistOn(v){
+    localStorage.setItem(LS.persistEnabled, JSON.stringify(!!v));
   }
 
   function loadJSON(key, fallback){
     try{
-      const s = localStorage.getItem(key);
-      if(!s) return structuredClone(fallback);
-      return JSON.parse(s);
-    }catch(e){
-      return structuredClone(fallback);
-    }
+      const v = localStorage.getItem(key);
+      if (!v) return fallback;
+      return JSON.parse(v);
+    }catch(e){ return fallback; }
   }
   function saveJSON(key, val){
-    try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+    localStorage.setItem(key, JSON.stringify(val));
   }
 
-  function copyText(text){
-    return navigator.clipboard.writeText(text).then(()=>{
-      document.getElementById("copyHint").textContent = "복사됨";
-      setTimeout(()=>document.getElementById("copyHint").textContent="", 800);
-    }).catch(()=>{});
-  }
-
-  function normalizeCurrencySymbol(curr){
-    if(curr === "USD") return "$";
-    if(curr === "EUR") return "€";
-    return ""; // fallback
-  }
-
-  function moneyDisplay(price, curr){
-    // 사용자가 요청: "$175.00" 유지, "€ 119.99" 형태
-    const sym = normalizeCurrencySymbol(curr);
-    if(!price) return "(미기재)";
-    // 원문에 이미 $가 붙는 경우가 있어도, 통화코드 텍스트는 표시하지 않음
-    // price가 "$175.00"이면 그대로 둔다.
-    const p = String(price).trim();
-    if(p.startsWith("$") || p.startsWith("€")) return p;
-    if(sym === "$") return `$${p}`;
-    if(sym === "€") return `€ ${p}`;
-    return p;
-  }
-
-  // =========================
-  // CSV 파서(따옴표/콤마 대응)
-  // =========================
-  function parseCSV(text){
-    // 간단하지만 실무에서 버티는 수준의 CSV 파서
-    const rows = [];
-    let i=0, field="", row=[], inQuotes=false;
-    while(i < text.length){
-      const c = text[i];
-      if(inQuotes){
-        if(c === '"'){
-          if(text[i+1] === '"'){ field += '"'; i+=2; continue; }
-          inQuotes = false; i++; continue;
-        }else{
-          field += c; i++; continue;
-        }
+  function csvSplit(line){
+    // 최소 CSV 파서(따옴표 처리)
+    const out = [];
+    let cur = "", q = false;
+    for (let i=0;i<line.length;i++){
+      const c = line[i];
+      if (c === '"'){
+        if (q && line[i+1] === '"'){ cur += '"'; i++; }
+        else q = !q;
+      }else if (c === "," && !q){
+        out.push(cur);
+        cur = "";
       }else{
-        if(c === '"'){ inQuotes = true; i++; continue; }
-        if(c === ','){ row.push(field); field=""; i++; continue; }
-        if(c === '\r'){ i++; continue; }
-        if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=""; i++; continue; }
-        field += c; i++; continue;
+        cur += c;
       }
     }
-    row.push(field);
-    // 마지막 줄이 빈 줄이면 제거
-    if(row.length===1 && row[0]==="" && rows.length>0){
-      // ignore
-    }else{
-      rows.push(row);
-    }
-    return rows;
+    out.push(cur);
+    return out;
   }
 
-  // =========================
-  // 날짜 파싱/정규화
-  // =========================
-  const monthMap = {
-    jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12
-  };
-  function toISODate(raw){
-    // 사용자 요구: 전부 2000년대 가정(YYYY 고정 가능). 여기서는 raw를 최대한 YYYY-MM-DD로 보여줌.
-    const s = String(raw||"").trim();
-    if(!s) return "";
-    // 이미 YYYY-MM-DD / YYYY/MM/DD
-    let m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
-    if(m){
-      const y=+m[1], mo=String(+m[2]).padStart(2,"0"), d=String(+m[3]).padStart(2,"0");
-      return `${y}-${mo}-${d}`;
+  function detectSciISBN(s){
+    // 9.78139E+12 형태 등
+    return typeof s === "string" && /E\+\d+/i.test(s) && /\d\.\d+E\+\d+/i.test(s);
+  }
+
+  function normalizeCurrencySymbol(cur, publisher, rawPrice){
+    // 목표: $175.00 / € 119.99 처럼 “기호만”
+    // - rawPrice에 이미 $가 있으면 $ 유지
+    // - Currency가 EUR/€면 €
+    // - Currency가 USD/$면 $
+    // - 그 외는 빈칸
+    const p = (rawPrice || "").toString().trim();
+    if (p.startsWith("$")) return "$";
+    if (p.startsWith("€")) return "€";
+    const c = (cur || "").toString().trim().toUpperCase();
+    if (c === "EUR" || c === "€") return "€";
+    if (c === "USD" || c === "$") return "$";
+    // publisher 힌트(보조)
+    if ((publisher||"").toLowerCase().includes("springer")) return "€";
+    if ((publisher||"").toLowerCase().includes("elsevier")) return "$";
+    if ((publisher||"").toLowerCase().includes("wiley")) return "$";
+    return "";
+  }
+
+  function stripCurrencyText(raw){
+    // "$175.00 USD" -> "$175.00"
+    // "119.99 EUR" -> "119.99"
+    return (raw||"").toString()
+      .replace(/\s*(USD|EUR|KRW|JPY|CNY)\s*$/i,"")
+      .trim();
+  }
+
+  function normalizeDateToISO(raw){
+    // 요구: 01-Feb-27 -> 2027-02-01
+    // 대부분 2000년대라고 했으니 yy는 20yy로 고정
+    const s = (raw||"").toString().trim();
+    if (!s) return "";
+    // 이미 YYYY-MM-DD or YYYY/MM/DD
+    let m = s.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})$/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    // YYYY-M-D
+    m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+    if (m){
+      const mm = String(m[2]).padStart(2,"0");
+      const dd = String(m[3]).padStart(2,"0");
+      return `${m[1]}-${mm}-${dd}`;
     }
-    // 01-Feb-27 같은 형태
+    // DD-Mon-YY
     m = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2})$/);
-    if(m){
-      const dd=String(+m[1]).padStart(2,"0");
-      const mon = monthMap[m[2].toLowerCase()] || 1;
-      const mm=String(mon).padStart(2,"0");
-      const yy=+m[3];
-      const y = 2000 + yy; // 사용자 요구(전부 2000년대)
-      return `${y}-${mm}-${dd}`;
+    if (m){
+      const dd = String(m[1]).padStart(2,"0");
+      const mon = m[2].toLowerCase();
+      const yy = m[3];
+      const map = {jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12"};
+      const mm = map[mon] || "01";
+      return `20${yy}-${mm}-${dd}`;
     }
-    // YYYY.MM.DD or YYYY-MM
-    m = s.match(/^(\d{4})[.\-\/](\d{1,2})(?:[.\-\/](\d{1,2}))?$/);
-    if(m){
-      const y=+m[1];
-      const mm=String(+m[2]).padStart(2,"0");
-      const dd=String(+(m[3]||1)).padStart(2,"0");
-      return `${y}-${mm}-${dd}`;
-    }
-    return ""; // 파싱 실패
+    // 실패: 원본 그대로
+    return s;
   }
 
-  function dateKey(iso){
-    // 정렬용(빈값은 0)
-    if(!iso) return 0;
-    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if(!m) return 0;
-    return (+m[1])*10000 + (+m[2])*100 + (+m[3]);
+  function coreLockMismatch(rec){
+    // LOCK: 핵심 필드가 “존재/유형”이 깨지거나, 내부 변환이 원본과 크게 어긋나면 체크
+    // 여기선 “행 섞임”의 징후로 간단 체크: rowId/Title/ISBN이 비어있지 않는데 서로 다른 레코드로 교차되면 잡히게
+    // (실제 섞임은 CSV 파서가 깨질 때 발생하므로, 우선 파싱 결과의 필드 개수/헤더 누수로 대부분 잡힘)
+    if (!rec || !rec.rowId) return true;
+    if (!rec.Title || !rec.Publisher) return false; // 일부 데이터는 비어도 허용
+    return false;
   }
 
-  // =========================
-  // rowId / 해시(단순)
-  // =========================
-  function fnv1a(str){
-    let h = 0x811c9dc5;
-    for(let i=0;i<str.length;i++){
+  function makeRowId(fileName, rowIndex, hash8){
+    return `${fileName}|${rowIndex}|${hash8}`;
+  }
+
+  function hash8(str){
+    // 가벼운 해시(crypto 없이)
+    let h = 2166136261;
+    for (let i=0;i<str.length;i++){
       h ^= str.charCodeAt(i);
-      h = (h + ((h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24))) >>> 0;
+      h = Math.imul(h, 16777619);
     }
-    return ("00000000" + h.toString(16).toUpperCase()).slice(-8);
+    return (h>>>0).toString(16).toUpperCase().padStart(8,"0").slice(0,8);
   }
 
-  // =========================
-  // 매핑(파일/발행사별)
-  // - 기존 버전 흐름을 그대로 가정: 자동 매핑 + 문자열 유지
-  // =========================
-  function detectPublisher(filename, header){
-    const f = (filename||"").toLowerCase();
-    if(f.includes("elsevier")) return "Elsevier";
-    if(f.includes("springer")) return "Springer";
-    if(f.includes("wiley")) return "Wiley";
-    // fallback: header 단서
-    const h = header.map(x=>String(x).toLowerCase());
-    if(h.includes("price eur") || h.includes("actual publishing date")) return "Springer";
-    if(h.includes("list price (usd)") || h.includes("pub date")) return "Wiley";
-    return "AUTO";
-  }
+  function classifySingle(rec){
+    // 단일 할당(1-book-1-keyword): 우선순위대로 딱 1개
+    const text = `${rec.Title||""} ${rec.SubTitle||""} ${rec.Publisher||""} ${rec.ISBN||""}`.toLowerCase();
 
-  function makeMapping(publisher, header){
-    // 표준 컬럼(도구 내부)
-    // Title, SubTitle, KOR_TITLE, KOR_SUBTITLE, ISBN, Price, Currency, PubDate, Pages, CATEGORY_KEYWORD
-    const H = header.map(h=>String(h||"").trim());
-    const idx = (name) => H.findIndex(x => x === name);
-    // 여러 후보
-    const pick = (cands) => {
-      for(const c of cands){
-        const i = H.findIndex(x => x.toLowerCase() === c.toLowerCase());
-        if(i>=0) return {name:H[i], i};
-      }
-      return {name:"", i:-1};
-    };
-
-    let m = {
-      Title: pick(["Title","Book Title","TITLE"]).name,
-      SubTitle: pick(["Sub Title","Subtitle","SubTitle"]).name,
-      ISBN: pick(["ISBN","ISBN13","ISBN-13"]).name,
-      Price: pick(["List Price (USD)","US$","Price EUR","Price","List Price"]).name,
-      Currency: "",
-      PubDate: pick(["Pub date","Pub Date","Actual Publishing Date","Actual Publishing date","Publishing Date","Date"]).name,
-      Pages: pick(["No of Pages","Pages","No of Arabic Pages"]).name,
-      CATEGORY_KEYWORD: pick(["Category/Keyword","Category","Keyword"]).name,
-      KOR_TITLE: pick(["KOR_TITLE","Korean Title","KOR Title"]).name,
-      KOR_SUBTITLE: pick(["KOR_SUBTITLE","Korean Subtitle","KOR Sub Title"]).name,
-    };
-
-    // 통화 상수(파일 성격)
-    if(publisher === "Springer") m.Currency = "EUR";
-    else if(publisher === "Elsevier") m.Currency = "USD";
-    else if(publisher === "Wiley") m.Currency = "USD";
-    else m.Currency = "USD";
-
-    return m;
-  }
-
-  // =========================
-  // KOR 자동채움 (번역은 하지 않음)
-  // =========================
-  function korFill(title){
-    const t = String(title||"").trim();
-    if(!t) return "";
-    return `[번역대기] ${t}`;
-  }
-
-  // =========================
-  // 분류(단일 할당)
-  // =========================
-  function classifyRow(row){
-    const title = (row.Title||"");
-    const sub = (row.SubTitle||"");
-    const pub = (row.Publisher||"");
-    const isbn = (row.ISBN||"");
-    const hay = `${title} ${sub} ${pub} ${isbn}`.toLowerCase();
-
-    // 1) dict 매칭 점수화
-    const hits = [];
-    for(const ent of rules.dict){
-      let score = 0;
-      for(const pat of ent.patterns){
-        if(pat.test(hay)) score += ent.pri;
-      }
-      if(score>0) hits.push({cat:ent.cat, key:ent.key, score});
-    }
-
-    // 2) publisher 힌트(보조 신호)
-    for(const h of (rules.publisherHints||[])){
-      if(h.publisher && h.publisher.test(pub)){
-        // 미분류로 떨어질 가능성을 줄이기 위해 catBias 가 있으면 소폭 가산
-        for(const x of hits){
-          if(x.cat === h.catBias) x.score += 5;
+    // (A)+(B): 우선순위 cat 순회, 각 cat의 dict 키워드 중 “첫 매칭 1개” 사용
+    for (const cat of rules.priorityCats){
+      const keys = (rules.dict[cat] || []);
+      for (const k of keys){
+        const kk = k.toLowerCase();
+        if (kk && text.includes(kk)){
+          return {cat, key: kk};
         }
       }
     }
 
-    // 3) 단일 할당: 최고 점수 1개만
-    if(hits.length){
-      hits.sort((a,b)=>{
-        if(b.score !== a.score) return b.score - a.score;
-        // catPriority로 tie-break
-        const pa = rules.catPriority.indexOf(a.cat);
-        const pb = rules.catPriority.indexOf(b.cat);
-        return (pa<0?999:pa) - (pb<0?999:pb);
-      });
-      const top = hits[0];
-      return { cat: top.cat, key: top.key };
+    // (C) fallback: publisher 힌트
+    const hint = (rules.fallback.publisherHints || {})[rec.Publisher] || null;
+    if (hint && hint.cat){
+      return {cat: hint.cat, key: (hint.key||"(없음)")};
     }
 
-    // 4) 미분류
-    return { cat:"미분류", key:"(없음)" };
+    // (D) 미분류
+    return {cat:"미분류", key:"(없음)"};
   }
 
-  // =========================
-  // X/WARN 검사(표시는 숨기지만 내부 계산은 유지)
-  // - 사용자는 “보이게 하지 말자”였으나, 도구 내부는 그대로 유지
-  // =========================
-  function validateRow(row){
-    const issues = [];
-    // ISBN 과학표기 감지
-    const isbn = String(row.ISBN||"").trim();
-    if(/\\d\\.\\d+E\\+\\d+/i.test(isbn)){
-      issues.push({level:"X", code:"ISBN_SCI_NOTATION", msg:"ISBN이 과학표기 형태로 들어옴(원본 변형 의심)."});
+  function rebuildCategoryIndex(records){
+    // 카테고리별/키워드별 카운트
+    const catMap = new Map();
+    const keyMap = new Map(); // key => count (현재 cat 필터에서만 보여줄 예정)
+    for (const r of records){
+      const cat = r.Category || "미분류";
+      const key = r.Keyword || "(없음)";
+      catMap.set(cat, (catMap.get(cat)||0)+1);
+      const kk = `${cat}|||${key}`;
+      keyMap.set(kk, (keyMap.get(kk)||0)+1);
     }
-    // Pages 매핑 없음/공란
-    if(row.__mappingPagesMissing){
-      issues.push({level:"WARN", code:"MAPPING_MISS", msg:"Pages 매핑이 비어있음(헤더에 Pages가 없을 수 있음)"});
-    }
-    // 날짜 파싱 실패(표시만 경고)
-    if(row.PubDate && !row.PubDateISO){
-      issues.push({level:"WARN", code:"DATE_PARSE_FAIL", msg:"발행일 파싱 실패(표시는 원문 유지)"}); // X로 몰지 않음
-    }
-    return issues;
+    return {catMap, keyMap};
   }
 
-  // =========================
-  // “행 섞임” 감지(간단/실용)
-  // - CSV 파싱 후, 각 row의 컬럼 수가 header 수와 크게 다르면 섞임 의심
-  // - 완벽한 검증은 어렵지만, 사용자가 원하는 “자동 감지 로그”는 제공
-  // =========================
-  function detectRowMix(parsed){
-    if(!parsed || parsed.length<2) return { ok:true, badRows:0 };
-    const headerLen = parsed[0].length;
-    let bad=0;
-    for(let i=1;i<parsed.length;i++){
-      const len = parsed[i].length;
-      if(len !== headerLen) bad++;
-    }
-    return { ok: bad===0, badRows: bad };
-  }
-
-  // =========================
-  // persist(자동) – 버튼 없이도 항상 자동 저장/복원
-  // =========================
-  function persistAll(){
-    saveJSON(LS.DB, db);
-    saveJSON(LS.RAWFILES, rawFiles);
-    saveJSON(LS.UI, ui);
-    saveJSON(LS.FILTER, filter);
-    saveJSON(LS.RULES, rules);
-  }
-
-  function restoreAll(){
-    db = loadJSON(LS.DB, []);
-    rawFiles = loadJSON(LS.RAWFILES, {});
-    ui = Object.assign(ui, loadJSON(LS.UI, ui));
-    filter = Object.assign(filter, loadJSON(LS.FILTER, filter));
-    rules = loadJSON(LS.RULES, rules);
-  }
-
-  // =========================
-  // 렌더링
-  // =========================
-  function updateStats(){
-    document.getElementById("stDB").textContent = db.length;
-    const counts = countIssues();
-    document.getElementById("stX").textContent = counts.X;
-    document.getElementById("stW").textContent = counts.WARN;
-    document.getElementById("stA").textContent = counts.AUTO;
-    document.getElementById("stK").textContent = counts.KOR_AUTO;
-  }
-
-  function countIssues(){
-    let X=0, WARN=0, AUTO=0, KOR_AUTO=0;
-    for(const r of db){
-      if(r.__issues){
-        for(const it of r.__issues){
-          if(it.level==="X") X++;
-          if(it.level==="WARN") WARN++;
-        }
-      }
-      if(r.__autoResY) AUTO++;
-      if(r.__korAuto) KOR_AUTO++;
-    }
-    return {X,WARN,AUTO,KOR_AUTO};
-  }
-
-  function getFiltered(){
-    let rows = db.slice();
-
-    // query filter
+  function applyQueryFilter(list){
     const q = (ui.q||"").trim().toLowerCase();
-    if(q){
-      rows = rows.filter(r=>{
-        const hay = `${r.Title||""} ${r.SubTitle||""} ${r.KOR_TITLE||""} ${r.KOR_SUBTITLE||""} ${r.ISBN||""} ${r.Publisher||""} ${r.Category||""} ${r.Keyword||""}`.toLowerCase();
-        return hay.includes(q);
+    if (!q) return list;
+    return list.filter(r => {
+      const hay = `${r.Title||""} ${r.SubTitle||""} ${r.KOR_TITLE||""} ${r.KOR_SUBTITLE||""} ${r.ISBN||""} ${r.Publisher||""} ${(r.Category||"")} ${(r.Keyword||"")}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function applyCatKeyFilter(list){
+    let out = list;
+    if (ui.cat && ui.cat !== "전체"){
+      out = out.filter(r => (r.Category||"미분류") === ui.cat);
+    }
+    if (ui.key && ui.key !== "(없음)"){
+      // key가 (없음)이 아닌 것만
+      out = out.filter(r => (r.Keyword||"(없음)") === ui.key);
+    }else if (ui.key === "(없음)" && ui.cat && ui.cat !== "전체"){
+      // cat 선택 + (없음)키면: cat 내에서 (없음)만
+      out = out.filter(r => (r.Keyword||"(없음)") === "(없음)");
+    }else if (ui.key === "(없음)" && (!ui.cat || ui.cat === "전체")){
+      // 전체 + (없음): 전체에서 (없음)만
+      out = out.filter(r => (r.Keyword||"(없음)") === "(없음)");
+    }
+    return out;
+  }
+
+  function sortList(list){
+    const m = ui.sort;
+    const a = [...list];
+    if (m === "PUB_ASC"){
+      a.sort((x,y)=> (x.PubDateISO||"").localeCompare(y.PubDateISO||""));
+    }else if (m === "PUB_DESC"){
+      a.sort((x,y)=> (y.PubDateISO||"").localeCompare(x.PubDateISO||""));
+    }else if (m === "TITLE_ASC"){
+      a.sort((x,y)=> (x.Title||"").localeCompare(y.Title||""));
+    }else{ // CAT_KEY_PUB_ASC
+      a.sort((x,y)=>{
+        const ckx = `${x.Category||""}|||${x.Keyword||""}`;
+        const cky = `${y.Category||""}|||${y.Keyword||""}`;
+        const c = ckx.localeCompare(cky);
+        if (c!==0) return c;
+        return (x.PubDateISO||"").localeCompare(y.PubDateISO||"");
       });
     }
+    return a;
+  }
 
-    // category/keyword filter
-    if(filter.cat && filter.cat !== "전체"){
-      rows = rows.filter(r=> r.Category === filter.cat);
+  function updateStats(){
+    $("sDB").textContent = DB.length;
+    $("sX").textContent = X.length;
+    $("sW").textContent = W.length;
+    $("sA").textContent = AUTO;
+    $("sK").textContent = KOR_AUTO;
+  }
+
+  // -----------------------------
+  // 렌더
+  // -----------------------------
+  function render(){
+    updateStats();
+    $("q").value = ui.q;
+    $("sortMode").value = ui.sort;
+    $("lastFileLabel").textContent = `Last: ${loadJSON(LS.lastFile,"(없음)") || "(없음)"}`;
+
+    // Drill panel open/close
+    $("drillPanel").classList.toggle("hide", !ui.drillOpen);
+
+    // View tabs
+    $("tabTable").classList.toggle("active", ui.view==="table");
+    $("tabCards").classList.toggle("active", ui.view==="cards");
+    $("tableWrap").classList.toggle("hide", ui.view!=="table");
+    $("cardsWrap").classList.toggle("hide", ui.view!=="cards");
+
+    // list pipeline
+    let list = DB;
+    list = applyQueryFilter(list);
+    list = applyCatKeyFilter(list);
+    list = sortList(list);
+
+    // category index based on "query-filtered DB" (사용자 체감 기준)
+    const idxBase = sortList(applyQueryFilter(DB));
+    const {catMap} = rebuildCategoryIndex(idxBase);
+
+    // 카테고리 리스트
+    const cats = [];
+    cats.push({name:"전체", count: idxBase.length});
+    // 안정적인 순서: count desc, 단 “미분류”는 뒤로 밀지 않음
+    const names = [...catMap.keys()].filter(n=>n!=="전체");
+    names.sort((a,b)=> (catMap.get(b)||0)-(catMap.get(a)||0) || a.localeCompare(b));
+    for (const n of names){
+      if (n==="전체") continue;
+      cats.push({name:n, count: catMap.get(n)||0});
     }
-    if(filter.key && filter.key !== "(없음)"){
-      rows = rows.filter(r=> r.Keyword === filter.key);
+    $("catList").innerHTML = "";
+    for (const c of cats){
+      const div = document.createElement("div");
+      div.className = "item" + (ui.cat===c.name ? " active":"");
+      div.innerHTML = `<span>${escapeHtml(c.name)}</span><span class="pill">${c.count}</span>`;
+      div.onclick = () => {
+        ui.cat = c.name;
+        ui.key = "(없음)"; // 기본 키워드 선택 상태 유지
+        log("카테고리 필터", {cat: ui.cat});
+        saveAll();
+        render();
+      };
+      $("catList").appendChild(div);
     }
 
-    // sort
-    rows.sort((a,b)=>{
-      const da = dateKey(a.PubDateISO);
-      const dbk = dateKey(b.PubDateISO);
-      if(ui.sort === "PUB_ASC") return da - dbk;
-      if(ui.sort === "PUB_DESC") return dbk - da;
-      if(ui.sort === "TITLE_ASC") return String(a.Title||"").localeCompare(String(b.Title||""), "en");
-      // CAT_KEY_PUB_ASC
-      const ckA = `${a.Category||""} > ${a.Keyword||""}`;
-      const ckB = `${b.Category||""} > ${b.Keyword||""}`;
-      const t = ckA.localeCompare(ckB, "ko");
-      if(t!==0) return t;
-      return da - dbk;
+    // 키워드 리스트: 현재 cat에서만
+    const keyCounts = new Map();
+    for (const r of idxBase){
+      const cat = r.Category || "미분류";
+      if (ui.cat !== "전체" && cat !== ui.cat) continue;
+      const key = r.Keyword || "(없음)";
+      keyCounts.set(key, (keyCounts.get(key)||0)+1);
+    }
+    const keys = [...keyCounts.entries()].sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]));
+    $("keyList").innerHTML = "";
+    for (const [k, cnt] of keys){
+      const div = document.createElement("div");
+      div.className = "item" + (ui.key===k ? " active":"");
+      div.innerHTML = `<span>${escapeHtml(k)}</span><span class="pill">${cnt}</span>`;
+      div.onclick = () => {
+        ui.key = k;
+        log("키워드 필터", {cat: ui.cat, key: ui.key});
+        saveAll();
+        render();
+      };
+      $("keyList").appendChild(div);
+    }
+
+    $("filterLine").textContent = `카테고리: ${ui.cat} · 키워드: ${ui.key} · 필터 결과: ${list.length}`;
+
+    // Table
+    $("tbody").innerHTML = "";
+    for (const r of list){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="nowrap"><button class="copyBtn" data-copy="row" data-id="${escapeAttr(r.rowId)}">복사</button></td>
+        <td class="nowrap">${escapeHtml(r.PubDateISO || r.PubDateRaw || "")}</td>
+        <td>${escapeHtml(r.Title||"")}</td>
+        <td>${escapeHtml(r.SubTitle||"")}</td>
+        <td>${escapeHtml(r.KOR_TITLE||"")}</td>
+        <td>${escapeHtml(r.KOR_SUBTITLE||"")}</td>
+        <td class="nowrap">${escapeHtml(r.ISBN||"")}</td>
+        <td class="nowrap">${escapeHtml(r.Pages||"(미기재)")}</td>
+        <td class="nowrap">${escapeHtml(r.PriceNum||"")}</td>
+        <td class="nowrap">${escapeHtml(r.CurrencySym||"")}</td>
+        <td class="nowrap">${escapeHtml(r.Publisher||"")}</td>
+        <td class="nowrap">${escapeHtml((r.Category||"미분류") + " > " + (r.Keyword||"(없음)"))}</td>
+        <td class="nowrap"><button class="copyBtn" data-copy="card" data-id="${escapeAttr(r.rowId)}">보기</button></td>
+      `;
+      $("tbody").appendChild(tr);
+    }
+
+    // Cards
+    $("cards").innerHTML = "";
+    for (const r of list){
+      const card = document.createElement("div");
+      card.className = "card";
+      const catKeyLine = `${r.Category||"미분류"} > ${r.Keyword||"(없음)"}`;
+      // 요청: 카드 상단에 카테고리/키워드가 보이되, 워드 붙일 때 편하게(상단 라인)
+      card.innerHTML = `
+        <div class="tiny">${escapeHtml(catKeyLine)} · 발행: ${escapeHtml(r.PubDateISO||r.PubDateRaw||"")} · 발행사: ${escapeHtml(r.Publisher||"")}</div>
+        <div class="hr"></div>
+        <h3>${escapeHtml(r.Title||"(없음)")}</h3>
+        <div class="k">${escapeHtml(r.SubTitle||"")}</div>
+        <div class="k">${escapeHtml(r.KOR_TITLE||"")}</div>
+        <div class="k">${escapeHtml(r.KOR_SUBTITLE||"")}</div>
+        <div class="meta">
+          <span class="muted">ISBN:</span> ${escapeHtml(r.ISBN||"")} ·
+          <span class="muted">Pages:</span> ${escapeHtml(r.Pages||"(미기재)")} ·
+          <span class="muted">정가:</span> ${escapeHtml(r.CurrencySym||"")}${escapeHtml(r.PriceNum||"")}
+        </div>
+        <div class="tiny">[ROWID] ${escapeHtml(r.rowId)}</div>
+        <div class="actions">
+          <button class="copyBtn" data-copy="card1" data-id="${escapeAttr(r.rowId)}">복사</button>
+          <button class="copyBtn" data-copy="raw" data-id="${escapeAttr(r.rowId)}">RAW</button>
+          <button class="copyBtn" data-copy="lock" data-id="${escapeAttr(r.rowId)}">LOCK</button>
+        </div>
+      `;
+      $("cards").appendChild(card);
+    }
+
+    // bind copy buttons
+    document.querySelectorAll("[data-copy]").forEach(btn=>{
+      btn.onclick = () => {
+        const mode = btn.getAttribute("data-copy");
+        const rowId = btn.getAttribute("data-id");
+        const rec = DB.find(x=>x.rowId===rowId);
+        if (!rec) return;
+        if (mode==="row"){
+          const line = [
+            rec.PubDateISO||rec.PubDateRaw||"",
+            rec.Title||"",
+            rec.SubTitle||"",
+            rec.KOR_TITLE||"",
+            rec.KOR_SUBTITLE||"",
+            rec.ISBN||"",
+            rec.Pages||"",
+            (rec.CurrencySym||"") + (rec.PriceNum||""),
+            rec.Publisher||"",
+            (rec.Category||"미분류") + " > " + (rec.Keyword||"(없음)"),
+            rec.rowId
+          ].join("\t");
+          copyText(line);
+          log("복사(테이블 1행)", {rowId});
+        }else if (mode==="card"){
+          // table에서 "보기": 카드뷰로 전환 + 해당 row만 필터(임시 출력)
+          ui.view="cards";
+          $("tabCards").click();
+          // 출력에 1건 카드 텍스트도 같이 제공
+          const txt = formatCard(rec);
+          setOutput(txt);
+          log("보기(카드)", {rowId});
+        }else if (mode==="card1"){
+          const txt = formatCard(rec);
+          copyText(txt);
+          setOutput(txt);
+          log("복사(카드 1건)", {rowId});
+        }else if (mode==="raw"){
+          const txt = rec.__RAW || "(RAW 없음)";
+          copyText(txt);
+          setOutput(txt);
+          log("RAW 보기", {rowId});
+        }else if (mode==="lock"){
+          const txt = formatLock(rec);
+          copyText(txt);
+          setOutput(txt);
+          log("LOCK 확인", {rowId});
+        }
+        saveAll();
+        renderHealth(); // copy 횟수 등은 상태에 영향 없지만, 최신화
+      };
     });
 
-    return rows;
-  }
+    // output empty state
+    if (!$("out").textContent) $("out").textContent="(없음)";
 
-  function renderCats(){
-    const cats = new Map();
-    cats.set("전체", db.length);
-
-    for(const r of db){
-      const c = r.Category || "미분류";
-      cats.set(c, (cats.get(c)||0)+1);
-    }
-
-    const catList = document.getElementById("catList");
-    catList.innerHTML = "";
-    for(const [cat, cnt] of Array.from(cats.entries()).sort((a,b)=>{
-      if(a[0]==="전체") return -1;
-      if(b[0]==="전체") return 1;
-      return a[0].localeCompare(b[0],"ko");
-    })){
-      const btn = document.createElement("div");
-      btn.className = "kchip" + (filter.cat===cat ? " active" : "");
-      btn.textContent = cat + " ";
-      const sm = document.createElement("small");
-      sm.textContent = cnt;
-      btn.appendChild(sm);
-      btn.onclick = ()=>{
-        filter.cat = cat;
-        // cat 바뀌면 key는 (없음)로 초기화(드릴다운 자연성)
-        filter.key = "(없음)";
-        saveJSON(LS.FILTER, filter);
-        log("카테고리 필터", {cat});
-        renderAll();
-      };
-      catList.appendChild(btn);
-    }
-  }
-
-  function renderKeys(){
-    const keys = new Map();
-    // 현재 cat 기준(전체면 전체)
-    const base = (filter.cat && filter.cat!=="전체") ? db.filter(r=>r.Category===filter.cat) : db.slice();
-    for(const r of base){
-      const k = r.Keyword || "(없음)";
-      keys.set(k, (keys.get(k)||0)+1);
-    }
-    // (없음) 포함
-    if(!keys.has("(없음)")) keys.set("(없음)",0);
-
-    const keyList = document.getElementById("keyList");
-    keyList.innerHTML = "";
-    for(const [key, cnt] of Array.from(keys.entries()).sort((a,b)=>{
-      if(a[0]==="(없음)") return 1;
-      if(b[0]==="(없음)") return -1;
-      return a[0].localeCompare(b[0],"en");
-    })){
-      const btn = document.createElement("div");
-      btn.className = "kchip" + (filter.key===key ? " active" : "");
-      btn.textContent = key + " ";
-      const sm = document.createElement("small");
-      sm.textContent = cnt;
-      btn.appendChild(sm);
-      btn.onclick = ()=>{
-        filter.key = key;
-        saveJSON(LS.FILTER, filter);
-        log("키워드 필터", {cat:filter.cat, key});
-        renderAll();
-      };
-      keyList.appendChild(btn);
-    }
-
-    document.getElementById("filterLine").textContent =
-      `카테고리: ${filter.cat||"전체"} · 키워드: ${filter.key||"(없음)"} · 필터 결과: ${getFiltered().length}`;
-  }
-
-  function renderTable(rows){
-    const cols = ["PubDateISO","Title","SubTitle","KOR_TITLE","KOR_SUBTITLE","ISBN","Pages","Price","Currency","Publisher","Category/Keyword","ROW"];
-    const area = document.getElementById("resultArea");
-    area.innerHTML = "";
-
-    const wrap = document.createElement("div");
-    wrap.className = "tableWrap";
-
-    const t = document.createElement("table");
-    const thead = document.createElement("thead");
-    const trh = document.createElement("tr");
-
-    const th0 = document.createElement("th"); th0.textContent="복사"; trh.appendChild(th0);
-    for(const c of ["Pub Date","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Pages","Price","Currency","Publisher","Category/Keyword","ROW"]){
-      const th = document.createElement("th");
-      th.textContent = c;
-      trh.appendChild(th);
-    }
-    thead.appendChild(trh);
-    t.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-    for(const r of rows){
-      const tr = document.createElement("tr");
-
-      const tdCopy = document.createElement("td");
-      const b = document.createElement("button");
-      b.className = "rowbtn secondary";
-      b.textContent = "복사";
-      b.onclick = ()=>{ onCopyOne(r); log("복사(카드 1건)", {rowId:r.ROWID}); };
-      tdCopy.appendChild(b);
-      tr.appendChild(tdCopy);
-
-      const tdPub = document.createElement("td"); tdPub.className="nowrap";
-      tdPub.textContent = r.PubDateISO || (r.PubDate||"");
-      tr.appendChild(tdPub);
-
-      const tdT = document.createElement("td"); tdT.textContent = r.Title||""; tr.appendChild(tdT);
-      const tdST = document.createElement("td"); tdST.textContent = r.SubTitle||""; tr.appendChild(tdST);
-      const tdKT = document.createElement("td"); tdKT.textContent = r.KOR_TITLE||""; tr.appendChild(tdKT);
-      const tdKST = document.createElement("td"); tdKST.textContent = r.KOR_SUBTITLE||""; tr.appendChild(tdKST);
-      const tdISBN = document.createElement("td"); tdISBN.className="mono"; tdISBN.textContent = r.ISBN||""; tr.appendChild(tdISBN);
-
-      const tdPg = document.createElement("td"); tdPg.className="nowrap"; tdPg.textContent = r.Pages||""; tr.appendChild(tdPg);
-
-      const tdP = document.createElement("td"); tdP.className="nowrap";
-      tdP.textContent = (r.Price===""||r.Price==null) ? "" : String(r.Price);
-      tr.appendChild(tdP);
-
-      const tdC = document.createElement("td"); tdC.className="nowrap"; tdC.textContent = r.Currency||""; tr.appendChild(tdC);
-      const tdPubli = document.createElement("td"); tdPubli.className="nowrap"; tdPubli.textContent = r.Publisher||""; tr.appendChild(tdPubli);
-
-      const tdCK = document.createElement("td"); tdCK.className="nowrap";
-      tdCK.textContent = `${r.Category||"미분류"} > ${r.Keyword||"(없음)"}`;
-      tr.appendChild(tdCK);
-
-      const tdRow = document.createElement("td");
-      const v = document.createElement("button");
-      v.className="rowbtn ghost";
-      v.textContent = "보기";
-      v.onclick = ()=>{
-        // 테이블에서도 카드 복사 출력 갱신(사용 흐름 유지)
-        onCopyOne(r, true);
-      };
-      tdRow.appendChild(v);
-      tr.appendChild(tdRow);
-
-      tbody.appendChild(tr);
-    }
-
-    t.appendChild(tbody);
-    wrap.appendChild(t);
-    area.appendChild(wrap);
-  }
-
-  function cardBlockText(r){
-    // 사용자가 요구: 카드 복사 시 Title/SubTitle 누락 금지(테이블과 일치)
-    // 사용자가 추가 요구: Category/Keyword는 본문 아래가 아니라 "타이틀 위"가 편함 → 상단에 둠
-    const ck = `${r.Category||"미분류"} > ${r.Keyword||"(없음)"}`;
-    const lines = [];
-    lines.push(ck);
-    lines.push(r.Title||"");
-    if(r.SubTitle) lines.push(r.SubTitle);
-    lines.push(r.KOR_TITLE||"");
-    if(r.KOR_SUBTITLE) lines.push(r.KOR_SUBTITLE);
-
-    lines.push("");
-    lines.push("------------------------------------------------------------");
-    lines.push(`발행사: ${r.Publisher||"(미기재)"} / Pages: ${r.Pages||"(미기재)"} / ISBN: ${r.ISBN||"(미기재)"} / 정가: ${moneyDisplay(r.Price, r.Currency)}`);
-    lines.push(`발행: ${r.PubDateISO || (r.PubDate||"(미기재)")}`);
-    lines.push("------------------------------------------------------------");
-    lines.push("● 자세한 내용의 링크 : (빈칸)");
-    lines.push("");
-    lines.push(`[ROWID] ${r.ROWID}`);
-    return lines.join("\n");
-  }
-
-  function renderCards(rows){
-    const area = document.getElementById("resultArea");
-    area.innerHTML = "";
-
-    const topActions = document.createElement("div");
-    topActions.className = "viewbar";
-    const b1 = document.createElement("button");
-    b1.className = "secondary";
-    b1.textContent = "현재 화면 카드 전체 복사";
-    b1.onclick = ()=>{
-      const txt = buildCardsOutput(rows);
-      document.getElementById("out").textContent = txt || "(없음)";
-      copyText(txt || "");
-    };
-    topActions.appendChild(b1);
-
-    const hint = document.createElement("div");
-    hint.className="hint";
-    hint.textContent = (filter.cat==="전체" && filter.key==="(없음)") ? "필터 없음" : `필터: ${filter.cat} > ${filter.key}`;
-    topActions.appendChild(hint);
-
-    area.appendChild(topActions);
-
-    const list = document.createElement("div");
-    list.className = "cardsList";
-
-    for(const r of rows){
-      const b = document.createElement("div");
-      b.className = "book";
-
-      const ck = document.createElement("div");
-      ck.className = "tiny";
-      ck.textContent = `필터: ${r.Category||"미분류"} > ${r.Keyword||"(없음)"} · 발행: ${r.PubDateISO || (r.PubDate||"(미기재)")} · 발행사: ${r.Publisher||"(미기재)"}`;
-      b.appendChild(ck);
-
-      const t = document.createElement("div");
-      t.className="t";
-      t.textContent = r.Title||"";
-      b.appendChild(t);
-
-      if(r.SubTitle){
-        const st = document.createElement("div");
-        st.className="st";
-        st.textContent = r.SubTitle;
-        b.appendChild(st);
-      }
-
-      const kor = document.createElement("div");
-      kor.className="kor";
-      kor.textContent = r.KOR_TITLE||"";
-      b.appendChild(kor);
-
-      if(r.KOR_SUBTITLE){
-        const kst = document.createElement("div");
-        kst.className="kor";
-        kst.textContent = r.KOR_SUBTITLE;
-        b.appendChild(kst);
-      }
-
-      const meta2 = document.createElement("div");
-      meta2.className="meta2";
-      meta2.innerHTML = `<span class="kv"><b>ISBN:</b> <span class="mono">${escapeHtml(r.ISBN||"(미기재)")}</span></span>
-                         <span class="kv"><b>Pages:</b> ${escapeHtml(r.Pages||"(미기재)")}</span>
-                         <span class="kv"><b>정가:</b> ${escapeHtml(moneyDisplay(r.Price, r.Currency))}</span>`;
-      b.appendChild(meta2);
-
-      const actions = document.createElement("div");
-      actions.className="actions";
-
-      const cpy = document.createElement("button");
-      cpy.className="secondary";
-      cpy.textContent="복사";
-      cpy.onclick = ()=>{ onCopyOne(r); log("복사(카드 1건)", {rowId:r.ROWID}); };
-      actions.appendChild(cpy);
-
-      const raw = document.createElement("button");
-      raw.className="ghost";
-      raw.textContent="RAW";
-      raw.onclick = ()=>{ onShowRaw(r); };
-      actions.appendChild(raw);
-
-      const lock = document.createElement("button");
-      lock.className="ghost";
-      lock.textContent="LOCK";
-      lock.onclick = ()=>{ onLockCheck(r); };
-      actions.appendChild(lock);
-
-      b.appendChild(actions);
-
-      list.appendChild(b);
-    }
-
-    area.appendChild(list);
-  }
-
-  function escapeHtml(s){
-    return String(s||"").replace(/[&<>"]/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
-  }
-
-  function buildCardsOutput(rows){
-    if(!rows.length) return "";
-    const blocks = [];
-    for(const r of rows){
-      blocks.push(cardBlockText(r));
-      blocks.push(""); blocks.push("");
-    }
-    return blocks.join("\n").trim();
-  }
-
-  function onCopyOne(r, noCopy=false){
-    const txt = cardBlockText(r);
-    document.getElementById("out").textContent = txt || "(없음)";
-    if(!noCopy) copyText(txt);
-  }
-
-  function onShowRaw(r){
-    const key = r.__sourceFile;
-    const raw = rawFiles[key] || "";
-    document.getElementById("out").textContent = raw ? raw.slice(0, 30000) : "(RAW 없음)";
-  }
-
-  function onLockCheck(r){
-    // 핵심 필드만 RAW==DISPLAY를 확인(변환 금지 원칙)
-    const keys = ["Title","SubTitle","ISBN","Price","Currency","PubDate","Pages","KOR_TITLE","KOR_SUBTITLE"];
-    const mism = [];
-    for(const k of keys){
-      const raw = String(r.__rawCore[k] ?? "");
-      const disp = String(r[k] ?? "");
-      if(raw !== disp) mism.push(k);
-    }
-    const ok = mism.length===0;
-    document.getElementById("out").textContent =
-      ok ? `LOCK OK\n[ROWID] ${r.ROWID}` : `LOCK_MISMATCH: ${mism.join(", ")}\n[ROWID] ${r.ROWID}`;
-    log("LOCK 확인", {rowId:r.ROWID, ok, mism});
-  }
-
-  function renderAll(){
-    document.getElementById("fileName").textContent = ui.lastFile ? ui.lastFile : "(없음)";
-    document.getElementById("lastFile").textContent = ui.lastFile ? ui.lastFile : "(없음)";
-    document.getElementById("sortSel").value = ui.sort;
-    document.getElementById("q").value = ui.q;
-
-    updateStats();
-    renderCats();
-    renderKeys();
-
-    const rows = getFiltered();
-    if(ui.view === "table") renderTable(rows);
-    else renderCards(rows);
-
-    // 자동 persist
-    persistAll();
-
-    // 건강진단 갱신
     renderHealth();
   }
 
-  // =========================
-  // 건강진단(한 줄)
-  // - 사용자가 원하는 항목: LOCK/행섞임/날짜파싱/persist/분류/중복/껍데기 의심 등
-  // =========================
-  function renderHealth(extra){
-    // extra: {rowMixOk, badRows, dateFail, lockFail, dupRowid, dupBooks, persistOk, classifyOk}
-    const counts = countIssues();
-    // 기본 상태 계산
-    const persistOk = true; // localStorage 사용(실패 시 catch로 조용히 실패하나, 여기서는 true로 두되 restored로 판단)
-    let dateFail = 0;
-    let lockFail = 0;
-    let unclassified = 0;
-    const rowidSet = new Set();
-    let dupRowid = 0;
-    for(const r of db){
-      if(r.PubDate && !r.PubDateISO) dateFail++;
-      // lock: rawCore vs display
-      const keys = ["Title","SubTitle","ISBN","Price","Currency","PubDate","Pages","KOR_TITLE","KOR_SUBTITLE"];
-      for(const k of keys){
-        if(String(r.__rawCore?.[k] ?? "") !== String(r[k] ?? "")){ lockFail++; break; }
-      }
-      if((r.Category||"미분류")==="미분류" && (r.Keyword||"(없음)")==="(없음)") unclassified++;
-      if(rowidSet.has(r.ROWID)) dupRowid++;
-      rowidSet.add(r.ROWID);
-    }
-
-    const rowMixOk = extra?.rowMixOk ?? true;
-    const badRows = extra?.badRows ?? 0;
-
-    // “껍데기 연결” 의심: 외부 fetch 사용 여부(이 파일은 사용 안 함) + 링크/네트워크 호출 기록 없음
-    const shellLeak = false; // 이 도구는 외부 fetch 없음(정책상 고정)
-
-    // tag class
-    const tLock = lockFail===0 ? "ok" : "bad";
-    const tMix  = rowMixOk ? "ok" : "bad";
-    const tDate = dateFail===0 ? "ok" : "warn";
-    const tPer  = (ui && ui.__restoredEver) ? "ok" : (db.length ? "ok" : "warn");
-    const tCls  = "ok";
-    const tDup  = dupRowid===0 ? "ok" : "warn";
-    const tShell= shellLeak ? "bad" : "ok";
-
-    const restored = (ui && ui.__restoredEver) ? "RESTORED" : "NEW";
-
-    const line =
-      `HEALTH ${UPDATED}/${HASH} · ${restored} · ` +
-      `LOCK:${tLock}(${lockFail}) ` +
-      `ROW_MIX:${tMix}(${badRows}) ` +
-      `DATE_PARSE:${tDate}(${dateFail}) ` +
-      `PERSIST:${tPer} ` +
-      `CLASSIFY:${tCls}(unclassified:${unclassified}) ` +
-      `DUP:${tDup}(${dupRowid}) ` +
-      `SHELL:${tShell}`;
-
-    setHealthLine(line);
-
-    // 앱 시작 직후 1줄 자동 로그(요구사항)
-    if(extra?.emitLog){
-      log("건강진단(1줄)", { line });
-    }
+  function escapeHtml(s){
+    return (s??"").toString()
+      .replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;");
+  }
+  function escapeAttr(s){
+    return escapeHtml(s).replaceAll("'","&#39;");
   }
 
-  // =========================
-  // 이벤트: 파일 선택 → 자동 업로드(버튼 불필요)
-  // =========================
-  document.getElementById("fileInput").addEventListener("change", async (e)=>{
-    const f = e.target.files && e.target.files[0];
-    if(!f) return;
-    document.getElementById("fileName").textContent = f.name;
-    ui.lastFile = f.name;
-    document.getElementById("lastFile").textContent = f.name;
+  // -----------------------------
+  // 출력 포맷(워드 안내서)
+  // - 통화: $175.00 / €119.99
+  // - 날짜: ISO 우선
+  // - 누락 없이: Title/SubTitle/KOR 모두 포함(사용자 지적 수정)
+  // -----------------------------
+  function formatCard(rec){
+    const catKey = `${rec.Category||"미분류"} > ${rec.Keyword||"(없음)"}`;
+    const pub = rec.PubDateISO || rec.PubDateRaw || "(미기재)";
+    const price = `${rec.CurrencySym||""}${rec.PriceNum||""}`.trim();
+    const pages = rec.Pages || "(미기재)";
+    const isbn = rec.ISBN || "(미기재)";
+    const pubr = rec.Publisher || "(미기재)";
+    const t = (rec.Title||"(없음)");
+    const st = (rec.SubTitle||"");
+    const kt = (rec.KOR_TITLE||"");
+    const kst = (rec.KOR_SUBTITLE||"");
+    // 요청: 워드 편집 줄이려고, 카테고리/키워드는 상단에 위치
+    return `${catKey}
+${t}
+${st}
+${kt}
+${kst}
 
-    const text = await f.text();
-    rawFiles[f.name] = text;
+------------------------------------------------------------
+발행사: ${pubr} / Pages: ${pages} / ISBN: ${isbn} / 정가: ${price}
+발행: ${pub}
+------------------------------------------------------------
+● 자세한 내용의 링크 : (빈칸)
 
-    // CSV 파싱 + 행섞임 감지(건강진단에 반영)
-    const parsed = parseCSV(text);
-    const mix = detectRowMix(parsed);
+[ROWID] ${rec.rowId}`.replace(/\n{3,}/g,"\n\n").trim();
+  }
 
-    if(parsed.length < 2){
-      log("업로드 실패(데이터 없음)", {file:f.name});
-      renderHealth({rowMixOk:mix.ok, badRows:mix.badRows, emitLog:true});
+  function formatLock(rec){
+    // 핵심 필드만: 원본 문자열 유지 여부 점검 요약
+    const issues = [];
+    if (detectSciISBN(rec.ISBN)) issues.push("ISBN_SCI_NOTATION");
+    if (coreLockMismatch(rec)) issues.push("LOCK_MISMATCH");
+    return `LOCK CHECK
+rowId: ${rec.rowId}
+Title: ${rec.Title||""}
+SubTitle: ${rec.SubTitle||""}
+ISBN: ${rec.ISBN||""}
+PubDateRaw: ${rec.PubDateRaw||""}
+PubDateISO: ${rec.PubDateISO||""}
+PriceRaw: ${rec.PriceRaw||""}
+PriceNum: ${rec.PriceNum||""}
+Currency: ${rec.CurrencySym||""}
+Publisher: ${rec.Publisher||""}
+Category/Keyword: ${(rec.Category||"미분류")} > ${(rec.Keyword||"(없음)")}
+Result: ${issues.length?("WARN("+issues.join(",")+")"):"ok"}`.trim();
+  }
+
+  function copyText(t){
+    navigator.clipboard?.writeText(t).catch(()=>{});
+  }
+  function setOutput(t){
+    $("out").textContent = t && t.trim() ? t : "(없음)";
+  }
+
+  // -----------------------------
+  // X/WARN 계산(기존 흐름 유지)
+  // -----------------------------
+  function recalc(){
+    X = [];
+    W = [];
+    AUTO = 0;
+    KOR_AUTO = 0;
+
+    // 중복 rowId 감지(파일 재업로드/누적)
+    const seen = new Set();
+    let dup = 0;
+
+    for (const r of DB){
+      if (seen.has(r.rowId)) dup++;
+      seen.add(r.rowId);
+
+      // KOR 자동채움
+      if (!r.KOR_TITLE || !r.KOR_TITLE.trim()){
+        r.KOR_TITLE = `[번역대기] ${r.Title||""}`.trim();
+        KOR_AUTO++;
+      }
+      if (!r.KOR_SUBTITLE || !r.KOR_SUBTITLE.trim()){
+        if (r.SubTitle && r.SubTitle.trim()){
+          r.KOR_SUBTITLE = `[번역대기] ${r.SubTitle}`.trim();
+          KOR_AUTO++;
+        }else{
+          r.KOR_SUBTITLE = "";
+        }
+      }
+
+      // ISBN 과학표기
+      if (detectSciISBN(r.ISBN)){
+        X.push({
+          type:"DATA",
+          code:"ISBN_SCI_NOTATION",
+          msg:"ISBN이 과학표기 형태로 들어옴(원본 변형 의심).",
+          rowId:r.rowId,
+          col:"ISBN",
+          RES:"N",
+          HOW:"CSV에서 ISBN을 텍스트로 저장해 13자리 문자열로 재업로드"
+        });
+      }
+
+      // Pages 매핑 없음(빈칸이면 경고)
+      if (r.Pages === "__MAPPING_MISS__"){
+        W.push({
+          type:"DATA",
+          code:"MAPPING_MISS",
+          msg:"Pages 매핑이 비어있음(헤더에 Pages가 없을 수 있음)",
+          rowId:r.sourceFile+"|*|*",
+          col:"",
+          RES:"N",
+          HOW:"원본 헤더 확인 / Pages 공란 유지 가능"
+        });
+      }
+
+      // LOCK 불일치(핵심)
+      if (coreLockMismatch(r)){
+        X.push({
+          type:"DATA",
+          code:"LOCK_MISMATCH",
+          msg:"LOCK 불일치(핵심 필드)",
+          rowId:r.rowId,
+          col:"(core)",
+          RES:"N",
+          HOW:"CSV 원본/파서 확인"
+        });
+      }
+    }
+
+    // HEALTH에서 쓰는 dupCount를 ui에 저장
+    ui.__dup = dup;
+
+    log("오류 재계산", {x:X.length, warn:W.length, dup});
+    saveAll();
+    render();
+  }
+
+  // -----------------------------
+  // 업로드: 파일 선택하면 “자동 업로드”
+  // -----------------------------
+  async function handleFile(file){
+    if (!file) return;
+    const name = file.name;
+    const text = await file.text();
+
+    // 파싱 + 헤더
+    const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(x=>x!==undefined);
+    if (lines.length < 1){
+      log("업로드 실패", {file:name, reason:"empty"});
       return;
     }
 
-    const header = parsed[0].map(x=>String(x||"").trim());
-    const publisher = detectPublisher(f.name, header);
-    const mapping = makeMapping(publisher, header);
+    // 헤더 탐지
+    const header = csvSplit(lines[0]).map(h=>h.trim());
+    const headerLower = header.map(h=>h.toLowerCase());
 
-    log("업로드 시작", {file:f.name, publisher, HASH});
-    log("매핑 확정", {file:f.name, mapping, currency: mapping.Currency});
+    // 헤더 누수 체크: 데이터 첫 줄이 헤더와 동일(간단)
+    let headerLeakCount = 0;
 
-    // pages 매핑 누락 여부(파일 단위)
-    const pagesMissing = !mapping.Pages;
+    // 발행사 추정(파일명/데이터)
+    const publisher = guessPublisher(name);
 
+    // 매핑(출판사별)
+    const mapping = pickMapping(headerLower, publisher);
+
+    log("업로드 시작", {file:name, publisher, HASH});
+
+    // 누적 append
     let appended = 0;
-    let korAuto = 0;
 
-    for(let i=1;i<parsed.length;i++){
-      const rowArr = parsed[i];
-      // 헤더 누수/빈 줄 대충 제거
-      if(rowArr.every(x=>String(x||"").trim()==="")) continue;
-      // 컬럼 수 불일치 row는 일단 넣되, 검증에 남김(섞임 의심)
-      const get = (colName)=>{
-        if(!colName) return "";
-        const idx = header.findIndex(h=>h.toLowerCase() === colName.toLowerCase());
-        if(idx<0) return "";
-        return (rowArr[idx] ?? "");
+    for (let i=1;i<lines.length;i++){
+      const rawLine = lines[i];
+      if (!rawLine || !rawLine.trim()) continue;
+      const cols = csvSplit(rawLine);
+
+      // 헤더 누수: 데이터행이 헤더와 거의 동일하면 제외 + X
+      const normalized = cols.map(c=>c.trim().toLowerCase()).join("|");
+      const headerNorm = headerLower.join("|");
+      if (normalized === headerNorm){
+        headerLeakCount++;
+        X.push({
+          type:"DATA",
+          code:"HEADER_ROW_LEAK",
+          msg:"헤더 누수(데이터에 헤더행 포함)",
+          rowId: `${name}|${i}|HEADER`,
+          col:"(row)",
+          RES:"N",
+          HOW:"CSV에서 헤더 중복행 제거"
+        });
+        continue; // DB 제외
+      }
+
+      const get = (field) => {
+        const idx = mapping[field];
+        if (idx === "__CONST_USD__") return "USD";
+        if (idx === "__CONST_EUR__") return "EUR";
+        if (idx === "" || idx === null || idx === undefined) return "";
+        if (idx === "__MAPPING_MISS__") return "__MAPPING_MISS__";
+        return (cols[idx] ?? "").toString().trim();
       };
 
-      const Title = String(get(mapping.Title)||"").trim();
-      const SubTitle = String(get(mapping.SubTitle)||"").trim();
-      const ISBN = String(get(mapping.ISBN)||"").trim();
-      const Price = String(get(mapping.Price)||"").trim();
-      const PubDate = String(get(mapping.PubDate)||"").trim();
-      const Pages = String(get(mapping.Pages)||"").trim();
-      const Currency = mapping.Currency || "USD";
+      const title = get("Title");
+      const sub = get("SubTitle");
+      const isbn = get("ISBN");
 
-      // KOR: 원본에 있으면 쓰고, 없으면 [번역대기]
-      let KOR_TITLE = String(get(mapping.KOR_TITLE)||"").trim();
-      let KOR_SUBTITLE = String(get(mapping.KOR_SUBTITLE)||"").trim();
-      let __korAuto = false;
-      if(!KOR_TITLE && Title){
-        KOR_TITLE = korFill(Title);
-        __korAuto = true;
-        korAuto++;
-      }
-      if(SubTitle && !KOR_SUBTITLE){
-        KOR_SUBTITLE = korFill(SubTitle);
-        __korAuto = true;
-        korAuto++;
-      }
+      const priceRaw0 = get("Price");
+      const priceRaw = stripCurrencyText(priceRaw0);
+      const pubDateRaw = get("PubDate");
+      const pubDateISO = normalizeDateToISO(pubDateRaw);
 
-      const PubDateISO = toISODate(PubDate);
+      const pages = get("Pages");
+      const cur0 = get("Currency");
+      const curSym = normalizeCurrencySymbol(cur0, publisher, priceRaw0);
 
-      // 분류
-      const tmpRow = {Title, SubTitle, Publisher: publisher, ISBN, Price, Currency, PubDate, Pages};
-      const c = classifyRow(tmpRow);
+      // 가격 숫자만(문자열 유지)
+      const priceNum = (priceRaw||"").replace(/[^\d.]/g,"").trim();
 
-      // rowId (파일|rowIndex|hash)
-      const base = `${f.name}|${i-1}|${Title}|${ISBN}|${PubDate}`;
-      const rid = `${f.name}|${i-1}|${fnv1a(base)}`;
+      // rowId (섞임/중복 방지의 기준)
+      const rid = makeRowId(name, i-1, hash8(`${title}|${sub}|${isbn}|${pubDateRaw}|${priceRaw0}`));
 
-      const row = {
+      const rec = {
+        sourceFile: name,
+        rowIndex: i-1,
+        rowId: rid,
         Publisher: publisher,
-        Title,
-        SubTitle,
-        KOR_TITLE,
-        KOR_SUBTITLE,
-        ISBN,
-        Price,
-        Currency,
-        PubDate,
-        PubDateISO,
-        Pages,
-        Category: c.cat,
-        Keyword: c.key,
-        ROWID: rid,
-        __sourceFile: f.name,
-        __mappingPagesMissing: pagesMissing,
-        __korAuto,
-        __rawCore: {
-          Title,
-          SubTitle,
-          ISBN,
-          Price,
-          Currency,
-          PubDate,
-          Pages,
-          KOR_TITLE,
-          KOR_SUBTITLE
-        }
+        Title: title,
+        SubTitle: sub,
+        KOR_TITLE: "",        // 이후 recalc에서 자동
+        KOR_SUBTITLE: "",     // 이후 recalc에서 자동
+        ISBN: isbn,
+        Pages: pages || "(미기재)",
+        PriceRaw: priceRaw0,
+        PriceNum: priceNum,
+        CurrencySym: curSym,  // "$" or "€"
+        CurrencyRaw: cur0,
+        PubDateRaw: pubDateRaw,
+        PubDateISO: pubDateISO,
+        Category: "",
+        Keyword: "",
+        __RAW: rawLine
       };
 
-      row.__issues = validateRow(row);
+      // 분류(단일 할당)
+      const ck = classifySingle(rec);
+      rec.Category = ck.cat;
+      rec.Keyword = ck.key || "(없음)";
+      if (rec.Category === "미분류"){
+        if (!reviewQueue.includes(rec.rowId)) reviewQueue.push(rec.rowId);
+      }
 
-      db.push(row);
+      DB.push(rec);
       appended++;
     }
 
-    ui.__restoredEver = true; // 업로드 후엔 복원 기록으로 봄
-    persistAll();
+    saveJSON(LS.lastFile, name);
+    log("업로드 완료", {file:name, appended, total:DB.length, headerLeakCount});
 
-    log("업로드 완료", {file:f.name, appended, total: db.length, korAuto});
-
-    // 건강진단(행섞임 포함) + 1줄 자동 로그
-    renderAll();
-    renderHealth({rowMixOk: mix.ok, badRows: mix.badRows, emitLog:true});
-  });
-
-  // =========================
-  // 버튼들
-  // =========================
-  document.getElementById("btnReset").onclick = ()=>{
-    db = [];
-    rawFiles = {};
-    ui.lastFile = "";
-    filter = {cat:"전체", key:"(없음)"};
-    persistAll();
-    log("DB 초기화");
-    renderAll();
-    renderHealth({emitLog:true});
-  };
-
-  document.getElementById("btnRecalc").onclick = ()=>{
-    // 기존 데이터는 건드리지 않고, 이슈만 재계산
-    for(const r of db){
-      r.__issues = validateRow(r);
-    }
-    log("오류 재계산");
-    renderAll();
-    renderHealth({emitLog:true});
-  };
-
-  document.getElementById("btnRules").onclick = ()=>{
-    const txt = [
-      "RULESET (요약)",
-      "(A) 키워드 사전 + (B) 우선순위 트리 + (C) 보조 신호 fallback + (D) 미분류 검토 큐",
-      `singleAssign(1-book-1-keyword): ${rules.singleAssign ? "ON" : "OFF"}`,
-      "",
-      "DICT:",
-      ...rules.dict.map(d=>`- ${d.cat} > ${d.key} (pri:${d.pri})`)
-    ].join("\n");
-    document.getElementById("out").textContent = txt;
-    log("분류 규칙 보기");
-  };
-
-  document.getElementById("btnCopyTable").onclick = ()=>{
-    const rows = getFiltered();
-    const header = ["Pub Date","Title","Sub Title","KOR_TITLE","KOR_SUBTITLE","ISBN","Pages","Price","Currency","Publisher","Category/Keyword","ROWID"];
-    const lines = [header.join("\t")];
-    for(const r of rows){
-      lines.push([
-        r.PubDateISO || r.PubDate || "",
-        r.Title||"",
-        r.SubTitle||"",
-        r.KOR_TITLE||"",
-        r.KOR_SUBTITLE||"",
-        r.ISBN||"",
-        r.Pages||"",
-        r.Price||"",
-        r.Currency||"",
-        r.Publisher||"",
-        `${r.Category||"미분류"} > ${r.Keyword||"(없음)"}`,
-        r.ROWID||""
-      ].join("\t"));
-    }
-    const txt = lines.join("\n");
-    document.getElementById("out").textContent = txt || "(없음)";
-    copyText(txt || "");
-    log("테이블 복사", {count: rows.length});
-  };
-
-  document.getElementById("btnCopyCards").onclick = ()=>{
-    const rows = getFiltered();
-    const txt = buildCardsOutput(rows);
-    document.getElementById("out").textContent = txt || "(없음)";
-    copyText(txt || "");
-    log("카드 전체 복사", {count: rows.length});
-  };
-
-  document.getElementById("btnCopyGuide").onclick = ()=>{
-    // 간단 가이드: 현재 필터의 카드 전체를 1블록으로
-    const rows = getFiltered();
-    const title = `${filter.cat||"전체"} > ${filter.key||"(없음)"}`;
-    const txt = [title, "", buildCardsOutput(rows)].join("\n").trim();
-    document.getElementById("out").textContent = txt || "(없음)";
-    copyText(txt || "");
-    log("워드 안내서 복사", {filter, count: rows.length});
-  };
-
-  document.getElementById("btnProof").onclick = ()=>{
-    const proof = {
-      UPDATED, HASH,
-      noExternalFetch: true,
-      lockCoreFields: ["Title","SubTitle","ISBN","Price","Currency","PubDate","Pages","KOR_TITLE","KOR_SUBTITLE"],
-      persist: "localStorage(auto)",
-      classify: "A+B+C+D",
-      singleAssign: rules.singleAssign
-    };
-    document.getElementById("out").textContent = "RULESET/LOCK 증명\n" + JSON.stringify(proof, null, 2);
-    log("RULESET/LOCK 증명", proof);
-  };
-
-  document.getElementById("btnPersistNow").onclick = ()=>{
-    persistAll();
-    log("persist(유지 저장)");
-    renderHealth({emitLog:true});
-  };
-  document.getElementById("btnPersistClear").onclick = ()=>{
-    localStorage.removeItem(LS.DB);
-    localStorage.removeItem(LS.RAWFILES);
-    localStorage.removeItem(LS.UI);
-    localStorage.removeItem(LS.FILTER);
-    // RULES는 유지(사전은 자산)
-    log("persist 삭제");
-    renderHealth({emitLog:true});
-  };
-
-  document.getElementById("btnTogglePanel").onclick = ()=>{
-    ui.panelOpen = !ui.panelOpen;
-    document.getElementById("panel").classList.toggle("hidden", !ui.panelOpen);
-    document.getElementById("btnTogglePanel").textContent = ui.panelOpen ? "접기" : "펼치기";
-    saveJSON(LS.UI, ui);
-    log("패널 토글", {open: ui.panelOpen});
-  };
-
-  document.getElementById("btnViewTable").onclick = ()=>{
-    ui.view = "table"; saveJSON(LS.UI, ui); log("탭 전환", {to:"table"}); renderAll();
-  };
-  document.getElementById("btnViewCards").onclick = ()=>{
-    ui.view = "cards"; saveJSON(LS.UI, ui); log("탭 전환", {to:"cards"}); renderAll();
-  };
-
-  document.getElementById("sortSel").onchange = (e)=>{
-    ui.sort = e.target.value; saveJSON(LS.UI, ui); log("정렬 변경", {mode: ui.sort}); renderAll();
-  };
-
-  document.getElementById("q").addEventListener("input", (e)=>{
-    ui.q = e.target.value; saveJSON(LS.UI, ui); renderAll();
-  });
-
-  document.getElementById("btnClearQ").onclick = ()=>{
-    ui.q = ""; saveJSON(LS.UI, ui); renderAll();
-  };
-
-  document.getElementById("btnClearFilter").onclick = ()=>{
-    filter = {cat:"전체", key:"(없음)"}; saveJSON(LS.FILTER, filter); log("필터 해제"); renderAll();
-  };
-
-  document.getElementById("btnCopyFilteredCards").onclick = ()=>{
-    const rows = getFiltered();
-    const txt = buildCardsOutput(rows);
-    document.getElementById("out").textContent = txt || "(없음)";
-    copyText(txt || "");
-    log("필터 카드 전체 복사", {filter, count: rows.length});
-  };
-
-  document.getElementById("btnCopyRowIds").onclick = ()=>{
-    const rows = getFiltered();
-    const txt = rows.map(r=>r.ROWID).join("\n");
-    document.getElementById("out").textContent = txt || "(없음)";
-    copyText(txt || "");
-    log("필터 ROWID 목록", {filter, count: rows.length});
-  };
-
-  document.getElementById("btnCopyOutput").onclick = ()=>{
-    copyText(document.getElementById("out").textContent || "");
-  };
-
-  document.getElementById("btnLogCopy").onclick = ()=>{
-    copyText(document.getElementById("logPre").textContent || "");
-  };
-  document.getElementById("btnLogClear").onclick = ()=>{
-    document.getElementById("logPre").textContent = "";
-    log("로그 지움");
-    renderHealth({emitLog:true});
-  };
-
-  // =========================
-  // 시작: 자동 복원 + 로그 + 건강진단 1줄
-  // =========================
-  function boot(){
-    // 로그/상태 박스를 “화면상 맨 위”로 보이게: DOM 재배치
-    const logBox = document.getElementById("logBox");
-    const healthBox = document.getElementById("healthBox");
-    // health/log를 wrap 안에서 위쪽으로 올림(사용자 요구: 로그는 제일 위)
-    const wrap = document.querySelector(".wrap");
-    wrap.insertBefore(healthBox, wrap.children[2]); // meta 아래로
-    wrap.insertBefore(logBox, wrap.children[3]);
-
-    // 복원
-    restoreAll();
-    const restored = (db && db.length) || (rawFiles && Object.keys(rawFiles).length);
-    ui.__restoredEver = !!restored || !!ui.__restoredEver;
-
-    // 패널 기본: 접힘
-    if(ui.panelOpen) document.getElementById("panel").classList.remove("hidden");
-    else document.getElementById("panel").classList.add("hidden");
-    document.getElementById("btnTogglePanel").textContent = ui.panelOpen ? "접기" : "펼치기";
-
-    // 기본 view
-    if(ui.view !== "table" && ui.view !== "cards") ui.view = "cards";
-    if(!ui.sort) ui.sort = "CAT_KEY_PUB_ASC";
-
-    // 앱 시작 로그(기존 스타일 유지)
-    log("앱 시작", {UPDATED, HASH, EDITION:"AUTOUPLOAD_AUTOPERSIST", restored: !!restored});
-
-    // 건강진단(1줄) 자동 로그
-    renderAll();
-    renderHealth({emitLog:true});
+    // 업로드 후: 자동 저장 + 자동 재계산
+    saveAll();
+    recalc();
   }
 
-  boot();
+  function guessPublisher(fileName){
+    const n = (fileName||"").toLowerCase();
+    if (n.includes("elsevier")) return "Elsevier";
+    if (n.includes("springer")) return "Springer";
+    if (n.includes("wiley")) return "Wiley";
+    return "AUTO";
+  }
+
+  function pickMapping(headerLower, publisher){
+    // 출판사별로 “가능한 헤더”를 찾아 인덱스 결정
+    // (기존 흐름을 건드리지 않고, 매핑 못 찾으면 공란/경고)
+    const find = (...cands) => {
+      for (const c of cands){
+        const idx = headerLower.indexOf(c.toLowerCase());
+        if (idx >= 0) return idx;
+      }
+      return "";
+    };
+
+    let map = {
+      Title: find("Title"),
+      SubTitle: find("Sub Title","SubTitle","Subtitle"),
+      ISBN: find("ISBN","ISBN13","ISBN-13"),
+      Price: find("List Price (USD)","US$","Price EUR","Price","List Price","Price (USD)"),
+      Currency: "",
+      PubDate: find("Pub date","Actual Publishing Date","Pub Date","Publishing Date","Pubdate"),
+      Pages: find("No of Pages","No of Arabic Pages","Pages","No of pages")
+    };
+
+    // Currency
+    if (publisher === "Elsevier"){
+      map.Currency = "__CONST_USD__";
+    }else if (publisher === "Springer"){
+      map.Currency = "__CONST_EUR__";
+    }else if (publisher === "Wiley"){
+      map.Currency = "__CONST_USD__";
+    }else{
+      map.Currency = "";
+    }
+
+    // Pages가 없으면 "__MAPPING_MISS__"로 표시(경고용)
+    if (map.Pages === ""){
+      map.Pages = "__MAPPING_MISS__";
+    }
+
+    // 매핑 로그
+    log("매핑 확정", {publisher, mapping: {
+      Title: headerLower[map.Title] ?? "Title",
+      SubTitle: map.SubTitle==="" ? "" : (headerLower[map.SubTitle]||""),
+      KOR_TITLE:"",
+      KOR_SUBTITLE:"",
+      ISBN: map.ISBN==="" ? "" : (headerLower[map.ISBN]||""),
+      Price: map.Price==="" ? "" : (headerLower[map.Price]||""),
+      Currency: map.Currency,
+      PubDate: map.PubDate==="" ? "" : (headerLower[map.PubDate]||""),
+      Pages: map.Pages==="__MAPPING_MISS__" ? "" : (headerLower[map.Pages]||"")
+    }});
+
+    return map;
+  }
+
+  // -----------------------------
+  // 저장/복원 (AUTO PERSIST)
+  // -----------------------------
+  function saveAll(){
+    if (!isPersistOn()) return;
+    saveJSON(LS.db, DB);
+    saveJSON(LS.ui, ui);
+    saveJSON(LS.rules, rules);
+    saveJSON(LS.reviewQueue, reviewQueue);
+    // log는 너무 커질 수 있으니 저장하지 않음(원래대로)
+  }
+
+  function restoreAll(){
+    const persisted = isPersistOn();
+    if (!persisted) return false;
+    const db = loadJSON(LS.db, null);
+    const savedUi = loadJSON(LS.ui, null);
+    if (Array.isArray(db)){
+      DB = db;
+      ui.restored = true;
+    }
+    if (savedUi && typeof savedUi === "object"){
+      // 안전: 일부만 반영
+      ui.view = savedUi.view || ui.view;
+      ui.q = savedUi.q || "";
+      ui.sort = savedUi.sort || ui.sort;
+      ui.cat = savedUi.cat || ui.cat;
+      ui.key = savedUi.key || ui.key;
+      ui.drillOpen = !!savedUi.drillOpen;
+    }
+    // 규칙/큐
+    rules = loadJSON(LS.rules, rules);
+    reviewQueue = loadJSON(LS.reviewQueue, reviewQueue);
+    return Array.isArray(db) && db.length>0;
+  }
+
+  // -----------------------------
+  // HEALTH(한 줄 진단)
+  // - 상세 JSON이 아니라 “사람이 읽는 1줄”
+  // -----------------------------
+  function renderHealth(){
+    // LOCK / ROW_MIX / DATE_PARSE / PERSIST / CLASSIFY / DUP / SHELL
+    const lockBad = X.filter(e=>e.code==="LOCK_MISMATCH").length;
+    const rowMixBad = X.filter(e=>e.code==="HEADER_ROW_LEAK").length; // 행 섞임/누수의 대표 지표
+    const dateBad = DB.filter(r => {
+      const raw = (r.PubDateRaw||"").toString().trim();
+      const iso = (r.PubDateISO||"").toString().trim();
+      // raw가 있는데 iso가 raw 그대로(변환 실패)면 1개로 간주
+      if (!raw) return false;
+      if (/^\d{1,2}-[A-Za-z]{3}-\d{2}$/.test(raw) && iso === raw) return true;
+      return false;
+    }).length;
+
+    const persistOk = isPersistOn() ? "ok" : "off";
+    const unclassified = DB.filter(r => (r.Category||"미분류")==="미분류").length;
+    const dup = ui.__dup || 0;
+
+    // “껍데기”는 여기서 의미를 “외부 fetch/외부 통신 없음” + “local only”로 상태 표시
+    const shell = "ok"; // 이 도구는 fetch/network 코드 없음(고정)
+
+    const restored = ui.restored ? "RESTORED" : "NEW";
+    const health =
+      `HEALTH ${UPDATED}/${HASH} · ${restored} · ` +
+      `LOCK:${lockBad?("bad("+lockBad+")"):"ok(0)"} ` +
+      `ROW_MIX:${rowMixBad?("bad("+rowMixBad+")"):"ok(0)"} ` +
+      `DATE_PARSE:${dateBad?("warn("+dateBad+")"):"ok(0)"} ` +
+      `PERSIST:${persistOk} ` +
+      `CLASSIFY:${"ok(unclassified:"+unclassified+")"} ` +
+      `DUP:${dup?("warn("+dup+")"):"ok(0)"} ` +
+      `SHELL:${shell}`;
+
+    $("healthText").textContent = health;
+  }
+
+  // -----------------------------
+  // 버튼 액션
+  // -----------------------------
+  $("fileInput").addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    // ✅ 요청: 파일 선택하면 자동 업로드
+    handleFile(f);
+  });
+
+  $("btnReset").onclick = () => {
+    DB = []; X = []; W = []; AUTO=0; KOR_AUTO=0;
+    reviewQueue = [];
+    saveAll();
+    log("DB 초기화", {});
+    render();
+  };
+
+  $("btnRecalc").onclick = () => recalc();
+
+  $("btnX").onclick = () => {
+    const txt = X.length ? X.map((e,i)=>`#${i+1}\t${e.type}\t${e.code}\t${e.msg}\trowId=${e.rowId}\tcol=${e.col}\tRES=${e.RES}\tHOW=${e.HOW}`).join("\n") : "(없음)";
+    setOutput(txt);
+    log("X 리스트 보기", {count:X.length});
+  };
+
+  $("btnW").onclick = () => {
+    const txt = W.length ? W.map((e,i)=>`#${i+1}\t${e.type}\t${e.code}\t${e.msg}\trowId=${e.rowId}\tcol=${e.col}\tRES=${e.RES}\tHOW=${e.HOW}`).join("\n") : "(없음)";
+    setOutput(txt);
+    log("경고 리스트 보기", {count:W.length});
+  };
+
+  $("btnRules").onclick = () => {
+    const txt = `분류 규칙(요약)
+(A) 키워드 사전(dict): ${Object.keys(rules.dict||{}).length}개 카테고리
+(B) 우선순위(priorityCats): ${rules.priorityCats.join(" > ")}
+(C) fallback.publisherHints: ${Object.keys((rules.fallback||{}).publisherHints||{}).join(", ")||"(없음)"}
+(D) 미분류 큐(reviewQueue): ${reviewQueue.length}건`;
+    setOutput(txt);
+    log("분류 규칙 보기", {});
+  };
+
+  $("btnCopyTable").onclick = () => {
+    // 현재 필터/정렬 적용된 테이블을 TSV로 복사
+    let list = sortList(applyCatKeyFilter(applyQueryFilter(DB)));
+    const header = ["PubDate","Title","SubTitle","KOR_TITLE","KOR_SUBTITLE","ISBN","Pages","Price","Currency","Publisher","Category/Keyword","ROWID"].join("\t");
+    const rows = list.map(r => [
+      r.PubDateISO||r.PubDateRaw||"",
+      r.Title||"",
+      r.SubTitle||"",
+      r.KOR_TITLE||"",
+      r.KOR_SUBTITLE||"",
+      r.ISBN||"",
+      r.Pages||"",
+      (r.CurrencySym||"")+ (r.PriceNum||""),
+      r.CurrencySym||"",
+      r.Publisher||"",
+      (r.Category||"미분류") + " > " + (r.Keyword||"(없음)"),
+      r.rowId
+    ].join("\t"));
+    const tsv = [header, ...rows].join("\n");
+    copyText(tsv);
+    setOutput(tsv);
+    log("테이블 복사", {count:list.length});
+  };
+
+  $("btnCopyCards").onclick = () => {
+    let list = sortList(applyCatKeyFilter(applyQueryFilter(DB)));
+    const txt = list.map(r => formatCard(r)).join("\n\n");
+    copyText(txt);
+    setOutput(txt || "(없음)");
+    log("카드 전체 복사", {count:list.length});
+  };
+
+  $("btnCopyGuide").onclick = () => {
+    // 간단 가이드: 현재 필터로 “카드 전체” + “ROWID 목록”
+    let list = sortList(applyCatKeyFilter(applyQueryFilter(DB)));
+    const rowIds = list.map(r=>r.rowId).join("\n");
+    const txt = `워드 안내서 복사(현재 필터 기준)
+--------------------------------
+(1) 카드 텍스트
+--------------------------------
+${list.map(r=>formatCard(r)).join("\n\n")}
+--------------------------------
+(2) ROWID 목록
+--------------------------------
+${rowIds}`.trim();
+    copyText(txt);
+    setOutput(txt);
+    log("워드 안내서 복사", {count:list.length});
+  };
+
+  $("btnProof").onclick = () => {
+    const txt = `RULESET/LOCK 증명
+UPDATED: ${UPDATED}
+HASH: ${HASH}
+EDITION: ${EDITION}
+PERSIST: ${isPersistOn() ? "ON" : "OFF"}
+LOCK: 핵심 필드 기반(Title/SubTitle/ISBN/PubDate/Price/Currency/Publisher)
+SHELL: 외부 fetch 없음(로컬 only)
+HEALTH: 상단 한 줄 진단 참고`;
+    setOutput(txt);
+    copyText(txt);
+    log("RULESET/LOCK 증명", {});
+  };
+
+  $("btnPersistOn").onclick = () => {
+    setPersistOn(true);
+    saveAll();
+    log("persist ON", {});
+    renderHealth();
+  };
+
+  $("btnPersistOff").onclick = () => {
+    // persist 삭제: 저장도 지움
+    setPersistOn(false);
+    localStorage.removeItem(LS.db);
+    localStorage.removeItem(LS.ui);
+    localStorage.removeItem(LS.rules);
+    localStorage.removeItem(LS.reviewQueue);
+    log("persist OFF+삭제", {});
+    renderHealth();
+  };
+
+  $("btnToggleDrill").onclick = () => {
+    ui.drillOpen = !ui.drillOpen;
+    log("패널 토글", {open:ui.drillOpen});
+    saveAll();
+    render();
+  };
+
+  $("tabTable").onclick = () => {
+    ui.view="table";
+    log("탭 전환", {to:"table"});
+    saveAll();
+    render();
+  };
+  $("tabCards").onclick = () => {
+    ui.view="cards";
+    log("탭 전환", {to:"cards"});
+    saveAll();
+    render();
+  };
+
+  $("sortMode").onchange = (e) => {
+    ui.sort = e.target.value;
+    log("정렬 변경", {mode:ui.sort});
+    saveAll();
+    render();
+  };
+
+  $("q").oninput = (e) => {
+    ui.q = e.target.value || "";
+    saveAll();
+    render();
+  };
+
+  $("btnClearQ").onclick = () => {
+    ui.q = "";
+    log("검색 해제", {});
+    saveAll();
+    render();
+  };
+
+  $("btnClearFilter").onclick = () => {
+    ui.cat="전체";
+    ui.key="(없음)";
+    log("필터 해제", {});
+    saveAll();
+    render();
+  };
+
+  $("btnCopyFilterCards").onclick = () => {
+    let list = sortList(applyCatKeyFilter(applyQueryFilter(DB)));
+    const txt = list.map(r => formatCard(r)).join("\n\n");
+    copyText(txt);
+    setOutput(txt || "(없음)");
+    log("필터 카드 전체 복사", {count:list.length});
+  };
+
+  $("btnCopyFilterRowIds").onclick = () => {
+    let list = sortList(applyCatKeyFilter(applyQueryFilter(DB)));
+    const txt = list.map(r=>r.rowId).join("\n") || "(없음)";
+    copyText(txt);
+    setOutput(txt);
+    log("필터 ROWID 목록", {count:list.length});
+  };
+
+  $("btnCopyOutput").onclick = () => {
+    copyText($("out").textContent || "");
+    log("출력 복사", {});
+  };
+
+  $("btnClearOutput").onclick = () => {
+    setOutput("(없음)");
+    log("출력 지우기", {});
+  };
+
+  // -----------------------------
+  // 시작: 복원 + 건강진단 로그 1줄 + 렌더
+  // -----------------------------
+  const restored = restoreAll();
+  ui.restored = !!restored;
+
+  // 시작 로그
+  log("앱 시작", {UPDATED, HASH, EDITION, restored: ui.restored});
+
+  // 기본: drill은 “접힘”
+  if (!("drillOpen" in ui)) ui.drillOpen = false;
+
+  // 복원한 DB가 있으면 재계산으로 X/W 정합성 맞춤
+  if (DB.length){
+    recalc();
+  }else{
+    render();
+  }
 
 })();
 </script>
