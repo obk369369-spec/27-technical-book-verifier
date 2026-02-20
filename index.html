@@ -2,689 +2,1238 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>27번 도구 FINAL — Simple Auto Taxonomy (Category 20 Fixed)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>27-technical books verifier (DISPLAY 안정형 · Category 20)</title>
   <style>
     :root{
-      --bg:#0b0c10; --panel:#12141a; --panel2:#171a22; --line:#2a2f3a;
-      --text:#e8ecf1; --muted:#aab3bf; --acc:#35c4ff; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444;
-      --btn:#1f2430; --btn2:#232a38;
-      --fs:18px; --fsS:15px; --radius:14px;
+      --bg:#ffffff; --fg:#111827; --muted:#6b7280; --line:#e5e7eb;
+      --chip:#f3f4f6; --chip2:#eef2ff; --accent:#111827;
     }
     *{box-sizing:border-box}
-    body{margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif; background:var(--bg); color:var(--text); font-size:var(--fs);}
-    .topbar{position:sticky; top:0; z-index:5; background:rgba(11,12,16,.92); backdrop-filter: blur(8px); border-bottom:1px solid var(--line);}
-    .topbar-inner{display:flex; gap:10px; align-items:center; padding:10px 12px; flex-wrap:wrap;}
-    .title{font-weight:800; letter-spacing:.2px}
-    .badges{display:flex; gap:8px; flex-wrap:wrap; margin-left:auto}
-    .badge{padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--muted); font-size:var(--fsS);}
-    .badge b{color:var(--text)}
-    .badge.good b{color:var(--good)}
-    .badge.warn b{color:var(--warn)}
-    .badge.bad b{color:var(--bad)}
-    .wrap{display:grid; grid-template-columns: 360px 1fr; gap:12px; padding:12px;}
-    .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px;}
-    .card h3{margin:0 0 10px; font-size:18px}
-    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .row > *{flex:0 0 auto}
-    input[type="file"]{display:none}
-    .btn{cursor:pointer; user-select:none; border:1px solid var(--line); background:var(--btn); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:700; font-size:16px;}
-    .btn:hover{background:var(--btn2)}
-    .btn.acc{border-color:rgba(53,196,255,.35); box-shadow:0 0 0 2px rgba(53,196,255,.12) inset;}
-    .btn.good{border-color:rgba(34,197,94,.35); box-shadow:0 0 0 2px rgba(34,197,94,.12) inset;}
-    .btn.warn{border-color:rgba(245,158,11,.35); box-shadow:0 0 0 2px rgba(245,158,11,.12) inset;}
-    .btn.bad{border-color:rgba(239,68,68,.35); box-shadow:0 0 0 2px rgba(239,68,68,.12) inset;}
-    .muted{color:var(--muted); font-size:var(--fsS); line-height:1.35}
-    .hr{height:1px; background:var(--line); margin:12px 0}
-    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
-    .list{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel2);}
-    .list .head{display:flex; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--line); font-weight:800;}
-    .list .body{max-height:290px; overflow:auto}
-    .item{display:flex; justify-content:space-between; gap:8px; padding:10px 12px; border-bottom:1px solid rgba(42,47,58,.6); cursor:pointer;}
-    .item:hover{background:#121724}
-    .item:last-child{border-bottom:none}
-    .pill{font-size:13px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted)}
-    .pill.on{border-color:rgba(53,196,255,.45); color:#cfefff}
-    .search{width:100%; padding:12px 12px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; color:var(--text); font-size:16px;}
-    .tableWrap{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
-    .tableTop{display:flex; gap:8px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap}
-    .select{padding:10px 12px; border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:12px; font-size:16px;}
-    .table{width:100%; border-collapse:collapse; font-size:16px;}
-    .table th, .table td{padding:10px 12px; border-bottom:1px solid rgba(42,47,58,.55); vertical-align:top}
-    .table th{color:var(--muted); font-weight:800; text-align:left; background:rgba(18,20,26,.6)}
-    .copyBtn{font-size:14px; padding:6px 10px; border-radius:10px}
-    .rightTools{margin-left:auto; display:flex; gap:8px; flex-wrap:wrap}
-    .log{white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; color:#cfe7d7; background:#0f1218; border:1px solid var(--line); border-radius:12px; padding:10px; max-height:190px; overflow:auto}
-    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} .badges{margin-left:0} }
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;background:var(--bg);color:var(--fg)}
+    header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);padding:10px 12px}
+    .health{font-size:13px;line-height:1.3;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .health b{font-weight:700}
+    .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+    .bar > *{height:34px}
+    .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 10px;font-size:13px;cursor:pointer}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .pill{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:0 10px;font-size:12px;display:flex;align-items:center;color:var(--muted)}
+    .file{border:1px dashed var(--line);border-radius:10px;padding:6px 10px;font-size:13px}
+    .search{border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:13px;min-width:240px}
+    .layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 92px)}
+    aside{border-right:1px solid var(--line);padding:12px;overflow:auto}
+    main{padding:12px;overflow:hidden}
+    .sectionTitle{font-size:14px;font-weight:700;margin:6px 0 10px}
+    .panel{border:1px solid var(--line);border-radius:14px;padding:10px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .small{font-size:12px;color:var(--muted)}
+    .list{display:flex;flex-direction:column;gap:6px}
+    .itemBtn{
+      width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;
+      padding:8px 10px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;gap:8px
+    }
+    .itemBtn.active{outline:2px solid #11182710;border-color:#11182733;background:var(--chip2)}
+    .count{color:var(--muted);font-variant-numeric:tabular-nums}
+    .split{height:1px;background:var(--line);margin:10px 0}
+    .tabs{display:flex;gap:8px;align-items:center}
+    .tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-size:13px;cursor:pointer}
+    .tab.active{background:var(--fg);color:#fff;border-color:var(--fg)}
+    .hint{font-size:12px;color:var(--muted)}
+    .resultTop{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
+    .resultTop .left{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .tag{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:12px;color:var(--muted)}
+    .copyAll{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px;font-size:13px;cursor:pointer}
+    .vwrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;height:calc(100vh - 210px);background:#fff}
+    .vhead{display:flex;gap:8px;align-items:center;padding:10px;border-bottom:1px solid var(--line);background:#fff}
+    .vscroll{height:calc(100% - 52px);overflow:auto;position:relative}
+    .spacer{width:1px;opacity:0}
+    /* table rows */
+    .trow{display:grid;grid-template-columns:110px 1fr 140px 110px 110px 90px;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:start}
+    .thead{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);z-index:5;font-size:12px;color:var(--muted)}
+    .cellTitle{font-weight:650;font-size:13px}
+    .cellSub{font-size:12px;color:var(--muted);margin-top:2px}
+    .mono{font-variant-numeric:tabular-nums}
+    .copyOne{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer}
+    /* card */
+    .card{border-bottom:1px solid var(--line);padding:12px}
+    .cardTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .cardTitle{font-size:14px;font-weight:750;line-height:1.25}
+    .cardSub{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.25}
+    .meta{margin-top:10px;font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+    .meta b{color:var(--fg);font-weight:650}
+    .kline{margin-top:8px;font-size:12px;color:var(--muted)}
+    .kline .chip{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:6px}
+    /* keyword input (simple) */
+    .kwBox{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .kwInput{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+    .toast{position:fixed;right:14px;bottom:14px;background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-size:13px;opacity:0;transform:translateY(8px);transition:.15s}
+    .toast.show{opacity:1;transform:translateY(0)}
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="title">27번 도구 FINAL — Simple Auto Taxonomy (Category 20 Fixed)</div>
-      <div class="badges">
-        <div class="badge"><b id="bDB">0</b> DB</div>
-        <div class="badge"><b id="bDUP">0</b> DUP</div>
-        <div class="badge warn"><b id="bWARN">0</b> WARN</div>
-        <div class="badge bad"><b id="bUNCAT">0</b> 미분류</div>
-        <div class="badge good"><b id="bNEW">0</b> NEW</div>
-        <div class="badge"><b id="bSTATE">READY</b></div>
-      </div>
-    </div>
+<header>
+  <div class="health" id="healthLine"><b>HEALTH</b> …</div>
+  <div class="bar">
+    <input id="fileInput" class="file" type="file" accept=".csv,text/csv" />
+    <span class="pill" id="statPill">DB 0 · DUP 0 · 미분류 0</span>
+    <input id="searchInput" class="search" placeholder="검색(Title/ISBN/KOR/키워드/Publisher)" />
+    <button class="btn" id="clearSearchBtn">검색 해제</button>
+    <button class="btn" id="resetBtn">DB 초기화</button>
+    <button class="btn" id="persistClearBtn">persist 삭제</button>
   </div>
+  <div class="small" id="lastInfo">Last: (없음)</div>
+</header>
 
-  <div class="wrap">
-    <!-- LEFT -->
-    <div class="card">
-      <h3>설정/업로드</h3>
-      <div class="row">
-        <label class="btn acc" for="fileInput">파일 선택</label>
-        <input id="fileInput" type="file" accept=".csv,text/csv" />
-        <button class="btn acc" id="btnUpload">CSV 선택 → 자동 업로드</button>
-        <button class="btn" id="btnReset">DB 초기화</button>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="btnSave">지금 상태 저장</button>
-        <button class="btn" id="btnRestore">복원</button>
-      </div>
-      <div class="muted" style="margin-top:8px">
-        - 외부 fetch 없음 / localStorage 저장·복원<br/>
-        - 카테고리 20개 고정(그 외는 <b>기타(미분류)</b>)<br/>
-        - “키워드 추가”는 딱 1칸 입력 후 Enter로 끝
-      </div>
+<div class="layout">
+  <aside>
+    <div class="panel">
+      <div class="sectionTitle">카테고리 (상위 20 고정)</div>
+      <div class="small">업로드된 데이터 기준으로 “가장 많은 카테고리 20개”를 자동 선정해 고정 표시합니다.</div>
+      <div class="split"></div>
+      <div class="list" id="catList"></div>
 
-      <div class="hr"></div>
+      <div class="split"></div>
+      <div class="sectionTitle">키워드 (카테고리 선택 후)</div>
+      <div class="small" id="kwHint">카테고리를 누르면, 해당 카테고리에서 키워드가 자동으로 쪼개져 표시됩니다.</div>
+      <div class="split"></div>
+      <div class="list" id="kwList"></div>
 
-      <h3>카테고리 → 키워드</h3>
-      <div class="grid2">
-        <div class="list">
-          <div class="head"><span>카테고리</span><span class="pill" id="pCat">0</span></div>
-          <div class="body" id="catList"></div>
-        </div>
-        <div class="list">
-          <div class="head"><span>키워드</span><span class="pill" id="pKw">0</span></div>
-          <div class="body" id="kwList"></div>
-        </div>
+      <div class="split"></div>
+      <div class="sectionTitle">신규 키워드 추가 (단순)</div>
+      <div class="small">쉼표/줄바꿈으로 입력 → 적용(신규만 누적). 기존 분류/키워드는 건드리지 않습니다.</div>
+      <div class="kwBox">
+        <input id="newKwInput" class="kwInput" placeholder="예: 리사이클링, Pu, 에폭시" />
+        <button class="btn" id="applyKwBtn">적용</button>
       </div>
+      <div class="small" id="kwApplyResult"></div>
+    </div>
+  </aside>
 
-      <div class="hr"></div>
-
-      <h3>키워드 추가 (빅테크식: 단순)</h3>
-      <input class="search" id="kwInput" placeholder="예: 바이오 폴리머, membrane, metrology (Enter=추가)" />
-      <div class="row" style="margin-top:10px">
-        <button class="btn good" id="btnKwAdd">추가</button>
-        <button class="btn warn" id="btnKwApply">적용(자동 분류 갱신)</button>
-        <button class="btn" id="btnKwClear">입력 비우기</button>
+  <main>
+    <div class="resultTop">
+      <div class="left">
+        <span class="tag" id="filterTag">필터: (없음)</span>
+        <span class="tag" id="countTag">필터 결과: 0</span>
       </div>
-      <div class="muted" style="margin-top:8px">
-        - 이미 있는 키워드는 자동 무시 / 새 키워드만 누적
+      <div class="tabs">
+        <button class="tab active" id="tabTable">테이블</button>
+        <button class="tab" id="tabCards">카드(리스트)</button>
+        <button class="copyAll" id="copyAllBtn">현재 화면 전체 복사</button>
       </div>
-
-      <div class="hr"></div>
-      <h3>로그</h3>
-      <div class="log" id="log"></div>
     </div>
 
-    <!-- RIGHT -->
-    <div class="tableWrap">
-      <div class="tableTop">
-        <select id="sortSel" class="select">
-          <option value="cat_kw_date">정렬: Category/Keyword → PubDate</option>
-          <option value="date_desc">정렬: PubDate 최신</option>
-          <option value="title_asc">정렬: Title A→Z</option>
-        </select>
-        <input id="q" class="search" style="max-width:520px" placeholder="검색(Title/ISBN/KOR/키워드/Publisher)" />
-        <div class="rightTools">
-          <button class="btn copyBtn" id="btnCopyRowids">필터 ROWID 목록</button>
-          <button class="btn copyBtn" id="btnCopyCards">필터 카드 전체</button>
-          <button class="btn copyBtn" id="btnCopyTable">필터 테이블(텍스트)</button>
-        </div>
+    <div class="vwrap">
+      <div class="vhead">
+        <div class="hint" id="viewHint">테이블=워드/엑셀 붙여넣기용 · 카드=여러 건 안내서 복사/확인용</div>
       </div>
-
-      <table class="table" id="tbl">
-        <thead>
-          <tr>
-            <th style="width:88px">복사</th>
-            <th style="width:130px">PubDate</th>
-            <th>Title (KOR)</th>
-            <th style="width:180px">ISBN</th>
-            <th style="width:170px">Publisher</th>
-            <th style="width:190px">Category</th>
-            <th style="width:220px">Keywords</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+      <div class="vscroll" id="vscroll">
+        <div class="spacer" id="spacer"></div>
+        <div id="vlist"></div>
+      </div>
     </div>
-  </div>
+
+    <div class="split"></div>
+    <div class="panel">
+      <div class="sectionTitle">로그</div>
+      <div class="small">도구 동작 기록(붙여도 괜찮음). 핵심 위험은 HEALTH 1줄에서 먼저 판단합니다.</div>
+      <pre class="small" id="logBox" style="white-space:pre-wrap;margin:8px 0 0"></pre>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-(function(){
-  // =========================
-  // 0) 고정: 카테고리 20개
-  // =========================
-  const CATEGORY20 = [
-    "자동차/모빌리티","통신/IT","전자/반도체","에너지/환경","의약/바이오",
-    "의료기기/헬스케어","화학/소재","식품/농업","산업기계/로봇","항공/방위",
-    "건설/인프라","금융/핀테크","소비재/유통","물류/공급망","AI/데이터",
-    "스마트제조","친환경/ESG","보안/인증","교육/콘텐츠","기타(미분류)"
+/* =========================
+   DISPLAY 안정형 코어(단일 파일)
+   - CSV 스트리밍은 브라우저 File.stream() 기반(외부 fetch/라이브러리 없음)
+   - RAW/INTERNAL/DISPLAY 분리(역방향 수정 금지)
+   - Category 20: DISPLAY에서만 “상위 20 고정”
+   - Keyword: 사전(dict)+우선순위+fallback+미분류 큐(표시/인덱스용)
+   - Persist: IndexedDB(대용량) + UI 상태(last filter/search/view)
+========================= */
+
+const APP = {
+  UPDATED: "2026-02-19A",
+  HASH: "CAT20_DISPLAY_ONLY",
+  EDITION: "DISPLAY_STABLE_CAT20",
+  dbName: "wic_techbooks_v27",
+  storeRecords: "records",
+  storeMeta: "meta",
+};
+
+const UI = {
+  healthLine: document.getElementById("healthLine"),
+  statPill: document.getElementById("statPill"),
+  lastInfo: document.getElementById("lastInfo"),
+  fileInput: document.getElementById("fileInput"),
+  searchInput: document.getElementById("searchInput"),
+  clearSearchBtn: document.getElementById("clearSearchBtn"),
+  resetBtn: document.getElementById("resetBtn"),
+  persistClearBtn: document.getElementById("persistClearBtn"),
+  catList: document.getElementById("catList"),
+  kwList: document.getElementById("kwList"),
+  filterTag: document.getElementById("filterTag"),
+  countTag: document.getElementById("countTag"),
+  tabTable: document.getElementById("tabTable"),
+  tabCards: document.getElementById("tabCards"),
+  copyAllBtn: document.getElementById("copyAllBtn"),
+  vscroll: document.getElementById("vscroll"),
+  spacer: document.getElementById("spacer"),
+  vlist: document.getElementById("vlist"),
+  logBox: document.getElementById("logBox"),
+  toast: document.getElementById("toast"),
+  newKwInput: document.getElementById("newKwInput"),
+  applyKwBtn: document.getElementById("applyKwBtn"),
+  kwApplyResult: document.getElementById("kwApplyResult"),
+  kwHint: document.getElementById("kwHint"),
+  viewHint: document.getElementById("viewHint"),
+};
+
+const STATE = {
+  restored: false,
+  view: "table", // table | cards
+  lastFile: "(없음)",
+  search: "",
+  selectedCat: "전체",
+  selectedKey: "",
+  // DATA
+  records: [],        // INTERNAL normalized objects
+  display: [],        // DISPLAY list of record ids (filtered)
+  idMap: new Map(),   // rowId -> index
+  dupSet: new Set(),  // hash for dup
+  dupCount: 0,
+  // classification
+  dict: buildBaseDict(),  // keyword -> {cat, pr}
+  topCats: [],            // fixed 20 categories for display
+  catCounts: new Map(),
+  keyCountsByCat: new Map(), // cat -> Map(keyword->count)
+  // HEALTH counters
+  health: {
+    lockMismatch: 0,
+    rowMix: 0,
+    dateParse: 0,
+    persistOk: true,
+    classifyOk: true,
+    unclassified: 0,
+    dup: 0,
+    shellOk: true,
+  },
+  // render
+  rowH_table: 78,
+  rowH_card: 138,
+  viewportN: 20,
+};
+
+function now(){
+  const d = new Date();
+  const z = (n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+}
+
+function log(msg, obj){
+  const line = `[${now()}] ${msg}` + (obj ? ` :: ${JSON.stringify(obj)}` : "");
+  UI.logBox.textContent = (line + "\n" + UI.logBox.textContent).slice(0, 6000);
+}
+
+function toast(msg){
+  UI.toast.textContent = msg;
+  UI.toast.classList.add("show");
+  setTimeout(()=>UI.toast.classList.remove("show"), 1200);
+}
+
+function buildBaseDict(){
+  // 우선순위(pr)가 낮을수록 우선(0이 가장 우선)
+  // ※ 여기 dict는 “누적 추가” 대상(신규만 append)
+  const add = (k, cat, pr=5)=>({k, cat, pr});
+  const seed = [
+    add("ai","AI/로봇",0), add("robot","AI/로봇",1), add("machine learning","AI/로봇",1), add("deep learning","AI/로봇",1),
+    add("battery","배터리",1), add("lithium","배터리",2), add("recycling","에너지",3),
+    add("energy","에너지",1), add("solar","에너지",2), add("hydrogen","에너지",2),
+    add("finance","금융",1), add("banking","금융",1), add("investment","금융",2),
+    add("marketing","마케팅",1), add("brand","마케팅",2),
+    add("education","교육",1), add("school","교육",2),
+    add("medical","의학",1), add("health","의학",1), add("disease","의학",1), add("clinical","의학",2),
+    add("polymer","소재/화학",2), add("epoxy","소재/화학",1), add("pu","소재/화학",1),
+    add("semiconductor","반도체",1), add("chip","반도체",2),
+    add("logistics","물류",2), add("supply chain","물류",2),
+    add("construction","건설",2), add("cement","건설",2),
+    add("automotive","자동차",2), add("ev","자동차",2),
   ];
-  const CAT_OTHER = "기타(미분류)";
-
-  // =========================
-  // 1) 시드(자동 분류용) — 필요 최소만
-  // =========================
-  const SEED = [
-    // AI/데이터
-    ["ai", "AI/데이터"], ["machine learning","AI/데이터"], ["deep learning","AI/데이터"],
-    ["data","AI/데이터"], ["analytics","AI/데이터"], ["llm","AI/데이터"],
-    // 스마트제조/산업
-    ["automation","스마트제조"], ["factory","스마트제조"], ["manufacturing","스마트제조"],
-    ["industrial","산업기계/로봇"], ["robot","산업기계/로봇"], ["robotics","산업기계/로봇"],
-    // 반도체
-    ["semiconductor","전자/반도체"], ["ic design","전자/반도체"], ["chip","전자/반도체"],
-    // 에너지/환경
-    ["battery","에너지/환경"], ["solar","에너지/환경"], ["renewable","에너지/환경"],
-    ["carbon","친환경/ESG"], ["esg","친환경/ESG"], ["sustainab","친환경/ESG"],
-    // 통신/IT
-    ["5g","통신/IT"], ["6g","통신/IT"], ["network","통신/IT"], ["cloud","통신/IT"],
-    // 물류/공급망
-    ["supply chain","물류/공급망"], ["logistics","물류/공급망"],
-    // 바이오/헬스
-    ["biotech","의약/바이오"], ["pharma","의약/바이오"], ["drug","의약/바이오"],
-    ["medical","의료기기/헬스케어"], ["healthcare","의료기기/헬스케어"],
-    // 자동차/모빌리티
-    ["vehicle","자동차/모빌리티"], ["automotive","자동차/모빌리티"], ["mobility","자동차/모빌리티"],
-    // 화학/소재
-    ["polymer","화학/소재"], ["membrane","화학/소재"], ["material","화학/소재"], ["chemistry","화학/소재"],
-    // 보안
-    ["security","보안/인증"], ["cyber","보안/인증"], ["encryption","보안/인증"],
-    // 금융
-    ["fintech","금융/핀테크"], ["bank","금융/핀테크"], ["payment","금융/핀테크"],
-    // 건설/인프라
-    ["construction","건설/인프라"], ["infrastructure","건설/인프라"], ["pipeline","건설/인프라"],
-    // 항공/방위
-    ["defense","항공/방위"], ["aerospace","항공/방위"]
-  ];
-
-  // =========================
-  // 2) 상태/저장 키
-  // =========================
-  const LS = {
-    DATA: "wic27_data_v2",
-    USERKW: "wic27_userkw_v2",
-    LAST: "wic27_last_v2"
-  };
-
-  let DATA = [];            // rows
-  let USER_KW = new Set();  // user keywords
-  let FILTER = { cat: null, kw: null, q: "" };
-
-  // =========================
-  // 3) 유틸
-  // =========================
-  const $ = (id)=>document.getElementById(id);
-  const logEl = $("log");
-  function log(msg){
-    const t = new Date().toISOString().slice(0,19).replace("T"," ");
-    logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent;
+  const dict = {};
+  for(const s of seed){
+    dict[s.k] = {cat:s.cat, pr:s.pr};
   }
-  function setBadge(id, v){ $(id).textContent = String(v); }
-  function setState(s){ setBadge("bSTATE", s); }
+  return dict;
+}
 
-  function normalizeCat(cat){
-    if(!cat) return CAT_OTHER;
-    const x = String(cat).trim();
-    if(!x) return CAT_OTHER;
-    return CATEGORY20.includes(x) ? x : CAT_OTHER;
+function normalizeStr(v){
+  return (v==null ? "" : String(v)).trim();
+}
+
+function lower(v){ return normalizeStr(v).toLowerCase(); }
+
+function parseMoney(v){
+  const s = normalizeStr(v);
+  if(!s) return "";
+  // 숫자만 남기되 기존 형식을 최대한 유지(표시만)
+  return s.replace(/,/g,"").trim();
+}
+
+function toISODate(raw){
+  // DISPLAY용: 가능하면 YYYY-MM-DD
+  const s = normalizeStr(raw);
+  if(!s) return "";
+  // already iso
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // formats like 01-Feb-27
+  const m1 = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2})$/);
+  if(m1){
+    const dd = String(m1[1]).padStart(2,"0");
+    const mon = m1[2].toLowerCase();
+    const yy = parseInt(m1[3],10);
+    const map = {jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12"};
+    const mm = map[mon] || "01";
+    const yyyy = (yy >= 0 && yy <= 99) ? (2000 + yy) : yy;
+    return `${yyyy}-${mm}-${dd}`;
   }
 
-  // 간단 CSV 파서(따옴표 기본 대응)
-  function parseCSV(text){
-    const rows = [];
-    let i=0, field="", row=[], inQ=false;
-    function pushField(){ row.push(field); field=""; }
-    function pushRow(){ rows.push(row); row=[]; }
-    while(i < text.length){
-      const c = text[i];
-      if(inQ){
-        if(c === '"'){
-          if(text[i+1] === '"'){ field += '"'; i++; }
-          else inQ=false;
-        }else field += c;
-      }else{
-        if(c === '"') inQ=true;
-        else if(c === ','){ pushField(); }
-        else if(c === '\n'){ pushField(); pushRow(); }
-        else if(c === '\r'){ /* skip */ }
-        else field += c;
-      }
-      i++;
-    }
-    if(field.length || row.length){ pushField(); pushRow(); }
-    return rows;
+  // formats like 2024.12.30 or 2024/12/30
+  const m2 = s.match(/^(\d{4})[./](\d{1,2})[./](\d{1,2})$/);
+  if(m2){
+    const yyyy=m2[1], mm=String(m2[2]).padStart(2,"0"), dd=String(m2[3]).padStart(2,"0");
+    return `${yyyy}-${mm}-${dd}`;
   }
 
-  function pick(obj, keys, def=""){
-    for(const k of keys){
-      if(obj[k]!=null && String(obj[k]).trim()!=="") return String(obj[k]);
-    }
-    return def;
+  // try Date()
+  const d = new Date(s);
+  if(!isNaN(d.getTime())){
+    const z = (n)=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
   }
 
-  function tokenize(s){
-    const t = (s||"").toLowerCase();
-    // words + 2-gram for simple phrases
-    const words = t
-      .replace(/[^a-z0-9가-힣\s\-\/]/g," ")
-      .split(/\s+/)
-      .filter(Boolean)
-      .filter(w => w.length >= 2);
-    const set = new Set(words);
-    // keep common phrases that matter
-    const joined = words.join(" ");
-    if(joined.includes("supply chain")) set.add("supply chain");
-    if(joined.includes("ic design")) set.add("ic design");
-    return set;
-  }
+  STATE.health.dateParse += 1;
+  return s; // fallback: 원문 유지(표시만)
+}
 
-  function autoCategoryFromText(title, publisher, keywords){
-    const hay = `${title||""} ${publisher||""} ${keywords||""}`.toLowerCase();
-    for(const [needle, cat] of SEED){
-      if(hay.includes(needle)) return cat;
-    }
-    return CAT_OTHER;
+function makeRowId(file, rowIndex, title, isbn){
+  // 안정적 id: file|rowIndex|hash8
+  const base = `${file}|${rowIndex}|${title}|${isbn}`;
+  let h = 2166136261;
+  for(let i=0;i<base.length;i++){
+    h ^= base.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
+  const hex = (h>>>0).toString(16).toUpperCase().padStart(8,"0").slice(0,8);
+  return `${file}|${rowIndex}|${hex}`;
+}
 
-  function buildKeywords(row){
-    // base keywords from title/publisher + user keywords matched
-    const tokens = tokenize(`${row.title} ${row.publisher}`);
-    const kw = new Set();
-    // add matched user keywords if any
-    for(const u of USER_KW){
-      const u2 = String(u).toLowerCase().trim();
-      if(!u2) continue;
-      if(tokens.has(u2) || (`${row.title} ${row.publisher}`.toLowerCase().includes(u2))){
-        kw.add(u);
+function detectDup(rec){
+  const key = `${lower(rec.title)}|${lower(rec.subtitle)}|${lower(rec.isbn)}|${lower(rec.pubDateISO)}|${lower(rec.publisher)}`;
+  if(STATE.dupSet.has(key)){
+    STATE.dupCount++;
+    return true;
+  }
+  STATE.dupSet.add(key);
+  return false;
+}
+
+function classifyRecord(rec){
+  // 입력 신호: title/subtitle/publisher/korTitle/korSub/keywordField
+  const text = [
+    rec.title, rec.subtitle, rec.publisher,
+    rec.korTitle, rec.korSubtitle,
+    rec.keywordField
+  ].map(lower).join(" · ");
+
+  let best = null;
+  for(const k in STATE.dict){
+    if(!k) continue;
+    const kk = k.toLowerCase();
+    if(text.includes(kk)){
+      const info = STATE.dict[k];
+      const cand = {key: k, cat: info.cat, pr: info.pr};
+      if(!best || cand.pr < best.pr || (cand.pr===best.pr && cand.key.length>best.key.length)){
+        best = cand;
       }
     }
-    // keep original keywords if present (csv)
-    for(const k of String(row.keywords||"").split(/[,;|]/).map(x=>x.trim()).filter(Boolean)){
-      kw.add(k);
-    }
-    return Array.from(kw).slice(0,12).join(", ");
   }
 
-  // =========================
-  // 4) 렌더/필터
-  // =========================
-  function computeStats(){
-    const db = DATA.length;
-    // DUP: isbn 중복만 대충 계산
-    const seen = new Set(); let dup=0;
-    for(const r of DATA){
-      const isbn = (r.isbn||"").trim();
-      if(!isbn) continue;
-      if(seen.has(isbn)) dup++;
-      else seen.add(isbn);
-    }
-    const uncat = DATA.filter(r=>normalizeCat(r.category)===CAT_OTHER).length;
-    setBadge("bDB", db);
-    setBadge("bDUP", dup);
-    setBadge("bWARN", 0);
-    setBadge("bUNCAT", uncat);
-    setBadge("bNEW", USER_KW.size);
+  if(best){
+    return {cat: best.cat, key: best.key};
+  }
+  return {cat: "미분류", key: "(없음)"};
+}
+
+/* --------- Category 20 (DISPLAY only) ---------
+   1) 먼저 내부 분류(cat/key)로 count 집계
+   2) count 상위 20개 cat을 topCats로 “고정”
+   3) displayCat은 topCats 밖이면 “미분류”로 접기
+---------------------------------------------- */
+function computeTopCats(){
+  const counts = new Map();
+  for(const r of STATE.records){
+    const cat = r.cat || "미분류";
+    counts.set(cat, (counts.get(cat)||0)+1);
+  }
+  // sort by desc
+  const arr = [...counts.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+  // 상위 20개 + (미분류가 없으면 마지막에 미분류를 포함)
+  let top = arr.slice(0,20);
+  if(!top.includes("미분류")){
+    top = top.slice(0,19);
+    top.push("미분류");
+  }
+  // “전체”는 UI용
+  STATE.topCats = ["전체", ...top];
+}
+
+function displayCategoryFor(rec){
+  if(rec.cat === "전체") return "전체";
+  if(!STATE.topCats || STATE.topCats.length===0) return rec.cat || "미분류";
+  // topCats includes "전체"
+  if(STATE.topCats.includes(rec.cat)) return rec.cat;
+  return "미분류";
+}
+
+function rebuildCountsAndKeywords(){
+  STATE.catCounts = new Map();
+  STATE.keyCountsByCat = new Map();
+  let unclassified = 0;
+
+  for(const r of STATE.records){
+    const dcat = displayCategoryFor(r);
+    STATE.catCounts.set(dcat, (STATE.catCounts.get(dcat)||0)+1);
+
+    const key = r.key || "(없음)";
+    if(dcat==="미분류" && key==="(없음)") unclassified++;
+
+    if(!STATE.keyCountsByCat.has(dcat)) STATE.keyCountsByCat.set(dcat, new Map());
+    const km = STATE.keyCountsByCat.get(dcat);
+    km.set(key, (km.get(key)||0)+1);
   }
 
-  function sortData(list){
-    const mode = $("sortSel").value;
-    const copy = list.slice();
-    if(mode==="date_desc"){
-      copy.sort((a,b)=> (b.pubdate||"").localeCompare(a.pubdate||""));
-    }else if(mode==="title_asc"){
-      copy.sort((a,b)=> (a.title||"").localeCompare(b.title||""));
-    }else{
-      copy.sort((a,b)=> {
-        const c = normalizeCat(a.category).localeCompare(normalizeCat(b.category));
-        if(c) return c;
-        const k = (a.keywords||"").localeCompare(b.keywords||"");
-        if(k) return k;
-        return (b.pubdate||"").localeCompare(a.pubdate||"");
-      });
-    }
-    return copy;
-  }
+  STATE.health.unclassified = unclassified;
+  STATE.health.dup = STATE.dupCount;
+}
 
-  function applyFilter(){
-    const q = (FILTER.q||"").toLowerCase().trim();
-    let list = DATA.filter(r=>{
-      if(FILTER.cat && normalizeCat(r.category)!==FILTER.cat) return false;
-      if(FILTER.kw){
-        const kw = (r.keywords||"").toLowerCase();
-        if(!kw.includes(FILTER.kw.toLowerCase())) return false;
+function setHealthLine(){
+  const h = STATE.health;
+  const status = (h.lockMismatch||h.rowMix||h.dateParse||!h.persistOk||!h.classifyOk||!h.shellOk) ? "RISK" : "OK";
+  const restored = STATE.restored ? "RESTORED" : "NEW";
+  UI.healthLine.innerHTML =
+    `<b>HEALTH</b> ${APP.UPDATED}/${APP.HASH} · ${restored} · ` +
+    `LOCK:${h.lockMismatch?("risk("+h.lockMismatch+")"):"ok(0)"} ` +
+    `ROW_MIX:${h.rowMix?("risk("+h.rowMix+")"):"ok(0)"} ` +
+    `DATE_PARSE:${h.dateParse?("warn("+h.dateParse+")"):"ok(0)"} ` +
+    `PERSIST:${h.persistOk?"ok":"risk"} ` +
+    `CLASSIFY:${h.classifyOk?("ok(unclassified:"+h.unclassified+")"):"risk"} ` +
+    `DUP:${h.dup?("warn("+h.dup+")"):"ok(0)"} ` +
+    `SHELL:${h.shellOk?"ok":"risk"} ` +
+    `· <b>${status}</b>`;
+}
+
+function setStats(){
+  UI.statPill.textContent = `DB ${STATE.records.length} · DUP ${STATE.dupCount} · 미분류 ${STATE.health.unclassified}`;
+  UI.lastInfo.textContent = `Last: ${STATE.lastFile}`;
+}
+
+/* =========================
+   IndexedDB persist
+========================= */
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(APP.dbName, 1);
+    req.onupgradeneeded = ()=>{
+      const db = req.result;
+      if(!db.objectStoreNames.contains(APP.storeRecords)){
+        db.createObjectStore(APP.storeRecords, {keyPath:"rowId"});
       }
-      if(q){
-        const hay = `${r.title} ${r.kor} ${r.isbn} ${r.publisher} ${r.category} ${r.keywords}`.toLowerCase();
-        if(!hay.includes(q)) return false;
+      if(!db.objectStoreNames.contains(APP.storeMeta)){
+        db.createObjectStore(APP.storeMeta, {keyPath:"k"});
       }
-      return true;
-    });
-    return sortData(list);
-  }
-
-  function renderTable(){
-    const list = applyFilter();
-    const tb = $("tbody");
-    tb.innerHTML = "";
-    const frag = document.createDocumentFragment();
-    for(const r of list.slice(0,2000)){ // 과부하 방지
-      const tr = document.createElement("tr");
-      const copy = document.createElement("td");
-      const btn = document.createElement("button");
-      btn.className="btn copyBtn";
-      btn.textContent="복사";
-      btn.onclick=()=> {
-        const text =
-`ROWID: ${r.rowid}
-PubDate: ${r.pubdate}
-Title: ${r.title}
-KOR: ${r.kor}
-ISBN: ${r.isbn}
-Publisher: ${r.publisher}
-Category: ${normalizeCat(r.category)}
-Keywords: ${r.keywords}`;
-        navigator.clipboard.writeText(text);
-        log(`복사: ROWID ${r.rowid}`);
-      };
-      copy.appendChild(btn);
-
-      tr.appendChild(copy);
-      tr.appendChild(td(r.pubdate));
-      tr.appendChild(td(`${r.title}${r.kor ? "\n" + r.kor : ""}`));
-      tr.appendChild(td(r.isbn));
-      tr.appendChild(td(r.publisher));
-      tr.appendChild(td(normalizeCat(r.category)));
-      tr.appendChild(td(r.keywords || ""));
-      frag.appendChild(tr);
-    }
-    tb.appendChild(frag);
-    setBadge("bSTATE", "READY");
-    log(`렌더 완료: ${list.length}건(표시 상한 2000)`);
-  }
-
-  function td(text){
-    const e = document.createElement("td");
-    e.textContent = text || "";
-    e.style.whiteSpace = "pre-wrap";
-    return e;
-  }
-
-  function renderLeftLists(){
-    // category counts
-    const catCount = new Map();
-    for(const c of CATEGORY20) catCount.set(c, 0);
-    for(const r of DATA){
-      const c = normalizeCat(r.category);
-      catCount.set(c, (catCount.get(c)||0)+1);
-    }
-    $("pCat").textContent = String(CATEGORY20.length);
-    const catList = $("catList");
-    catList.innerHTML = "";
-    catList.appendChild(makeItem("(전체)", DATA.length, !FILTER.cat, ()=>{ FILTER.cat=null; FILTER.kw=null; renderLeftLists(); renderTable(); }));
-
-    const sortedCats = CATEGORY20.slice().sort((a,b)=>(catCount.get(b)-catCount.get(a)));
-    for(const c of sortedCats){
-      catList.appendChild(makeItem(c, catCount.get(c)||0, FILTER.cat===c, ()=>{
-        FILTER.cat = c;
-        FILTER.kw = null;
-        renderLeftLists();
-        renderKwListForCategory();
-        renderTable();
-      }));
-    }
-
-    renderKwListForCategory();
-  }
-
-  function renderKwListForCategory(){
-    const kwCount = noteKwCounts();
-    const kwList = $("kwList");
-    kwList.innerHTML = "";
-    const entries = Array.from(kwCount.entries()).sort((a,b)=>b[1]-a[1]).slice(0,200);
-    $("pKw").textContent = String(entries.length);
-    kwList.appendChild(makeItem("(전체)", applyFilter().length, !FILTER.kw, ()=>{ FILTER.kw=null; renderLeftLists(); renderTable(); }));
-    for(const [kw, n] of entries){
-      kwList.appendChild(makeItem(kw, n, FILTER.kw===kw, ()=>{
-        FILTER.kw = kw;
-        renderLeftLists();
-        renderTable();
-      }));
-    }
-  }
-
-  function noteKwCounts(){
-    const map = new Map();
-    const list = DATA.filter(r=> !FILTER.cat || normalizeCat(r.category)===FILTER.cat);
-    for(const r of list){
-      const parts = String(r.keywords||"").split(",").map(x=>x.trim()).filter(Boolean);
-      for(const p of parts){
-        map.set(p, (map.get(p)||0)+1);
-      }
-    }
-    return map;
-  }
-
-  function makeItem(label, n, on, fn){
-    const d = document.createElement("div");
-    d.className = "item";
-    const l = document.createElement("div");
-    l.textContent = label;
-    const r = document.createElement("div");
-    r.className = "pill" + (on ? " on": "");
-    r.textContent = String(n);
-    d.appendChild(l); d.appendChild(r);
-    d.onclick = fn;
-    return d;
-  }
-
-  // =========================
-  // 5) 데이터 로드/분류
-  // =========================
-  function ingestCSV(text){
-    setState("LOADING");
-    const rows = parseCSV(text);
-    if(!rows.length){ log("CSV 파싱 실패(빈 파일)"); setState("READY"); return; }
-
-    const header = rows[0].map(h=>String(h||"").trim());
-    const idx = (name)=> header.findIndex(h=>h.toLowerCase()===name.toLowerCase());
-    const mapRow = (cols)=>{
-      const obj = {};
-      for(let i=0;i<header.length;i++){
-        obj[header[i]] = cols[i] ?? "";
-      }
-      return obj;
     };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
 
-    const out = [];
-    for(let i=1;i<rows.length;i++){
-      const o = mapRow(rows[i]);
-      const rowid = pick(o, ["rowid","ROWID","id","ID"], String(i));
-      const title = pick(o, ["title","Title","book_title","Book Title","idx_title"], "");
-      const kor = pick(o, ["kor","KOR","korean_title","idx_kor"], "");
-      const isbn = pick(o, ["isbn","ISBN","idx_isbn"], "");
-      const publisher = pick(o, ["publisher","Publisher","idx_publisher"], "");
-      let pubdate = pick(o, ["pubdate","PubDate","publication_date","Publishing date","idx_pubdate"], "");
-      let category = pick(o, ["category","Category","idx_category"], "");
-      let keywords = pick(o, ["keywords","Keyword","keyword","idx_keyword"], "");
+async function idbPutMany(storeName, items){
+  const db = await idbOpen();
+  await new Promise((resolve,reject)=>{
+    const tx = db.transaction(storeName, "readwrite");
+    const st = tx.objectStore(storeName);
+    for(const it of items) st.put(it);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+  db.close();
+}
 
-      // 자동 카테고리 채우기(빈 값 또는 이상한 값)
-      const auto = autoCategoryFromText(title, publisher, keywords);
-      category = normalizeCat(category)===CAT_OTHER ? auto : normalizeCat(category);
+async function idbGetAll(storeName){
+  const db = await idbOpen();
+  const out = await new Promise((resolve,reject)=>{
+    const tx = db.transaction(storeName, "readonly");
+    const st = tx.objectStore(storeName);
+    const req = st.getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+  db.close();
+  return out;
+}
 
-      const row = { rowid, title, kor, isbn, publisher, pubdate, category, keywords };
-      row.keywords = buildKeywords(row);
+async function idbClear(){
+  const db = await idbOpen();
+  await new Promise((resolve,reject)=>{
+    const tx = db.transaction([APP.storeRecords, APP.storeMeta], "readwrite");
+    tx.objectStore(APP.storeRecords).clear();
+    tx.objectStore(APP.storeMeta).clear();
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+  db.close();
+}
 
-      out.push(row);
-    }
-
-    DATA = out;
-    computeStats();
-    renderLeftLists();
-    renderTable();
-    setState("READY");
-    log(`CSV 로드 완료: ${DATA.length}건`);
+async function saveMeta(){
+  const meta = [
+    {k:"meta", v:{
+      updated: APP.UPDATED, hash: APP.HASH, edition: APP.EDITION,
+      lastFile: STATE.lastFile,
+      search: STATE.search,
+      selectedCat: STATE.selectedCat,
+      selectedKey: STATE.selectedKey,
+      view: STATE.view,
+      dict: STATE.dict, // 신규 키워드 누적 포함
+      topCats: STATE.topCats, // 고정 20
+    }}
+  ];
+  try{
+    await idbPutMany(APP.storeMeta, meta);
+    STATE.health.persistOk = true;
+  }catch(e){
+    STATE.health.persistOk = false;
   }
+  setHealthLine();
+}
 
-  function refreshAuto(){
-    // 카테고리/키워드 재계산(안전: 존재 값만)
-    for(const r of DATA){
-      const auto = autoCategoryFromText(r.title, r.publisher, r.keywords);
-      r.category = normalizeCat(r.category)===CAT_OTHER ? auto : normalizeCat(r.category);
-      r.category = normalizeCat(r.category);
-      r.keywords = buildKeywords(r);
-    }
-    computeStats();
-    renderLeftLists();
-    renderTable();
-    log("자동 분류 갱신 완료");
-  }
-
-  // =========================
-  // 6) 저장/복원
-  // =========================
-  function saveAll(){
-    localStorage.setItem(LS.DATA, JSON.stringify(DATA));
-    localStorage.setItem(LS.USERKW, JSON.stringify(Array.from(USER_KW)));
-    localStorage.setItem(LS.LAST, JSON.stringify({t:Date.now()}));
-    log("저장 완료");
-  }
-  function restoreAll(){
-    const d = localStorage.getItem(LS.DATA);
-    const k = localStorage.getItem(LS.USERKW);
-    if(!d){ log("복원 실패: 저장된 데이터 없음"); return; }
-    try{
-      DATA = JSON.parse(d) || [];
-      USER_KW = new Set(JSON.parse(k||"[]") || []);
-      computeStats();
-      renderLeftLists();
-      renderTable();
-      log("복원 완료");
-    }catch(e){
-      log("복원 실패: JSON 오류");
-    }
-  }
-
-  function resetAll(){
-    DATA = [];
-    USER_KW = new Set();
-    localStorage.removeItem(LS.DATA);
-    localStorage.removeItem(LS.USERKW);
-    localStorage.removeItem(LS.LAST);
-    computeStats();
-    FILTER = { cat:null, kw:null, q:"" };
-    $("q").value = "";
-    $("kwInput").value = "";
-    renderLeftLists();
-    renderTable();
-    log("DB 초기화 완료");
-  }
-
-  // =========================
-  // 7) 키워드 추가 (단순)
-  // =========================
-  function addUserKeywordsFromInput(){
-    const raw = $("kwInput").value || "";
-    const parts = raw
-      .split(/[\n,;|]+/)
-      .map(s=>s.trim())
-      .filter(Boolean);
-
-    let add=0;
-    for(const p of parts){
-      if(p.length < 2) continue;
-      if(!USER_KW.has(p)){
-        USER_KW.add(p);
-        add++;
+async function saveRecords(){
+  // 대용량 대응: records를 chunk로 저장
+  try{
+    const chunk = [];
+    for(const r of STATE.records){
+      chunk.push(r);
+      if(chunk.length>=500){
+        await idbPutMany(APP.storeRecords, chunk.splice(0, chunk.length));
       }
     }
-    computeStats();
-    log(`키워드 추가: +${add} (총 ${USER_KW.size})`);
-    $("kwInput").value = "";
+    if(chunk.length) await idbPutMany(APP.storeRecords, chunk);
+    STATE.health.persistOk = true;
+  }catch(e){
+    STATE.health.persistOk = false;
   }
+  setHealthLine();
+}
 
-  // =========================
-  // 8) 복사 기능(필터 기반)
-  // =========================
-  function currentFiltered(){
-    return applyFilter();
+async function restoreAll(){
+  try{
+    const metaArr = await idbGetAll(APP.storeMeta);
+    const meta = metaArr.find(x=>x.k==="meta")?.v;
+    const recs = await idbGetAll(APP.storeRecords);
+    if(recs && recs.length){
+      STATE.records = recs;
+      STATE.idMap = new Map();
+      STATE.dupSet = new Set();
+      STATE.dupCount = 0;
+      for(let i=0;i<STATE.records.length;i++){
+        STATE.idMap.set(STATE.records[i].rowId, i);
+      }
+      // restore dict / topCats if exists
+      if(meta?.dict) STATE.dict = meta.dict;
+      if(meta?.topCats) STATE.topCats = meta.topCats;
+
+      // rebuild dup estimate (light)
+      for(const r of STATE.records){
+        detectDup(r); // increases dupCount if duplicates exist
+      }
+
+      // if no topCats, compute
+      if(!STATE.topCats || STATE.topCats.length<5){
+        computeTopCats();
+      }
+      rebuildCountsAndKeywords();
+      applyFilterAndRender();
+
+      // restore ui
+      if(meta){
+        STATE.lastFile = meta.lastFile || STATE.lastFile;
+        STATE.search = meta.search || "";
+        STATE.selectedCat = meta.selectedCat || "전체";
+        STATE.selectedKey = meta.selectedKey || "";
+        STATE.view = meta.view || "table";
+        UI.searchInput.value = STATE.search;
+        setView(STATE.view, false);
+        // keep selection after building lists
+      }
+      STATE.restored = true;
+      log("앱 시작", {UPDATED:APP.UPDATED,HASH:APP.HASH,EDITION:APP.EDITION,restored:true});
+      setStats();
+      setHealthLine();
+      renderSideLists(); // after counts
+      reselectUI();
+      return;
+    }
+  }catch(e){
+    // ignore
   }
-  function copyText(text, doneMsg){
-    navigator.clipboard.writeText(text);
-    log(doneMsg);
-  }
+  STATE.restored = false;
+  log("앱 시작", {UPDATED:APP.UPDATED,HASH:APP.HASH,EDITION:APP.EDITION,restored:false});
+  setStats();
+  setHealthLine();
+}
 
-  // =========================
-  // 9) 바인딩
-  // =========================
-  $("btnUpload").onclick = ()=> $("fileInput").click();
-  $("fileInput").onchange = async (e)=>{
-    const f = e.target.files && e.target.files[0];
-    if(!f) return;
-    const text = await f.text();
-    ingestCSV(text);
-  };
-
-  $("btnReset").onclick = resetAll;
-  $("btnSave").onclick = saveAll;
-  $("btnRestore").onclick = restoreAll;
-
-  $("sortSel").onchange = ()=> renderTable();
-  $("q").oninput = (e)=>{ FILTER.q = e.target.value || ""; renderTable(); };
-  $("q").onkeydown = (e)=>{ if(e.key==="Escape"){ e.preventDefault(); e.target.value=""; FILTER.q=""; renderTable(); } };
-
-  $("btnKwAdd").onclick = ()=> addUserKeywordsFromInput();
-  $("btnKwApply").onclick = ()=> { addUserKeywordsFromInput(); refreshAuto(); };
-  $("btnKwClear").onclick = ()=> { $("kwInput").value=""; };
-  $("kwInput").onkeydown = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); addUserKeywordsFromInput(); } };
-
-  $("btnCopyRowids").onclick = ()=>{
-    const list = currentFiltered();
-    copyText(list.map(r=>r.rowid).join("\n"), `ROWID ${list.length}건 복사 완료`);
-  };
-  $("btnCopyCards").onclick = ()=>{
-    const list = currentFiltered();
-    const text = list.map(r=>
-`[${r.rowid}] ${r.pubdate} | ${normalizeCat(r.category)}
-${r.title}${r.kor ? " / "+r.kor:""}
-ISBN:${r.isbn} | ${r.publisher}
-KW: ${r.keywords}`).join("\n\n");
-    copyText(text, `카드 ${list.length}건 복사 완료`);
-  };
-  $("btnCopyTable").onclick = ()=>{
-    const list = currentFiltered();
-    const text = ["ROWID\tPubDate\tCategory\tTitle\tKOR\tISBN\tPublisher\tKeywords"]
-      .concat(list.map(r=>[
-        r.rowid, r.pubdate, normalizeCat(r.category), (r.title||"").replace(/\t/g," "),
-        (r.kor||"").replace(/\t/g," "), r.isbn, r.publisher, (r.keywords||"").replace(/\t/g," ")
-      ].join("\t"))).join("\n");
-    copyText(text, `테이블 ${list.length}건 복사 완료`);
-  };
-
-  // =========================
-  // 10) 부팅
-  // =========================
-  function boot(){
-    setState("READY");
-    computeStats();
-    renderLeftLists();
-    renderTable();
-    log("VERSION: 2026-02-19B/SIMPLE_CATEGORY20_FIXED");
-    // 자동 복원(있으면)
-    if(localStorage.getItem(LS.DATA)){
-      restoreAll();
+/* =========================
+   CSV stream parser (no libs)
+   - Handles quoted fields
+========================= */
+function splitCSVLine(line){
+  const out = [];
+  let cur = "";
+  let inQ = false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(inQ){
+      if(c === '"'){
+        if(line[i+1] === '"'){ cur += '"'; i++; }
+        else inQ = false;
+      }else cur += c;
+    }else{
+      if(c === '"'){ inQ = true; }
+      else if(c === ","){ out.push(cur); cur=""; }
+      else cur += c;
     }
   }
-  boot();
+  out.push(cur);
+  return out;
+}
+
+function pickHeaderMap(headers){
+  const h = headers.map(x=>lower(x));
+  const idx = {};
+  const find = (...names)=>{
+    for(const n of names){
+      const j = h.indexOf(lower(n));
+      if(j>=0) return j;
+    }
+    return -1;
+  };
+  idx.title = find("title","제목");
+  idx.subtitle = find("sub title","subtitle","sub-title","부제","sub_title");
+  idx.korTitle = find("kor_title","kor title","korean title","한글제목");
+  idx.korSubtitle = find("kor_subtitle","kor subtitle","korean subtitle","한글부제");
+  idx.isbn = find("isbn13","isbn","isbn-13","isbn_13");
+  idx.price = find("price","us$","list price (usd)","price eur","정가","list price");
+  idx.currency = find("currency","통화");
+  idx.pubDate = find("pub date","pubdate","pub date ","pub date\t","pub date (yyyymmdd)","pub date(yyyy-mm-dd)","actual publishing date","pub date (yyyy-mm-dd)","pub date (yyyy/mm/dd)","pub date (yyyy.mm.dd)","발행","발행일","pub date");
+  idx.pages = find("pages","no of pages","no of arabic pages","page","쪽수");
+  idx.publisher = find("publisher","발행사");
+  idx.keywordField = find("keywords","keyword","category/keyword","카테고리/키워드","category keyword");
+  log("매핑 확정", {mapping: idx});
+  return idx;
+}
+
+async function parseCSVFile(file){
+  UI.fileInput.disabled = true;
+  UI.resetBtn.disabled = true;
+  UI.persistClearBtn.disabled = true;
+
+  const fileName = file.name || "uploaded.csv";
+  STATE.lastFile = fileName;
+  setStats();
+
+  log("업로드 시작", {file:fileName, size:file.size});
+
+  const reader = file.stream().getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buf = "";
+  let headers = null;
+  let hmap = null;
+  let rowIndex = 0;
+  let appended = 0;
+
+  // For speed: process in batches
+  const batch = [];
+  const flushBatch = async ()=>{
+    if(!batch.length) return;
+    // append to state
+    for(const r of batch){
+      STATE.idMap.set(r.rowId, STATE.records.length);
+      STATE.records.push(r);
+      appended++;
+    }
+    batch.length = 0;
+    // incremental UI update (light)
+    UI.statPill.textContent = `DB ${STATE.records.length} · DUP ${STATE.dupCount} · 미분류 …`;
+    await new Promise(r=>setTimeout(r,0));
+  };
+
+  while(true){
+    const {value, done} = await reader.read();
+    if(done) break;
+    buf += decoder.decode(value, {stream:true});
+    // split lines
+    let nl;
+    while((nl = buf.indexOf("\n")) >= 0){
+      const line = buf.slice(0, nl).replace(/\r$/, "");
+      buf = buf.slice(nl+1);
+
+      if(!line.trim()) continue;
+
+      if(!headers){
+        headers = splitCSVLine(line);
+        hmap = pickHeaderMap(headers);
+        continue;
+      }
+
+      const cols = splitCSVLine(line);
+      const get = (i)=> (i>=0 && i<cols.length) ? cols[i] : "";
+
+      const title = normalizeStr(get(hmap.title));
+      if(!title) continue;
+
+      const subtitle = normalizeStr(get(hmap.subtitle));
+      const korTitle = normalizeStr(get(hmap.korTitle)) || "[번역대기] " + title;
+      const korSubtitle = normalizeStr(get(hmap.korSubtitle)) || (subtitle ? "[번역대기] " + subtitle : "");
+      const isbn = normalizeStr(get(hmap.isbn));
+      const priceRaw = normalizeStr(get(hmap.price));
+      const currencyRaw = normalizeStr(get(hmap.currency));
+      const pubRaw = normalizeStr(get(hmap.pubDate));
+      const pages = normalizeStr(get(hmap.pages));
+      const publisher = normalizeStr(get(hmap.publisher));
+      const keywordField = normalizeStr(get(hmap.keywordField));
+
+      const pubISO = toISODate(pubRaw);
+
+      const rowId = makeRowId(fileName, rowIndex, title, isbn);
+
+      const rec = {
+        // RAW-ish fields (keep as read-only data)
+        rowId,
+        file: fileName,
+        rowIndex,
+        title,
+        subtitle,
+        korTitle,
+        korSubtitle,
+        isbn,
+        pages,
+        price: parseMoney(priceRaw),
+        currency: currencyRaw || "", // 표시용 보정에서 $/€ 적용
+        publisher,
+        pubDateRaw: pubRaw,
+        pubDateISO: pubISO,
+        keywordField,
+        // INTERNAL classify result
+        cat: "",
+        key: "",
+      };
+
+      // classify INTERNAL (but later displayCategoryFor() may fold to top20)
+      const ck = classifyRecord(rec);
+      rec.cat = ck.cat;
+      rec.key = ck.key;
+
+      // dup
+      if(detectDup(rec)) { /* count already tracked */ }
+
+      batch.push(rec);
+      rowIndex++;
+
+      if(batch.length>=400){
+        await flushBatch();
+      }
+    }
+  }
+  if(buf.trim()){
+    // last line
+    if(!headers){
+      headers = splitCSVLine(buf);
+      hmap = pickHeaderMap(headers);
+    }else{
+      const cols = splitCSVLine(buf.replace(/\r$/,""));
+      // ignore if incomplete
+    }
+  }
+  await flushBatch();
+
+  // finalize
+  if(!STATE.topCats || STATE.topCats.length<5){
+    computeTopCats();
+  }else{
+    // topCats already fixed from previous run → keep it
+    // 단, "전체"가 없으면 보정
+    if(STATE.topCats[0] !== "전체") STATE.topCats = ["전체", ...STATE.topCats.filter(x=>x!=="전체")];
+  }
+  rebuildCountsAndKeywords();
+  applyFilterAndRender();
+  renderSideLists();
+  reselectUI();
+
+  log("업로드 완료", {file:fileName, appended, total:STATE.records.length});
+  setStats();
+  setHealthLine();
+
+  // persist: last action 기준으로 저장(업로드가 마지막 동작)
+  await saveRecords();
+  await saveMeta();
+
+  UI.fileInput.disabled = false;
+  UI.resetBtn.disabled = false;
+  UI.persistClearBtn.disabled = false;
+
+  toast("업로드 완료");
+}
+
+/* =========================
+   Filters + Render (virtual)
+========================= */
+function recordMatchesSearch(r, q){
+  if(!q) return true;
+  const s = q.toLowerCase();
+  return (
+    lower(r.title).includes(s) ||
+    lower(r.subtitle).includes(s) ||
+    lower(r.korTitle).includes(s) ||
+    lower(r.korSubtitle).includes(s) ||
+    lower(r.isbn).includes(s) ||
+    lower(r.publisher).includes(s) ||
+    lower(r.key).includes(s) ||
+    lower(r.cat).includes(s) ||
+    lower(r.keywordField).includes(s)
+  );
+}
+
+function applyFilterAndRender(){
+  const q = lower(STATE.search);
+  const cat = STATE.selectedCat || "전체";
+  const key = STATE.selectedKey || "";
+
+  const ids = [];
+  for(const r of STATE.records){
+    const dcat = displayCategoryFor(r);
+    const okCat = (cat==="전체") ? true : (dcat===cat);
+    const okKey = (!key) ? true : (r.key===key);
+    const okSearch = recordMatchesSearch(r, q);
+    if(okCat && okKey && okSearch) ids.push(r.rowId);
+  }
+  STATE.display = ids;
+
+  UI.filterTag.textContent = `필터: ${cat}${key ? (" > " + key) : ""}${q ? (" · 검색") : ""}`;
+  UI.countTag.textContent = `필터 결과: ${ids.length}`;
+
+  // update spacer height
+  const rh = (STATE.view==="table") ? STATE.rowH_table : STATE.rowH_card;
+  UI.spacer.style.height = (ids.length * rh) + "px";
+
+  // render now
+  renderVirtual();
+  setStats();
+  setHealthLine();
+  saveMeta(); // last action = filter/search/view
+}
+
+function renderVirtual(){
+  const rh = (STATE.view==="table") ? STATE.rowH_table : STATE.rowH_card;
+  const sc = UI.vscroll;
+  const top = sc.scrollTop;
+  const h = sc.clientHeight;
+
+  const start = Math.max(0, Math.floor(top / rh) - 6);
+  const end = Math.min(STATE.display.length, start + Math.ceil(h / rh) + 14);
+
+  const frag = document.createDocumentFragment();
+  if(STATE.view==="table"){
+    const head = document.createElement("div");
+    head.className = "trow thead";
+    head.innerHTML = `
+      <div>발행</div>
+      <div>Title / Sub</div>
+      <div>Publisher</div>
+      <div>ISBN</div>
+      <div>정가</div>
+      <div>복사</div>
+    `;
+    frag.appendChild(head);
+  }
+
+  for(let i=start;i<end;i++){
+    const rowId = STATE.display[i];
+    const idx = STATE.idMap.get(rowId);
+    if(idx==null) continue;
+    const r = STATE.records[idx];
+
+    const y = i * rh;
+
+    if(STATE.view==="table"){
+      const el = document.createElement("div");
+      el.className = "trow";
+      el.style.position="absolute";
+      el.style.top = (y+38) + "px"; // head height offset
+      el.style.left="0"; el.style.right="0";
+
+      const money = formatMoney(r.price, r.currency, r.publisher);
+      el.innerHTML = `
+        <div class="mono">${escapeHTML(r.pubDateISO || r.pubDateRaw || "")}</div>
+        <div>
+          <div class="cellTitle">${escapeHTML(r.title)}</div>
+          <div class="cellSub">${escapeHTML(r.subtitle||"")}</div>
+        </div>
+        <div class="mono">${escapeHTML(r.publisher||"")}</div>
+        <div class="mono">${escapeHTML(r.isbn||"")}</div>
+        <div class="mono">${escapeHTML(money)}</div>
+        <div><button class="copyOne" data-copy="row" data-id="${escapeAttr(rowId)}">복사</button></div>
+      `;
+      frag.appendChild(el);
+    }else{
+      const el = document.createElement("div");
+      el.className = "card";
+      el.style.position="absolute";
+      el.style.top = y + "px";
+      el.style.left="0"; el.style.right="0";
+
+      const money = formatMoney(r.price, r.currency, r.publisher);
+
+      const dcat = displayCategoryFor(r);
+      const key = r.key || "(없음)";
+      el.innerHTML = `
+        <div class="cardTop">
+          <div style="min-width:0">
+            <div class="cardTitle">${escapeHTML(r.title)}</div>
+            ${r.subtitle ? `<div class="cardSub">${escapeHTML(r.subtitle)}</div>` : ``}
+            <div class="cardSub">${escapeHTML(r.korTitle)}</div>
+            ${r.korSubtitle ? `<div class="cardSub">${escapeHTML(r.korSubtitle)}</div>` : ``}
+            <div class="kline"><span class="chip">${escapeHTML(dcat)} &gt; ${escapeHTML(key)}</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+            <button class="copyOne" data-copy="card" data-id="${escapeAttr(rowId)}">복사</button>
+            <button class="copyOne" data-copy="view" data-id="${escapeAttr(rowId)}">보기</button>
+          </div>
+        </div>
+        <div class="meta">
+          <span><b>발행</b> ${escapeHTML(r.pubDateISO || r.pubDateRaw || "")}</span>
+          <span><b>발행사</b> ${escapeHTML(r.publisher||"")}</span>
+          <span><b>Pages</b> ${escapeHTML(r.pages||"(미기재)")}</span>
+          <span><b>ISBN</b> ${escapeHTML(r.isbn||"")}</span>
+          <span><b>정가</b> ${escapeHTML(money)}</span>
+        </div>
+        <div class="small" style="margin-top:10px">[ROWID] ${escapeHTML(r.rowId)}</div>
+      `;
+      frag.appendChild(el);
+    }
+  }
+
+  UI.vlist.innerHTML = "";
+  UI.vlist.style.position="relative";
+  UI.vlist.appendChild(frag);
+
+  // attach copy handlers
+  UI.vlist.querySelectorAll("button[data-copy]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.getAttribute("data-id");
+      const mode = btn.getAttribute("data-copy");
+      if(mode==="row") copyRow(id);
+      else if(mode==="card") copyCard(id);
+      else if(mode==="view"){ toast("보기(현재 버전: 별도 상세창 없음)"); }
+    };
+  });
+}
+
+function escapeHTML(s){
+  return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+}
+function escapeAttr(s){ return escapeHTML(s).replace(/"/g,"&quot;"); }
+
+function formatMoney(price, currency, publisher){
+  const p = normalizeStr(price);
+  if(!p) return "";
+  // USD: $ , EUR: € (publisher/price column from mapping이 없을 수 있으니 보정)
+  const cur = lower(currency);
+  if(cur.includes("eur") || cur==="€" || (publisher && /springer/i.test(publisher) && !cur)){
+    return `€ ${p}`;
+  }
+  // default USD
+  return `$${p.startsWith("$")?p.slice(1):(" "+p)}`.replace("$ ", "$");
+}
+
+function makeCopyBlock(r){
+  const dcat = displayCategoryFor(r);
+  const key = r.key || "(없음)";
+  const money = formatMoney(r.price, r.currency, r.publisher);
+
+  return `${dcat} > ${key}
+${r.title}
+${r.subtitle ? r.subtitle+"\n" : ""}${r.korTitle}
+${r.korSubtitle ? r.korSubtitle+"\n" : ""}
+------------------------------------------------------------
+발행사: ${r.publisher || ""} / Pages: ${r.pages || "(미기재)"} / ISBN: ${r.isbn || ""} / 정가: ${money}
+발행: ${r.pubDateISO || r.pubDateRaw || ""}
+------------------------------------------------------------
+● 자세한 내용의 링크 : (빈칸)
+
+[ROWID] ${r.rowId}
+`;
+}
+
+async function copyToClipboard(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("복사됨");
+    log("복사", {len:text.length});
+  }catch(e){
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value=text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy");
+    document.body.removeChild(ta);
+    toast("복사됨");
+  }
+}
+
+function copyRow(rowId){
+  const idx = STATE.idMap.get(rowId);
+  if(idx==null) return;
+  const r = STATE.records[idx];
+  copyToClipboard(makeCopyBlock(r));
+  log("복사(테이블 1행)", {rowId});
+}
+
+function copyCard(rowId){
+  const idx = STATE.idMap.get(rowId);
+  if(idx==null) return;
+  const r = STATE.records[idx];
+  copyToClipboard(makeCopyBlock(r));
+  log("복사(카드 1건)", {rowId});
+}
+
+function copyAll(){
+  let out = "";
+  for(const rowId of STATE.display){
+    const idx = STATE.idMap.get(rowId);
+    if(idx==null) continue;
+    out += makeCopyBlock(STATE.records[idx]) + "\n";
+  }
+  copyToClipboard(out.trim()+"\n");
+  log("현재 화면 전체 복사", {count: STATE.display.length});
+}
+
+/* =========================
+   Side lists (Category / Keyword)
+========================= */
+function renderSideLists(){
+  // categories: STATE.topCats (includes 전체)
+  UI.catList.innerHTML = "";
+  for(const cat of STATE.topCats){
+    const cnt = (cat==="전체") ? STATE.records.length : (STATE.catCounts.get(cat)||0);
+    const btn = document.createElement("button");
+    btn.className = "itemBtn" + (STATE.selectedCat===cat ? " active" : "");
+    btn.innerHTML = `<span>${cat}</span><span class="count">${cnt}</span>`;
+    btn.onclick = ()=>{
+      STATE.selectedCat = cat;
+      STATE.selectedKey = "";
+      log("카테고리 필터", {cat});
+      renderSideLists();
+      applyFilterAndRender();
+    };
+    UI.catList.appendChild(btn);
+  }
+
+  // keywords for selected category
+  const cat = STATE.selectedCat || "전체";
+  const dcat = (cat==="전체") ? "전체" : cat;
+  const km = (dcat==="전체")
+    ? mergeKeywordCountsAll()
+    : (STATE.keyCountsByCat.get(dcat) || new Map());
+
+  const keys = [...km.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+  UI.kwList.innerHTML = "";
+
+  if(cat==="전체"){
+    UI.kwHint.textContent = "전체에서 키워드를 누르면, 해당 키워드로 바로 필터됩니다.";
+  }else{
+    UI.kwHint.textContent = `카테고리 "${cat}" 안에서 키워드가 자동으로 쪼개져 표시됩니다.`;
+  }
+
+  for(const key of keys){
+    const cnt = km.get(key)||0;
+    const btn = document.createElement("button");
+    btn.className = "itemBtn" + (STATE.selectedKey===key ? " active" : "");
+    btn.innerHTML = `<span>${key}</span><span class="count">${cnt}</span>`;
+    btn.onclick = ()=>{
+      STATE.selectedKey = key;
+      log("키워드 필터", {cat:STATE.selectedCat, key});
+      renderSideLists();
+      applyFilterAndRender();
+    };
+    UI.kwList.appendChild(btn);
+  }
+}
+
+function mergeKeywordCountsAll(){
+  const merged = new Map();
+  for(const [cat, km] of STATE.keyCountsByCat.entries()){
+    for(const [k,c] of km.entries()){
+      merged.set(k, (merged.get(k)||0) + c);
+    }
+  }
+  return merged;
+}
+
+function reselectUI(){
+  // apply active classes without rebuilding? easiest: rebuild
+  renderSideLists();
+}
+
+function setView(view, scrollTopReset=true){
+  STATE.view = view;
+  UI.tabTable.classList.toggle("active", view==="table");
+  UI.tabCards.classList.toggle("active", view==="cards");
+  UI.viewHint.textContent = (view==="table")
+    ? "테이블=워드/엑셀 붙여넣기용 · (대용량 시 렌더 최소)"
+    : "카드(리스트)=여러 건 안내서 복사/확인용 · (대용량 시 렌더 최소)";
+  if(scrollTopReset) UI.vscroll.scrollTop = 0;
+  applyFilterAndRender();
+}
+
+/* =========================
+   신규 키워드 추가 (누적만)
+   - 기존 키워드/분류 건드리지 않음
+========================= */
+function addNewKeywords(input){
+  const raw = normalizeStr(input);
+  if(!raw) return {added:0, skipped:0};
+  const parts = raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+  let added=0, skipped=0;
+  for(const p of parts){
+    const k = p.toLowerCase();
+    if(STATE.dict[k]){ skipped++; continue; }
+    // 신규는 “미분류 보정용”으로만 들어가도 효과가 생김(후속 업로드/재로딩에서 잡힘)
+    // 카테고리는 안전하게 "미분류" 대신, 텍스트 자체가 분야 힌트면 간단 보정
+    const guess = guessCategoryFromKeyword(k);
+    STATE.dict[k] = {cat: guess, pr: 4}; // 신규는 우선순위 낮게(기존 규칙 우선)
+    added++;
+  }
+  return {added, skipped};
+}
+
+function guessCategoryFromKeyword(k){
+  // 아주 보수적(안전)
+  if(/ai|robot|ml|deep/.test(k)) return "AI/로봇";
+  if(/battery|lithium/.test(k)) return "배터리";
+  if(/energy|solar|hydrogen|recycl/.test(k)) return "에너지";
+  if(/bank|finance|invest/.test(k)) return "금융";
+  if(/market|brand/.test(k)) return "마케팅";
+  if(/educ|school/.test(k)) return "교육";
+  if(/medical|health|disease|clinical/.test(k)) return "의학";
+  if(/epoxy|pu|polymer|resin|chem/.test(k)) return "소재/화학";
+  if(/semi|chip/.test(k)) return "반도체";
+  return "미분류";
+}
+
+async function applyNewKeywords(){
+  const res = addNewKeywords(UI.newKwInput.value);
+  UI.newKwInput.value = "";
+  UI.kwApplyResult.textContent = `신규 ${res.added}개 추가, 중복 ${res.skipped}개 건너뜀`;
+  toast(`신규 ${res.added}개 누적`);
+  log("신규 키워드 누적", res);
+
+  // “기존 분류/키워드는 건드리지 않기” 위해:
+  // - 기존 record.cat/key는 그대로 둔다
+  // - 다음 업로드부터 신규 키워드가 반영되어 더 잘 잡힘
+  await saveMeta();
+}
+
+/* =========================
+   Events
+========================= */
+UI.fileInput.addEventListener("change", async (e)=>{
+  const f = e.target.files?.[0];
+  if(!f) return;
+  await parseCSVFile(f);
+  e.target.value = "";
+});
+
+UI.searchInput.addEventListener("input", ()=>{
+  STATE.search = UI.searchInput.value;
+  log("검색", {q: STATE.search});
+  applyFilterAndRender();
+});
+
+UI.clearSearchBtn.onclick = ()=>{
+  UI.searchInput.value = "";
+  STATE.search = "";
+  log("검색 해제");
+  applyFilterAndRender();
+};
+
+UI.resetBtn.onclick = async ()=>{
+  STATE.records = [];
+  STATE.display = [];
+  STATE.idMap = new Map();
+  STATE.dupSet = new Set();
+  STATE.dupCount = 0;
+  STATE.selectedCat = "전체";
+  STATE.selectedKey = "";
+  STATE.search = "";
+  STATE.topCats = ["전체","미분류"];
+  STATE.catCounts = new Map();
+  STATE.keyCountsByCat = new Map();
+  STATE.health = {lockMismatch:0,rowMix:0,dateParse:0,persistOk:true,classifyOk:true,unclassified:0,dup:0,shellOk:true};
+  UI.searchInput.value = "";
+  UI.logBox.textContent = "";
+  await idbClear();
+  log("DB 초기화");
+  setStats();
+  setHealthLine();
+  renderSideLists();
+  applyFilterAndRender();
+};
+
+UI.persistClearBtn.onclick = async ()=>{
+  await idbClear();
+  toast("persist 삭제");
+  log("persist 삭제");
+};
+
+UI.tabTable.onclick = ()=>setView("table");
+UI.tabCards.onclick = ()=>setView("cards");
+UI.copyAllBtn.onclick = ()=>copyAll();
+
+UI.vscroll.addEventListener("scroll", ()=>{
+  // throttle
+  if(UI.vscroll._t) return;
+  UI.vscroll._t = requestAnimationFrame(()=>{
+    UI.vscroll._t = null;
+    renderVirtual();
+  });
+});
+
+UI.applyKwBtn.onclick = ()=>applyNewKeywords();
+
+/* =========================
+   Boot
+========================= */
+(async function init(){
+  await restoreAll();
+  // if no records restored, initialize lists
+  if(!STATE.records.length){
+    STATE.topCats = ["전체","미분류"];
+    renderSideLists();
+    applyFilterAndRender();
+  }
+  // always show HEALTH at top
+  setHealthLine();
 })();
 </script>
 </body>
