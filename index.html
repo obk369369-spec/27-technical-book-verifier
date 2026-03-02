@@ -230,7 +230,7 @@
   const LS_RULES = 'TBV27_RULES_V1';
   const LS_PERSIST = 'TBV27_PERSIST_V1';
   const IDB_NAME = 'TBV27_IDB_V1';
-  const IDB_VER = 1;
+  const IDB_VER = 2;
   const IDB_STORE_ROWS = 'rows';
   const IDB_STORE_META = 'meta';
   const IDB_STORE_LOGS = 'logs';
@@ -239,8 +239,15 @@
       const req = indexedDB.open(IDB_NAME, IDB_VER);
       req.onupgradeneeded = () => {
         const db = req.result;
-        if(!db.objectStoreNames.contains(IDB_STORE_ROWS)){
-          db.createObjectStore(IDB_STORE_ROWS, { keyPath: 'id' });
+        if(db.objectStoreNames.contains(IDB_STORE_ROWS)){
+          const os = req.transaction.objectStore(IDB_STORE_ROWS);
+          const kp = (os && os.keyPath) ? os.keyPath : null;
+          if(kp !== 'ROWID'){
+            db.deleteObjectStore(IDB_STORE_ROWS);
+            db.createObjectStore(IDB_STORE_ROWS, { keyPath: 'ROWID' });
+          }
+        } else {
+          db.createObjectStore(IDB_STORE_ROWS, { keyPath: 'ROWID' });
         }
         if(!db.objectStoreNames.contains(IDB_STORE_META)){
           db.createObjectStore(IDB_STORE_META, { keyPath: 'k' });
@@ -309,9 +316,9 @@
     return new Promise((resolve, reject) => {
       const tx = db.transaction(IDB_STORE_META, 'readwrite');
       const st = tx.objectStore(IDB_STORE_META);
-      const req = st.put({k:'persist', v});
-      req.onsuccess = () => { tx.oncomplete = () => { db.close(); resolve(true); }; };
-      req.onerror = () => { const e = req.error; db.close(); reject(e); };
+      st.put({k:'persist', v});
+      tx.oncomplete = () => { db.close(); resolve(true); };
+      tx.onerror = () => { const e = tx.error; db.close(); reject(e); };
     });
   }
 
@@ -490,13 +497,16 @@
         }
         UI.persistOk = false;
         UI.lastPersistError = '';
-        // store reset 제거: 기존 데이터/메타를 지우지 않음 (안정성)
+        // store reset
+        await idbClearStore(IDB_STORE_ROWS);
+        await idbClearStore(IDB_STORE_META);
 
         const batch = 600; // 500~1000
+        // ROWID 강제 보장 (IDB keyPath)
+        for(let i=0;i<DB.length;i++){ if(!DB[i].ROWID){ DB[i].ROWID = makeRowId(UI.lastFile||'DB', i+1); } }
         for(let i=0;i<DB.length;i+=batch){
           const chunk = DB.slice(i,i+batch).map(r=>({
-            id: (r.ROWID||r.id||''),
-            ROWID: r.ROWID||"",
+            ROWID: (r.ROWID||r.id||""),
             Title: r.Title||"",
             SubTitle: r.SubTitle||"",
             KOR_TITLE: r.KOR_TITLE||"",
@@ -552,33 +562,22 @@ async function loadState(){
       if(u){ UI = {...UI, ...JSON.parse(u)}; }
     }catch(e){}
     try{
-      const meta = await idbGetMeta().catch(()=>null);
-    // 메타가 없더라도 rows store에 데이터가 있으면 복원한다.
-    let rows = [];
-    try{ rows = await idbLoadAllRows(); }catch(e){ rows = []; }
-    if(rows.length){
-      DB = rows;
-      // search cache 복구
-      for(const r of DB){ r.__search = buildSearchBlob(r); }
-      UI.restored = true;
-      UI.persistOk = true;
-      UI.lastFile = (meta && meta.lastFile) ? meta.lastFile : (rows[rows.length-1]._srcFile || UI.lastFile || '(unknown)');
-      // meta가 없거나 count 불일치면 갱신
-      const want = {count: DB.length, lastFile: UI.lastFile, ts: Date.now()};
-      if(!meta || meta.count !== DB.length){ try{ await idbPutMeta(want); }catch(e){} }
-      log('복원 완료', {count: DB.length, lastFile: UI.lastFile});
-      renderAll();
-      restored = true;
-    }else if(meta && meta.count>0){
-      // meta는 있는데 rows가 없으면: 복원 실패로 기록
-      UI.restored = false;
-      UI.persistOk = false;
-      log('복원 실패', {metaCount: meta.count});
-    }else{
-      UI.restored = false;
-      UI.persistOk = true; // 아직 저장 전이므로 bad로 만들지 않음
-    }
-    // UI restore
+      const meta = await idbGetMeta();
+      if(meta && meta.count>=0){
+        UI.persistOk = true;
+        if(meta.count>0){
+        // 복원은 1회만
+        const rows = await idbLoadAllRows();
+        // id 기준 정렬 후 id 제거(있어도 무해)
+        rows.sort((a,b)=>(a.id??0)-(b.id??0));
+        for(const r of rows){ delete r.id; }
+        DB = rows;
+        restored = DB.length>0;
+      }
+      }
+    }catch(e){}
+    UI.restored = restored;
+    lastFile.textContent = UI.lastFile || '(없음)';
     q.value = UI.q || '';
     q2.value = UI.q2 || '';
     sortSel.value = UI.sort || 'CK_PUB_ASC';
@@ -640,30 +639,6 @@ async function loadState(){
   }
   function normLow(s){
     return normalize(s).toLowerCase();
-  }
-
-  function sciToIntStr(s){
-    s = normalize(s);
-    if(!s) return '';
-    const m = s.match(/^([0-9]+(?:\.[0-9]+)?)E\+?([0-9]+)$/i);
-    if(!m) return '';
-    let mant = m[1].replace('.','');
-    const decPlaces = (m[1].split('.')[1]||'').length;
-    const exp = parseInt(m[2],10);
-    // value = mantissa * 10^(exp - decPlaces)
-    let zeros = exp - decPlaces;
-    if(zeros < 0) zeros = 0;
-    return mant + '0'.repeat(zeros);
-  }
-  function digitsOnly(s){ return normalize(s).replace(/\D+/g,''); }
-  function buildSearchBlob(r){
-    const parts = [
-      r.Title, r.SubTitle, r.KOR_TITLE, r.KOR_SUBTITLE,
-      r.ISBN, sciToIntStr(r.ISBN), digitsOnly(r.ISBN),
-      r.Publisher, r.Category, r.Keyword,
-      r.Price, r.Currency, r.PubDate, r.Pages
-    ];
-    return parts.map(x=>normalize(x).toLowerCase()).join(' ');
   }
   function classifyRow(row){
     // row: {Title,SubTitle,KOR_TITLE,KOR_SUBTITLE,ISBN,Price,Currency,PubDate,Pages,Publisher,ROWID}
@@ -876,12 +851,8 @@ async function loadState(){
     }
     const qq = normLow(UI.q);
     if(qq){
-      const blob = r.__search || (r.__search = buildSearchBlob(r));
-      // 공백/쉼표로 여러 단어를 넣어도 모두 AND 매칭
-      const terms = qq.split(/[\s,]+/).filter(Boolean);
-      for(const t of terms){
-        if(!blob.includes(t)) return false;
-      }
+      const blob = `${r.Title} ${r.SubTitle} ${r.KOR_TITLE} ${r.KOR_SUBTITLE} ${r.ISBN} ${r.Publisher} ${r.Category} ${r.Keyword}`.toLowerCase();
+      if(!blob.includes(qq)) return false;
     }
     return true;
   }
