@@ -240,12 +240,9 @@
       req.onupgradeneeded = () => {
         const db = req.result;
         if(db.objectStoreNames.contains(IDB_STORE_ROWS)){
-          const os = req.transaction.objectStore(IDB_STORE_ROWS);
-          const kp = (os && os.keyPath) ? os.keyPath : null;
-          if(kp !== 'ROWID'){
-            db.deleteObjectStore(IDB_STORE_ROWS);
-            db.createObjectStore(IDB_STORE_ROWS, { keyPath: 'ROWID' });
-          }
+          // ✅ 기존 rows store는 절대 삭제하지 않는다(데이터 보존 최우선).
+          // keyPath가 달라도 읽기는 가능하므로 유지하고,
+          // 쓰기 시 id/ROWID를 모두 넣어 호환 처리한다.
         } else {
           db.createObjectStore(IDB_STORE_ROWS, { keyPath: 'ROWID' });
         }
@@ -507,6 +504,7 @@
         for(let i=0;i<DB.length;i+=batch){
           const chunk = DB.slice(i,i+batch).map(r=>({
             ROWID: (r.ROWID||r.id||""),
+            id: (r.ROWID||r.id||""),
             Title: r.Title||"",
             SubTitle: r.SubTitle||"",
             KOR_TITLE: r.KOR_TITLE||"",
@@ -565,15 +563,15 @@ async function loadState(){
       const meta = await idbGetMeta();
       if(meta && meta.count>=0){
         UI.persistOk = true;
-        if(meta.count>0){
         // 복원은 1회만
         const rows = await idbLoadAllRows();
-        // id 기준 정렬 후 id 제거(있어도 무해)
-        rows.sort((a,b)=>(a.id??0)-(b.id??0));
-        for(const r of rows){ delete r.id; }
+        // ✅ rows 복원(기존 keyPath 호환: id/ROWID 동시 유지)
+        for(const r of rows){
+          if(!r.ROWID && r.id) r.ROWID = r.id;
+          if(!r.id && r.ROWID) r.id = r.ROWID;
+        }
         DB = rows;
         restored = DB.length>0;
-      }
       }
     }catch(e){}
     UI.restored = restored;
@@ -640,7 +638,17 @@ async function loadState(){
   function normLow(s){
     return normalize(s).toLowerCase();
   }
-  function classifyRow(row){
+  function isbnKey(v){
+    const s = String(v||'').trim();
+    if(!s) return '';
+    // Excel 과학표기(예: 9.78013E+12)에서도 '978' 검색이 되도록 보조 키 생성
+    if(/^[0-9]\.[0-9]+E\+[0-9]+$/i.test(s) && s.startsWith('9.78')) return '978';
+    // 숫자만 추출
+    const digits = s.replace(/\D+/g,'');
+    if(digits) return digits;
+    return s.toLowerCase();
+  }
+    function classifyRow(row){
     // row: {Title,SubTitle,KOR_TITLE,KOR_SUBTITLE,ISBN,Price,Currency,PubDate,Pages,Publisher,ROWID}
     const text = `${row.Title} ${row.SubTitle} ${row.Publisher} ${row.ISBN}`.toLowerCase();
     // (A) 사전 매칭 + (B) 우선순위
@@ -851,7 +859,7 @@ async function loadState(){
     }
     const qq = normLow(UI.q);
     if(qq){
-      const blob = `${r.Title} ${r.SubTitle} ${r.KOR_TITLE} ${r.KOR_SUBTITLE} ${r.ISBN} ${r.Publisher} ${r.Category} ${r.Keyword}`.toLowerCase();
+      const blob = `${r.Title} ${r.SubTitle} ${r.KOR_TITLE} ${r.KOR_SUBTITLE} ${r.ISBN} ${isbnKey(r.ISBN)} ${r.Publisher} ${r.Category} ${r.Keyword}`.toLowerCase();
       if(!blob.includes(qq)) return false;
     }
     return true;
@@ -1077,14 +1085,23 @@ async function loadState(){
     return `$${p}`;
   }
   function buildGuide(r){
-    // ✅ 고객용 출력(YYYY-MM-DD)
+    // ✅ 고객용 출력(복사 형식)
+    const pub = r.Publisher || '(미기재)';
+    const pages = r.Pages || '(미기재)';
+    const isbn = r.ISBN || '(미기재)';
+    const rawPrice = String(r.Price||'').trim();
+    const priceCore = rawPrice.replace(/^[\s$€]+/,'');
+    const sym = (r.Currency==='__CONST_EUR__') ? '€' : '$';
+    const price = priceCore ? (sym + priceCore) : '(미기재)';
+    const supply = '원'; // 사용자가 수기로 채우는 칸(계산 로직 없음)
+
     return `${r.Category} > ${r.Keyword}
 ${r.Title}
 ${r.SubTitle ? r.SubTitle + "\n" : ""}${r.KOR_TITLE}
 ${r.KOR_SUBTITLE ? r.KOR_SUBTITLE + "\n" : ""}
 ------------------------------------------------------------
-발행사: ${r.Publisher} / Pages: ${r.Pages||'(미기재)'} / ISBN: ${r.ISBN} / 정가: ${formatPrice(r.Price,r.Currency)}
-발행: ${r.PubDate}
+발행사: ${pub}         Pages: ${pages}              정가: ${price}
+발행: ${r.PubDate}      ISBN: ${isbn}    공급가격:     ${supply}
 ------------------------------------------------------------
 ● 자세한 내용의 링크 : (빈칸)
 [ROWID] ${r.ROWID}
@@ -1232,6 +1249,7 @@ ${r.KOR_SUBTITLE ? r.KOR_SUBTITLE + "\n" : ""}
             LOCK: null
           };
           row.Currency = detectCurrency(f.name, headerMap, cells);
+          row.id = row.ROWID;
           // 날짜 normalize (YYYY-MM-DD 목표)
           const before = row.PubDate;
           row.PubDate = normalizePubDate(row.PubDate);
@@ -1414,6 +1432,9 @@ ${r.KOR_SUBTITLE ? r.KOR_SUBTITLE + "\n" : ""}
   };
   q.oninput = () => {
     UI.q = q.value || '';
+    // ✅ 검색은 항상 '전체' 기준(카테고리/키워드 필터가 남아있어 검색이 안 되는 문제 차단)
+    UI.filterCat = '전체';
+    UI.filterKey = '';
     saveUI();
     renderAll();
   };
