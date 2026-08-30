@@ -521,7 +521,7 @@
           }));
           await idbPutMany(IDB_STORE_ROWS, chunk);
           // UI 멈춤 방지
-          if(i===0 || (i/batch)%3===0) await yieldUI();
+          if(i===0 || (i/batch)%3===0) await new Promise(resolve => setTimeout(resolve, 0));
         }
         await idbPutMeta({count: DB.length, lastFile: UI.lastFile||'', ts: Date.now()});
 
